@@ -61,6 +61,7 @@ initial_node() {
     # 添加记录
     echo "install_kubeadm" >> ${script_dir}/config/record.txt
   }
+  result_msg "完成初始化节点" || exit 1
 }
 
 
@@ -132,6 +133,11 @@ update_hosts() {
 scp_check() {
   rm -f ${script_dir}/remote.sh
   result_msg "删除所有 node 上的 remote 脚本" || exit 1
+
+  if [ -d ${script_dir}/.git ];then
+    rm -rf ${script_dir}/.git
+    result_msg "删除所有 node 上的 .git" || exit 1
+  fi
 
   [ ${IS_MASTER} == 'y' ] || {
     rm -rf ${script_dir}/pki

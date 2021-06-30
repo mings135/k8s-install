@@ -59,8 +59,13 @@ echo_failure() {
 
 result_msg()
 {
+  if (( ${HOST_IP: -1} % 2 == 0 )); then
+    h_ip=$(green_font ${HOST_IP})
+  else
+    h_ip=$(pink_font ${HOST_IP})
+  fi
   if [ $? -eq 0 ];then
-    action "$(green_font ${HOST_IP}): $*" "/bin/true"
+    action "$(green_font ${h_ip}): $*" "/bin/true"
   else
     action "$(red_font ${HOST_IP}): $*" "/bin/false"
   fi
