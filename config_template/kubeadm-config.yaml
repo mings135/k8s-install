@@ -1,0 +1,60 @@
+apiVersion: kubeadm.k8s.io/v1beta2
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  token: abcdef.0123456789abcdef
+  ttl: 24h0m0s
+  usages:
+  - signing
+  - authentication
+kind: InitConfiguration
+localAPIEndpoint:
+  # 本机地址
+  advertiseAddress: ${HOST_IP}
+  bindPort: 6443
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+  # 本机主机名
+  name: ${HOST_NAME}
+  taints:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+---
+apiServer:
+  timeoutForControlPlane: 4m0s
+apiVersion: kubeadm.k8s.io/v1beta2
+certificatesDir: /etc/kubernetes/pki
+clusterName: kubernetes
+# 添加，这个时集群的代理控制 ip，也就是 VIP，端口时 api-server 端口
+controlPlaneEndpoint: "${CLUSTER_VIP}:${CLUSTER_PORT}"
+controllerManager: {}
+dns:
+  type: CoreDNS
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+# 镜像仓库地址
+imageRepository: ${IMAGE_REPOSITORY}
+kind: ClusterConfiguration
+# kubernetes 版本
+kubernetesVersion: v${K8S_VERSION}
+networking:
+  dnsDomain: cluster.local
+  # POD 网络，要和 flannel 对应，默认 10.244.0.0/16
+  podSubnet: ${POD_NETWORK}
+  serviceSubnet: ${SVC_NETWORK}
+scheduler: {}
+---
+# 额外增加的配置，kube-proxy 代理 mode = ipvs，调度算法 = nq
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+mode: ipvs
+ipvs:
+  scheduler: "nq"
+---
+# 额外增加的配置，kubelet 指定 Cgroup = systemd，指定日志大小
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd
+containerLogMaxSize: "100Mi"
+containerLogMaxFiles: 5
