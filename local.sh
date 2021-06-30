@@ -86,6 +86,19 @@ issue_certs() {
 }
 
 
+issue_kubelet() {
+  check_record
+  source ${script_dir}/script/kubelet.sh
+
+  [ $(grep 'issue_kubelet' ${script_dir}/config/record.txt | wc -l) -ne 0 ] || {
+    kubelet_conf_crt
+    systemctl restart kubelet
+    # 添加记录
+    echo "issue_kubelet" >> ${script_dir}/config/record.txt
+  }
+}
+
+
 update_hosts() {
   master_number=${#MASTER_NODES[@]}
   work_number=${#WORK_NODES[@]}
@@ -132,6 +145,7 @@ main() {
     "make_config" ) make_config;;
     "initial_node" ) initial_node;;
     "issue_certs" ) issue_certs;;
+    "issue_kubelet" ) issue_kubelet;;
     "update_hosts" ) update_hosts;;
     "scp_check" ) scp_check;;
     * )

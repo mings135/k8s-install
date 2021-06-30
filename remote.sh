@@ -26,7 +26,7 @@ distribute_project_files() {
       ssh root@${i} rm -rf ${INSTALL_SCRIPT}
       scp -r ${script_dir} root@${i}:${INSTALL_SCRIPT} || exit 1
       # 判断是否要删除 pki
-      ssh root@${i} sh ${INSTALL_SCRIPT}/scp_check.sh || exit 1
+      ssh root@${i} sh ${INSTALL_SCRIPT}/local.sh scp_check || exit 1
       # 记录
       ssh root@${i} touch ${INSTALL_SCRIPT}/config/record.txt
     fi
@@ -38,17 +38,18 @@ distribute_project_files() {
 make_config_files() {
   for i in "${ALL_NODES[@]}"
   do
-    ssh root@${i} sh ${INSTALL_SCRIPT}/make_config.sh || exit 1
+    ssh root@${i} sh ${INSTALL_SCRIPT}/local.sh make_config || exit 1
   done
 }
 
 
 # k8s 节点：安装、配置、初始化所有相关软件和系统
 install_initial_k8s() {
-  for i in "${ALL_NODES[@]}"
-  do
-    ssh root@${i} sh ${INSTALL_SCRIPT}/k8s_install.sh || exit 1
-  done
+  python3 ${script_dir}/modules/concurrentRun.py "sh ${INSTALL_SCRIPT}/local.sh initial_node" ${ALL_NODES[*]}
+#  for i in "${ALL_NODES[@]}"
+#  do
+#    ssh root@${i} sh ${INSTALL_SCRIPT}/local.sh initial_node || exit 1
+#  done
 }
 
 
@@ -57,7 +58,7 @@ k8s_issue_certs() {
   for i in "${MASTER_NODES[@]}"
   do
     # 各个节点签发证书
-    ssh root@${i} sh ${INSTALL_SCRIPT}/issue_certs.sh || exit 1
+    ssh root@${i} sh ${INSTALL_SCRIPT}/local.sh issue_certs || exit 1
   done
 }
 
@@ -68,7 +69,7 @@ kubelet_issue_certs() {
   do
     scp ${script_dir}/pki/ca.{crt,key} root@${i}:${KUBELET_PKI} || exit 1
     # 签发证书
-    ssh root@${i} sh ${INSTALL_SCRIPT}/issue_kubelet.sh || {
+    ssh root@${i} sh ${INSTALL_SCRIPT}/local.sh issue_kubelet || {
       ssh root@${i} rm -f ${KUBELET_PKI}/ca.{crt,key}
       exit 1
     }
@@ -82,7 +83,7 @@ update_etc_hosts() {
   for i in "${ALL_NODES[@]}"
   do
     scp ${script_dir}/config/kube.conf root@${i}:${INSTALL_SCRIPT}/config || exit 1
-    ssh root@${i} sh ${INSTALL_SCRIPT}/update_hosts.sh || exit 1
+    ssh root@${i} sh ${INSTALL_SCRIPT}/local.sh update_hosts || exit 1
   done
 }
 
@@ -121,8 +122,8 @@ main() {
     printf "%-16s %-s\n" 'make' '各个节点自动创建配置文件'
     printf "%-16s %-s\n" 'initial' '各个节点初始化、安装、配置 k8s 相关应用'
     printf "%-16s %-s\n" 'certs' 'master 节点签发相关证书，此操作会清空 /etc/kubernetes/pki 目录！'
-    printf "%-16s %-s\n" 'update_hosts' '更新所有节点 kube.conf，然后根据 kube.conf 更新 /etc/hosts'
     printf "%-16s %-s\n" 'kubelet' '所有节点签发 kubelet 相关证书，此操作会覆盖原有证书！'
+    printf "%-16s %-s\n" 'update_hosts' '更新所有节点 kube.conf，然后根据 kube.conf 更新 /etc/hosts'
     printf "%-16s %-s\n" 'delete_record' '删除所有节点的操作记录，默认：有相关操作记录不会重复执行'
     printf "%-16s %-s\n" 'all' 'distribute->make->initial'
     exit 1
