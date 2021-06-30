@@ -23,6 +23,10 @@ pink_font() {
    echo -e "\033[35m\033[01m$1\033[0m"
 }
 
+auto_font() {
+   echo -e "\033[3$2m\033[01m$1\033[0m"
+}
+
 action() {
   local STRING rc
 
@@ -57,15 +61,11 @@ echo_failure() {
   return 1
 }
 
-result_msg()
-{
-  if (( ${HOST_IP: -1} % 2 == 0 )); then
-    h_ip=$(green_font ${HOST_IP})
-  else
-    h_ip=$(pink_font ${HOST_IP})
-  fi
+result_msg() {
+  ip_end="$(echo ${HOST_IP} | gawk -F '.' '{print $NF}')"
+  ip_color=$(( ${ip_end} % 7 ))
   if [ $? -eq 0 ];then
-    action "$(green_font ${h_ip}): $*" "/bin/true"
+    action "$(auto_font ${HOST_IP} ${ip_color}): $*" "/bin/true"
   else
     action "$(red_font ${HOST_IP}): $*" "/bin/false"
   fi
