@@ -131,7 +131,7 @@ update_hosts() {
 
 scp_check() {
   rm -f ${script_dir}/remote.sh
-  result_msg "删除 node 上的 remote 脚本" || exit 1
+  result_msg "删除所有 node 上的 remote 脚本" || exit 1
 
   [ ${IS_MASTER} == 'y' ] || {
     rm -rf ${script_dir}/pki

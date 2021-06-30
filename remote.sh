@@ -5,7 +5,7 @@ script_dir=$(dirname $(readlink -f $0))
 source ${script_dir}/config/kube.conf
 source ${script_dir}/script/calculation.sh
 source ${script_dir}/modules/result.sh
-source ${script_dir}/modules/ca.sh
+source ${script_dir}/script/ca.sh
 
 
 # 运维节点：创建 3 张 CA 证书，请谨慎操作，以免覆盖需要的 ca（如需自定义证书，必须最先执行）
