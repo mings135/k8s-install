@@ -10,9 +10,14 @@ source ${script_dir}/script/ca.sh
 
 # 运维节点：创建 3 张 CA 证书，请谨慎操作，以免覆盖需要的 ca（如需自定义证书，必须最先执行）
 create_ca_certs() {
-  [ -d ${script_dir}/pki ] || mkdir ${script_dir}/pki
-  cd ${script_dir}/pki
-  ca_crt
+  if [ -d ${script_dir}/pki ]; then
+    yellow_font '请先手动删除 pki 目录'
+    exit 0
+  else
+    mkdir ${script_dir}/pki
+    cd ${script_dir}/pki
+    ca_crt
+  fi
 }
 
 

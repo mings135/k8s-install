@@ -112,11 +112,11 @@ sh remote.sh update_hosts
 
 ## 安装
 
-**所有操作在第一台 k8s master 节点上**
+**所有操作在第一台 k8s master 节点上，并进入 `INSTALL_SCRIPT` 目录**
 
 
 
-- 请确认已经完成以下内容
+- **请确认已经完成以下内容**
   - 配置好 4 层代理到 api server 6443 端口
   - 配置好 DNS 域名解析 或 执行过 update_hosts
 
