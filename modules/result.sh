@@ -1,4 +1,6 @@
-# 格式化输出
+# 格式化输出结果
+#HOST_IP='127.0.0.1'
+
 
 BOOTUP=color
 RES_COL=48

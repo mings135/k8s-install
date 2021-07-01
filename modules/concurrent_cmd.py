@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 
 '''
-多线程并发执行远程脚本
+多线程并发执行远程脚本，实时输出结果
 '''
 
 import threading, sys

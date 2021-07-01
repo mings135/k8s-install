@@ -5,6 +5,7 @@
 #HOST_NAME='localhost'
 #INSTALL_TOOLS=('net-tools' 'nfs-utils' 'ipvsadm' 'chrony' 'yum-utils' 'device-mapper-persistent-data' 'lvm2' 'bc')
 
+
 initial_centos() {
   [ ${MODIFY_YUM} == 'y' ] && {
     if cat /etc/redhat-release | grep -Eqi 'release 8';then

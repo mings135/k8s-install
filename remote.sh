@@ -45,7 +45,7 @@ make_config_files() {
 
 # k8s 节点：安装、配置、初始化所有相关软件和系统
 install_initial_k8s() {
-  python3 ${script_dir}/modules/concurrentRun.py "sh ${INSTALL_SCRIPT}/local.sh initial_node" ${ALL_NODES[*]}
+  python3 ${script_dir}/modules/concurrent_cmd.py "sh ${INSTALL_SCRIPT}/local.sh initial_node" ${ALL_NODES[*]}
 #  for i in "${ALL_NODES[@]}"
 #  do
 #    ssh root@${i} sh ${INSTALL_SCRIPT}/local.sh initial_node || exit 1

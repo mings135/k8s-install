@@ -4,6 +4,8 @@
 # 全局变量
 #CERT_SIZE=2048
 #VALID_DAYS=18250
+#HOST_NAME=''
+#KUBELET_PKI='/var/lib/kubelet/pki'
 
 kubelet_conf_crt() {
   cd ${KUBELET_PKI} || exit 1
