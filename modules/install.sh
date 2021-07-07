@@ -28,7 +28,7 @@ install_docker() {
       
   cat > /etc/docker/daemon.json << EOF
 {
-  "data-root": " /var/lib/docker",
+  "data-root": "/var/lib/docker",
   "storage-driver": "overlay2",
   "insecure-registries": ["${PRIVATE_REPOSITORY}"],
   "exec-opts": ["native.cgroupdriver=systemd"],
