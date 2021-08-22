@@ -50,7 +50,7 @@ initial_centos() {
   result_msg "stop firewalld" || exit 1
 
   [ $(cat /etc/security/limits.conf | grep nofile | grep 65535 | wc -l) -eq 0 ] && {
-    echo '*   -   nofile   65535' >> /etc/security/limits.conf
+    echo '*   -   nofile   65536' >> /etc/security/limits.conf
     result_msg '修改 limit file' || exit 1
   }
 
