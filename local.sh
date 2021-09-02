@@ -16,6 +16,14 @@ make_config() {
     export HOST_IP HOST_NAME CLUSTER_VIP CLUSTER_PORT K8S_VERSION POD_NETWORK SVC_NETWORK IMAGE_REPOSITORY
     envsubst < ${script_dir}/config_template/kubeadm-config.yaml > ${script_dir}/kubeadm-config.yaml
     result_msg "生成 kubeadm-config.yaml"
+    # 1.22 版本以上修改部分配置
+    ver="${K8S_VERSION}"
+    if [ $(echo "${ver:0:4} >= 1.22" | bc) -eq 1 ]; then
+      sed -i '/type: CoreDNS/d' ${script_dir}/kubeadm-config.yaml
+      sed -i '/dns:/s/dns:/dns: {}/' ${script_dir}/kubeadm-config.yaml
+      sed -i '#kubeadm.k8s.io/v1beta2#s#kubeadm.k8s.io/v1beta2#kubeadm.k8s.io/v1beta3#' ${script_dir}/kubeadm-config.yaml
+      result_msg "修改 1.22 以上版本 kubeadm-config"
+    fi
   fi
 
   # 添加记录

@@ -19,17 +19,20 @@ worker 节点：192.168.100.32
 
 ## 环境
 
-1. 系统版本：Centos7、Centos8
-2. k8s 版本：1.19.x、1.20.x
+1. 系统版本：Centos7、Centos8、Rocky8.4
+2. k8s 版本：1.18.x、1.19.x、1.20.x、1.21.x、1.22.x
 3. docker 版本：19.03.9
-4. Python 版本：3.6+
-5. shell 环境： bash
-6. `各个环境使用其他版本，请自行测试是否可用`
+4. containerd 版本：1.4.3
+5. Python 版本：3.6+
+6. shell 环境： bash
 
 
 
 ## 准备
 **运维节点上运行如下步骤：**
+
+- 安装必要 tools
+  - yum install -y python3 git
 
 - clone 项目
   - git clone https://gitee.com/mings135/k8s-install.git
