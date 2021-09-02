@@ -96,20 +96,55 @@ EOF
   done
 
   cat > /etc/sysctl.d/kubernetes.conf << EOF
+# 必要参数
 net.bridge.bridge-nf-call-iptables  = 1
 net.ipv4.ip_forward                 = 1
 net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 =1
+vm.swappiness = 0
 net.ipv4.tcp_tw_recycle=0
-vm.swappiness=0
-vm.overcommit_memory=1
-vm.panic_on_oom=0
+net.ipv4.tcp_tw_reuse = 0
+net.ipv4.tcp_timestamps = 1
+
+# 优化参数
+net.ipv4.ip_local_port_range = 10000    65000
+net.ipv4.neigh.default.gc_thresh1 = 2048
+net.ipv4.neigh.default.gc_thresh2 = 4096
+net.ipv4.neigh.default.gc_thresh3 = 8192
+net.ipv4.tcp_keepalive_time = 900
+net.ipv4.tcp_keepalive_intvl = 60
+net.ipv4.tcp_keepalive_probes = 6
+net.ipv4.tcp_fin_timeout = 30
+net.ipv4.tcp_max_syn_backlog = 16384
+net.ipv4.tcp_max_tw_buckets = 36000
+net.ipv4.tcp_max_orphans = 32768
+net.ipv4.tcp_wmem = 4096        12582912        16777216
+net.ipv4.tcp_rmem = 4096        12582912        16777216
+
+net.core.somaxconn=32768
+net.core.wmem_max=16777216
+net.core.rmem_max=16777216
+net.core.rps_sock_flow_entries=8192
+net.core.bpf_jit_enable=1
+net.core.bpf_jit_harden=1
+net.core.bpf_jit_kallsyms=1
+net.core.dev_weight_tx_bias=1
 vm.max_map_count=262144
+fs.file-max=2097152
+fs.nr_open=1048576
 fs.inotify.max_user_instances=8192
-fs.inotify.max_user_watches=1048576
-fs.file-max=52706963
-fs.nr_open=52706963
-net.ipv6.conf.all.disable_ipv6=1
-net.netfilter.nf_conntrack_max=2310720
+fs.inotify.max_user_watches=524288
+kernel.core_pattern=core
+kernel.pid_max=65536
+kernel.threads-max=65536
+
+net.netfilter.nf_conntrack_max = 1048576
+net.nf_conntrack_max = 1048576
+net.netfilter.nf_conntrack_tcp_timeout_fin_wait = 30
+net.netfilter.nf_conntrack_tcp_timeout_time_wait = 30
+net.netfilter.nf_conntrack_tcp_timeout_close_wait = 15
+net.netfilter.nf_conntrack_tcp_timeout_established = 900
 EOF
   sysctl --system &> /dev/null
   result_msg '优化内核参数' || exit 1

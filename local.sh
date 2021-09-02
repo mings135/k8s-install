@@ -21,8 +21,8 @@ make_config() {
     if [ $(echo "${ver:0:4} >= 1.22" | bc) -eq 1 ]; then
       sed -i '/type: CoreDNS/d' ${script_dir}/kubeadm-config.yaml
       sed -i '/dns:/s/dns:/dns: {}/' ${script_dir}/kubeadm-config.yaml
-      sed -i '#kubeadm.k8s.io/v1beta2#s#kubeadm.k8s.io/v1beta2#kubeadm.k8s.io/v1beta3#' ${script_dir}/kubeadm-config.yaml
-      result_msg "修改 1.22 以上版本 kubeadm-config"
+      sed -i 's#kubeadm\.k8s\.io/v1beta2#kubeadm\.k8s\.io/v1beta3#' ${script_dir}/kubeadm-config.yaml
+      result_msg "修改 >1.22 版本 kubeadm-config"
     fi
   fi
 
