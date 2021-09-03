@@ -1,6 +1,6 @@
 # Cluster
 
-自动化部署 k8s 集群环境，然后使用 kubeadm 部署集群。
+自动部署 k8s 集群环境，然后使用 kubeadm 部署集群。
 
 
 
@@ -19,12 +19,16 @@ worker 节点：192.168.100.32
 
 ## 环境
 
-1. 系统版本：Centos7、Centos8、Rocky8.4
-2. k8s 版本：1.18.x、1.19.x、1.20.x、1.21.x、1.22.x
+1. 系统版本：Centos7.9，还可以使用 Centos8.4 和 Rocky8.4 版本
+2. k8s 版本：1.20.7，还可以使用 1.18.* ~ 1.22.* 版本
 3. docker 版本：19.03.9
 4. containerd 版本：1.4.3
 5. Python 版本：3.6+
 6. shell 环境： bash
+
+
+
+> 推荐 ：CentOS7 升级内核，如何升级，请自行解决！
 
 
 
@@ -139,7 +143,7 @@ kubeadm join xxx
 mkdir ~/.kube
 scp 192.168.10.31:/etc/kubernetes/admin.conf ~/.kube/config
 
-# 创建 flannel 网络
+# 创建 flannel 网络（如果无法下载，请使用网页打开）
 kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 ```
 

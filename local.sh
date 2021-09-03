@@ -23,7 +23,7 @@ make_config() {
       sed -i '/type: CoreDNS/d' ${script_dir}/kubeadm-config.yaml
       sed -i '/dns:/s/dns:/dns: {}/' ${script_dir}/kubeadm-config.yaml
       sed -i 's#kubeadm\.k8s\.io/v1beta2#kubeadm\.k8s\.io/v1beta3#' ${script_dir}/kubeadm-config.yaml
-      result_msg "修改 >1.22 版本 kubeadm-config"
+      result_msg "修改 kubeadm-config k8s>=v1.22"
     fi
   fi
 
