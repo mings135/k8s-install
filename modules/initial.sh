@@ -25,7 +25,7 @@ initial_centos() {
 
   [ ${HOST_NAME} ] && [ ${HOST_NAME} != $(hostname) ] && {
     hostnamectl set-hostname "${HOST_NAME}"
-    result_msg "设置主机名 ${HOST_NAME}" || exit 1
+    result_msg "设置 hostname ${HOST_NAME}" || exit 1
   }
 
   cat /etc/ssh/sshd_config | grep -Eqi 'GSSAPIAuthentication yes|#UseDNS yes' && {

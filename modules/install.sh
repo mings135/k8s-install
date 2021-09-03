@@ -93,22 +93,22 @@ EOF
   for i in `cat /etc/modules-load.d/ipvs.conf`
   do
     modinfo -F filename $i &>/dev/null && modprobe $i
-    result_msg "加载模块 $i" || exit 1
+    result_msg "加载 module $i" || exit 1
   done
 
-  # 设置内核参数，无法在 CentOS7 中直接 sysctl，必须配置模块加载 options
+  # 优化内核参数，无法在 CentOS7 中直接 sysctl，必须配置模块加载 options
   if cat /etc/redhat-release | grep -Eqi 'release 7'; then
     echo 262144 > /sys/module/nf_conntrack/parameters/hashsize
-    result_msg "优化 kernel 参数" || exit 1
+    result_msg "优化 kernel 参数 buckets" || exit 1
   else
-    sysctl -w net.netfilter.nf_conntrack_buckets=262144
-    result_msg "优化 kernel 参数" || exit 1
+    sysctl -w net.netfilter.nf_conntrack_buckets=262144 &> /dev/null
+    result_msg "优化 kernel 参数 buckets" || exit 1
   fi
   cat > /etc/modprobe.d/ipvs.conf << EOF
 options nf_conntrack hashsize=262144
 EOF
 
-  # 设置内核参数
+  # 优化内核参数
   cat > /etc/sysctl.d/kubernetes.conf << EOF
 # 必要参数
 net.bridge.bridge-nf-call-iptables  = 1
