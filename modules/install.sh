@@ -95,6 +95,12 @@ EOF
     result_msg "加载模块 $i" || exit 1
   done
 
+  # 设置内核参数，该参数需要在内核模块 options 中指定
+  echo 262144 > /sys/module/nf_conntrack/parameters/hashsize
+  cat > /etc/modprobe.d/ipvs.conf << EOF
+options nf_conntrack hashsize=262144
+EOF
+
   cat > /etc/sysctl.d/kubernetes.conf << EOF
 # 必要参数
 net.bridge.bridge-nf-call-iptables  = 1
