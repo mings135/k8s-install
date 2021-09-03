@@ -76,11 +76,11 @@ tar -zcvf pki.tar.gz pki/
 # 分发 k8s project（cluster 目录） 到各个节点
 sh remote.sh distribute
 
-# 为各个 mater 节点生成配置文件
-sh remote.sh make
-
-# 为各个节点运行初始化、安装应用
+# 所有节点运行初始化、安装应用
 sh remote.sh initial
+
+# mater 节点生成配置文件
+sh remote.sh make
 
 # 也可用使用如下命令，自动依次运行上面命令
 sh remote.sh all

@@ -16,7 +16,8 @@ make_config() {
     export HOST_IP HOST_NAME CLUSTER_VIP CLUSTER_PORT K8S_VERSION POD_NETWORK SVC_NETWORK IMAGE_REPOSITORY
     envsubst < ${script_dir}/config_template/kubeadm-config.yaml > ${script_dir}/kubeadm-config.yaml
     result_msg "生成 kubeadm-config.yaml"
-    # 1.22 版本以上修改部分配置
+
+    # k8s 1.22 以上版本需要调整 kubeadm-config 配置
     ver="${K8S_VERSION}"
     if [ $(echo "${ver:0:4} >= 1.22" | bc) -eq 1 ]; then
       sed -i '/type: CoreDNS/d' ${script_dir}/kubeadm-config.yaml
@@ -29,11 +30,12 @@ make_config() {
   # 添加记录
   echo "make_config" >> ${script_dir}/config/record.txt
 
-  [ $(grep 'make_config_containerd' ${script_dir}/config/record.txt | wc -l) -eq 0 ] || exit 0
-
-  if [ ${IS_MASTER} == 'y' ] && [ ${K8S_CRI} == 'containerd' ];then
-    sed -i '/criSocket/s#/var/run/dockershim.sock#unix:///run/containerd/containerd.sock#' ${script_dir}/kubeadm-config.yaml && \
-    result_msg "修改 kubeadm-config containerd" && echo "make_config_containerd" >> ${script_dir}/config/record.txt
+  # 如果使用 containterd，需要调整 kubeadm-config 配置
+  if [ $(grep 'make_config_containerd' ${script_dir}/config/record.txt | wc -l) -eq 0 ]; then
+    if [ ${IS_MASTER} == 'y' ] && [ ${K8S_CRI} == 'containerd' ];then
+      sed -i '/criSocket/s#/var/run/dockershim.sock#unix:///run/containerd/containerd.sock#' ${script_dir}/kubeadm-config.yaml && \
+      result_msg "修改 kubeadm-config containerd" && echo "make_config_containerd" >> ${script_dir}/config/record.txt
+    fi
   fi
 }
 
@@ -69,7 +71,6 @@ initial_node() {
     # 添加记录
     echo "install_kubeadm" >> ${script_dir}/config/record.txt
   }
-  result_msg "完成初始化节点" || exit 1
 }
 
 
@@ -156,8 +157,8 @@ scp_check() {
 
 main() {
   case $1 in
-    "make_config" ) make_config;;
     "initial_node" ) initial_node;;
+    "make_config" ) make_config;;
     "issue_certs" ) issue_certs;;
     "issue_kubelet" ) issue_kubelet;;
     "update_hosts" ) update_hosts;;

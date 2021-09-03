@@ -109,28 +109,28 @@ main() {
   case $1 in
     "ca" ) create_ca_certs;;
     "distribute" ) distribute_project_files;;
-    "make" ) make_config_files;;
     "initial" ) install_initial_k8s;;
+    "make" ) make_config_files;;
     "certs" ) k8s_issue_certs;;
     "kubelet" ) kubelet_issue_certs;;
     "update_hosts" ) update_etc_hosts;;
     "delete_record" ) delete_record;;
     "all" )
       distribute_project_files
-      make_config_files
       install_initial_k8s
+      make_config_files
       ;;
     * )
     printf "Usage: sh $0 [ ? ] \n"
     printf "%-16s %-s\n" 'ca' '在本地创建 CA 证书（重复执行会覆盖！）'
     printf "%-16s %-s\n" 'distribute' '分发项目（cluster 目录）到各个节点'
-    printf "%-16s %-s\n" 'make' '各个节点自动创建配置文件'
     printf "%-16s %-s\n" 'initial' '各个节点初始化、安装、配置 k8s 相关应用'
+    printf "%-16s %-s\n" 'make' '各个节点自动创建配置文件'
     printf "%-16s %-s\n" 'certs' 'master 节点签发相关证书，此操作会清空 /etc/kubernetes/pki 目录！'
     printf "%-16s %-s\n" 'kubelet' '所有节点签发 kubelet 相关证书，此操作会覆盖原有证书！'
     printf "%-16s %-s\n" 'update_hosts' '更新所有节点 kube.conf，然后根据 kube.conf 更新 /etc/hosts'
     printf "%-16s %-s\n" 'delete_record' '删除所有节点的操作记录，默认：有相关操作记录不会重复执行'
-    printf "%-16s %-s\n" 'all' 'distribute->make->initial'
+    printf "%-16s %-s\n" 'all' '顺序执行：distribute -> initial -> make'
     exit 1
     ;;
   esac
