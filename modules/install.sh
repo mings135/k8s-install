@@ -64,7 +64,7 @@ install_containerd() {
   result_msg "修改 containerd 仓库配置" || exit 1
 
   sed -i '/runc.options/a \            SystemdCgroup = true' /etc/containerd/config.toml
-  result_msg "修改 containerd SystemdCgroup" || exit 1
+  result_msg "配置 containerd SystemdCgroup" || exit 1
 
   systemctl enable --now containerd &> /dev/null
   result_msg "启动 containerd" || exit 1
@@ -74,7 +74,7 @@ install_containerd() {
 install_kubeadm() {
   sed -i 's/.*swap.*/#&/' /etc/fstab
   swapoff -a
-  result_msg "close swap"
+  result_msg "关闭 swap"
   ver=$(uname -r)
   [ $(echo "${ver:0:4} >= 4.0" | bc) -eq 1 ] && nf_conn='nf_conntrack' || nf_conn='nf_conntrack_ipv4'
 
@@ -85,6 +85,7 @@ ip_vs_rr
 ip_vs_wrr
 ip_vs_sh
 ip_vs_nq
+ip_vs_lc
 ${nf_conn}
 overlay
 br_netfilter
@@ -95,12 +96,19 @@ EOF
     result_msg "加载模块 $i" || exit 1
   done
 
-  # 设置内核参数，该参数需要在内核模块 options 中指定
-  echo 262144 > /sys/module/nf_conntrack/parameters/hashsize
+  # 设置内核参数，无法在 CentOS7 中直接 sysctl，必须配置模块加载 options
+  if cat /etc/redhat-release | grep -Eqi 'release 7'; then
+    echo 262144 > /sys/module/nf_conntrack/parameters/hashsize
+    result_msg "优化 kernel 参数" || exit 1
+  else
+    sysctl -w net.netfilter.nf_conntrack_buckets=262144
+    result_msg "优化 kernel 参数" || exit 1
+  fi
   cat > /etc/modprobe.d/ipvs.conf << EOF
 options nf_conntrack hashsize=262144
 EOF
 
+  # 设置内核参数
   cat > /etc/sysctl.d/kubernetes.conf << EOF
 # 必要参数
 net.bridge.bridge-nf-call-iptables  = 1
@@ -153,7 +161,7 @@ net.netfilter.nf_conntrack_tcp_timeout_close_wait = 15
 net.netfilter.nf_conntrack_tcp_timeout_established = 900
 EOF
   sysctl --system &> /dev/null
-  result_msg '优化内核参数' || exit 1
+  result_msg '优化 kernel 参数' || exit 1
 
   cat <<EOF > /etc/yum.repos.d/kubernetes.repo
 [kubernetes]

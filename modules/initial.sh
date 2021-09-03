@@ -10,34 +10,34 @@ initial_centos() {
   [ ${MODIFY_YUM} == 'y' ] && {
     if cat /etc/redhat-release | grep -Eqi 'release 8';then
       yum install -y epel-release &> /dev/null
-      result_msg "安装 epel-release" || exit 1
+      result_msg "安装 epel" || exit 1
       yum clean all &> /dev/null && yum makecache &> /dev/null
-      result_msg "yum makecache" || exit 1
+      result_msg "重置 yum cache" || exit 1
     else
       curl -fsSL https://mirrors.aliyun.com/repo/Centos-7.repo -o /etc/yum.repos.d/CentOS-Base.repo
-      result_msg "下载阿里云 base repo" || exit 1
+      result_msg "下载阿里 base repo" || exit 1
       curl -fsSL http://mirrors.aliyun.com/repo/epel-7.repo -o /etc/yum.repos.d/epel.repo
-      result_msg "下载阿里云 epel repo" || exit 1
+      result_msg "下载阿里 epel repo" || exit 1
       yum clean all &> /dev/null && yum makecache &> /dev/null
-      result_msg "yum makecache" || exit 1
+      result_msg "重置 yum cache" || exit 1
     fi
   }
 
   [ ${HOST_NAME} ] && [ ${HOST_NAME} != $(hostname) ] && {
     hostnamectl set-hostname "${HOST_NAME}"
-    result_msg "set-hostname ${HOST_NAME}" || exit 1
+    result_msg "设置主机名 ${HOST_NAME}" || exit 1
   }
 
   cat /etc/ssh/sshd_config | grep -Eqi 'GSSAPIAuthentication yes|#UseDNS yes' && {
     sed -i '/GSSAPIAuthentication/s/GSSAPIAuthentication yes/GSSAPIAuthentication no/' /etc/ssh/sshd_config
     sed -i '/UseDNS/s/#UseDNS yes/UseDNS no/' /etc/ssh/sshd_config
     systemctl restart sshd
-    result_msg "close sshd dns config" || exit 1
+    result_msg "关闭 sshd dns config" || exit 1
   }
 
   cat /etc/selinux/config | grep -Eqi 'SELINUX=enforcing' && {
     sed -i '/SELINUX=enforcing/s/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config && setenforce 0
-    result_msg "close selinux" || exit 1
+    result_msg "关闭 selinux" || exit 1
   }
 
   for i in "${INSTALL_TOOLS[@]}"
@@ -47,7 +47,7 @@ initial_centos() {
   done
 
   systemctl disable --now firewalld &> /dev/null
-  result_msg "stop firewalld" || exit 1
+  result_msg "停止 firewalld" || exit 1
 
   [ $(cat /etc/security/limits.conf | grep nofile | grep 65535 | wc -l) -eq 0 ] && {
     echo '*   -   nofile   65536' >> /etc/security/limits.conf
