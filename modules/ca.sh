@@ -1,5 +1,4 @@
-
-# ca_crt：签发所有 CA 和 sa 证书
+# 签发所有 CA 和 sa 证书
 
 # 全局变量
 #CERT_SIZE=2048

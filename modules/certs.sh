@@ -1,8 +1,4 @@
-# 需要变量 LOCAL_IP CLUSTER_IP CLUSTER_VIP CLUSTER_PORT
-
-
 # 安装 etcd_crt、apiserver_crt、front-proxy_crt、admin_conf、controller-manager_conf、scheduler_conf 证书等文件
-
 
 # 全局变量
 #CERT_SIZE=2048

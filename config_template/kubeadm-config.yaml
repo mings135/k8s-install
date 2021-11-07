@@ -50,7 +50,7 @@ apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
 mode: ipvs
 ipvs:
-  scheduler: "nq"
+  scheduler: "wrr"
 ---
 # 额外增加的配置，kubelet 指定 Cgroup = systemd，指定日志大小
 apiVersion: kubelet.config.k8s.io/v1beta1

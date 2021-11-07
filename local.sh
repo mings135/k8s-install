@@ -2,12 +2,13 @@
 
 script_dir=$(dirname $(readlink -f $0))
 source ${script_dir}/config/kube.conf
-source ${script_dir}/script/calculation.sh
+source ${script_dir}/script/base.sh
 source ${script_dir}/modules/result.sh
 
 
 make_config() {
-  check_record
+  check_record_exists
+  result_msg "检查 record.txt" || exit 1
 
   # 检查是否需要 make config
   [ $(grep 'make_config' ${script_dir}/config/record.txt | wc -l) -eq 0 ] || exit 0

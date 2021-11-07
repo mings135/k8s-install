@@ -1,37 +1,17 @@
 # 格式化输出结果
-#HOST_IP='127.0.0.1'
 
-
-BOOTUP=color
 RES_COL=48
-MOVE_TO_COL="echo -en \\033[${RES_COL}G"
-SETCOLOR_SUCCESS="echo -en \\033[1;32m"
-SETCOLOR_FAILURE="echo -en \\033[1;31m"
-SETCOLOR_NORMAL="echo -en \\033[0;39m"
 
-yellow_font() {
-  echo -e "\033[33m\033[01m$1\033[0m"
-}
-
-green_font() {
-   echo -e "\033[32m\033[01m$1\033[0m"
-}
-
-red_font() {
-   echo -e "\033[31m\033[01m$1\033[0m"
-}
-
-pink_font() {
-   echo -e "\033[35m\033[01m$1\033[0m"
-}
+if [ ! ${HOST_IP} ];then
+  HOST_IP='127.0.0.1'
+fi
 
 auto_font() {
-   echo -e "\033[3$2m\033[01m$1\033[0m"
+  echo -e "\033[3$1m\033[01m$2\033[0m"
 }
 
 action() {
   local STRING rc
-
   STRING=$1
   echo -n "$STRING "
   shift
@@ -42,33 +22,25 @@ action() {
 }
 
 echo_success() {
-  [ "$BOOTUP" = "color" ] && $MOVE_TO_COL
-  echo -n "[ "
-  [ "$BOOTUP" = "color" ] && $SETCOLOR_SUCCESS
-  echo -n $"success"
-  [ "$BOOTUP" = "color" ] && $SETCOLOR_NORMAL
-  echo -n " ]"
+  local msg_text="success"
+  echo -ne "\033[${RES_COL}G[ \033[32m\033[01m${msg_text}\033[0m ]"
   echo -ne "\r"
   return 0
 }
 
 echo_failure() {
-  [ "$BOOTUP" = "color" ] && $MOVE_TO_COL
-  echo -n "[ "
-  [ "$BOOTUP" = "color" ] && $SETCOLOR_FAILURE
-  echo -n $"failure"
-  [ "$BOOTUP" = "color" ] && $SETCOLOR_NORMAL
-  echo -n " ]"
+  local msg_text="failure"
+  echo -ne "\033[${RES_COL}G[ \033[31m\033[01m${msg_text}\033[0m ]"
   echo -ne "\r"
   return 1
 }
 
 result_msg() {
-  ip_end="$(echo ${HOST_IP} | gawk -F '.' '{print $NF}')"
-  ip_color=$(( ${ip_end} % 7 ))
+  local ip_end="$(echo ${HOST_IP} | gawk -F '.' '{print $NF}')"
+  local ip_color=$(( ${ip_end} % 7 ))
   if [ $? -eq 0 ];then
-    action "$(auto_font ${HOST_IP} ${ip_color}): $*" "/bin/true"
+    action "$(auto_font ${ip_color} ${HOST_IP}): $*" "/bin/true"
   else
-    action "$(red_font ${HOST_IP}): $*" "/bin/false"
+    action "$(auto_font ${ip_color} ${HOST_IP}): $*" "/bin/false"
   fi
 }
