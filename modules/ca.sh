@@ -1,8 +1,9 @@
-# 签发所有 CA 和 sa 证书
+# 签发所有 CA 和 sa 证书，提供以下函数
+# ca_crt
 
-# 全局变量
-#CERT_SIZE=2048
-#VALID_DAYS=18250
+# 所需变量
+# CERT_SIZE=2048
+# VALID_DAYS=18250
 
 
 ca_crt() {

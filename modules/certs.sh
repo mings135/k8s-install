@@ -1,20 +1,29 @@
-# 安装 etcd_crt、apiserver_crt、front-proxy_crt、admin_conf、controller-manager_conf、scheduler_conf 证书等文件
+# 安装证书，提供以下函数：
+# etcd_crt
+# apiserver_crt
+# front-proxy_crt
+# admin_conf
+# controller-manager_conf
+# scheduler_conf 
+# kubelet_conf_crt
 
-# 全局变量
-#CERT_SIZE=2048
-#VALID_DAYS=18250
-#K8S_PKI='/etc/kubernetes/pki'
-#K8S_CONFIG='/etc/kubernetes'
-#HOST_NAME=''
-#HOST_IP=''
-#CLUSTER_VIP='192.168.10.31'
-#CLUSTER_PORT=6443
-#CLUSTER_IP='10.96.0.1'
+# 所需变量：
+# CERT_SIZE=2048
+# VALID_DAYS=18250
+# K8S_PKI='/etc/kubernetes/pki'
+# K8S_CONFIG='/etc/kubernetes'
+# KUBELET_PKI='/var/lib/kubelet/pki'
+# HOST_NAME=''
+# HOST_IP=''
+# CLUSTER_VIP='192.168.10.31'
+# CLUSTER_PORT=6443
+# CLUSTER_IP='10.96.0.1'
 
 
+# 创建 etcd/server.crt、etcd/peer.crt、etcd/healthcheck-client.crt、apiserver-etcd-client.crt 证书
 etcd_crt() {
   # 证书目录
-  cd ${K8S_PKI} || exit 1
+  cd ${K8S_PKI}
 
   cat > etcd.cnf << EOF
 [ peer ]
@@ -85,9 +94,10 @@ EOF
 }
 
 
+# 创建 apiserver.crt 和 apiserver-kubelet-client.crt 证书
 apiserver_crt() {
   # pki 目录
-  cd ${K8S_PKI} || exit 1
+  cd ${K8S_PKI}
 
   cat > apiserver.cnf << EOF
 [server]
@@ -140,8 +150,9 @@ EOF
 }
 
 
+# 创建 front-proxy-client.crt 证书
 front_crt() {
-  cd ${K8S_PKI} || exit 1
+  cd ${K8S_PKI}
 
   cat > front.cnf << EOF
 [client]
@@ -166,8 +177,9 @@ EOF
 }
 
 
+# 创建 admin.conf 证书配置文件
 admin_conf() {
-  cd ${K8S_CONFIG} || exit 1
+  cd ${K8S_CONFIG}
 
   cat > admin.cnf << EOF
 [client]
@@ -210,8 +222,9 @@ EOF
 }
 
 
+# 创建 controller-manager.conf 证书配置文件
 manager_conf() {
-  cd ${K8S_CONFIG} || exit 1
+  cd ${K8S_CONFIG}
 
   cat > manager.cnf << EOF
 [client]
@@ -234,7 +247,7 @@ EOF
   kubectl config set-cluster kubernetes \
     --certificate-authority=pki/ca.crt \
     --embed-certs=true \
-    --server=https://${CLUSTER_VIP}:${CLUSTER_PORT} \
+    --server=https://${HOST_IP}:6443 \
     --kubeconfig=controller-manager.conf
 
   kubectl config set-credentials system:kube-controller-manager \
@@ -254,8 +267,9 @@ EOF
 }
 
 
+# 创建 scheduler.conf 证书配置文件
 scheduler_conf() {
-  cd ${K8S_CONFIG} || exit 1
+  cd ${K8S_CONFIG}
 
   cat > scheduler.cnf << EOF
 [client]
@@ -278,7 +292,7 @@ EOF
   kubectl config set-cluster kubernetes \
     --certificate-authority=pki/ca.crt \
     --embed-certs=true \
-    --server=https://${CLUSTER_VIP}:${CLUSTER_PORT} \
+    --server=https://${HOST_IP}:6443 \
     --kubeconfig=scheduler.conf
 
   kubectl config set-credentials system:kube-scheduler \
@@ -295,4 +309,56 @@ EOF
   kubectl config use-context system:kube-scheduler@kubernetes --kubeconfig=scheduler.conf
 
   rm -f scheduler.{cnf,csr,crt,key}
+}
+
+
+# 创建 kubelet.conf 中的证书，以及 kubelet 证书
+kubelet_conf_crt() {
+  cd ${KUBELET_PKI}
+
+  cat > kubelet.cnf << EOF
+[server]
+authorityKeyIdentifier=keyid,issuer
+basicConstraints = critical,CA:FALSE
+extendedKeyUsage=serverAuth
+keyUsage = critical, digitalSignature, keyEncipherment
+subjectAltName = DNS:${HOST_NAME}
+subjectKeyIdentifier=hash
+
+[client]
+authorityKeyIdentifier=keyid,issuer
+basicConstraints = critical,CA:FALSE
+extendedKeyUsage=clientAuth
+keyUsage = critical, digitalSignature, keyEncipherment
+subjectKeyIdentifier=hash
+EOF
+
+  # server crt
+  openssl genrsa -out "kubelet.key" ${CERT_SIZE}
+
+  openssl req -new -key "kubelet.key" \
+          -out "kubelet.csr" -sha256 \
+          -subj "/CN=kubelet-${HOST_NAME}"
+
+  openssl x509 -req -days ${VALID_DAYS} -in "kubelet.csr" -sha256 \
+      -CA "ca.crt" -CAkey "ca.key" -CAcreateserial \
+      -out "kubelet.crt" -extfile "kubelet.cnf" -extensions server
+
+  # client conf
+  openssl genrsa -out "client.key" ${CERT_SIZE}
+
+  openssl req -new -key "client.key" \
+          -out "client.csr" -sha256 \
+          -subj "/O=system:nodes/CN=system:node:${HOST_NAME}"
+
+  openssl x509 -req -days ${VALID_DAYS} -in "client.csr" -sha256 \
+      -CA "ca.crt" -CAkey "ca.key" -CAcreateserial \
+      -out "client.crt" -extfile "kubelet.cnf" -extensions client
+
+  cat client.key >> client.crt
+  mv -f client.crt kubelet-client-long.pem
+  rm -f kubelet-client-current.pem
+  ln -s ${KUBELET_PKI}/kubelet-client-long.pem ${KUBELET_PKI}/kubelet-client-current.pem
+
+  rm -f kubelet.{cnf,csr} client.{key,csr} ca.srl
 }

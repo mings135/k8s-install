@@ -1,11 +1,10 @@
-# 初始化和优化系统，安装必要的软件
+# 初始化和优化系统，安装必要的软件，提供以下函数：
 # init_system
 
-# 全局变量
-# HOST_NAME='localhost'
+# 必须先执行 base.sh
 
 
-# 优化系统（通用）
+# 基础优化
 optimize_base() {
   local limit_file=65536
 
@@ -24,6 +23,7 @@ EOF
 }
 
 
+# 加载 ipvs 模块
 load_modules() {
   local nf_conn
   local ver=$(uname -r | awk -F '-' '{print $1}')
@@ -39,10 +39,10 @@ ${nf_conn}
 overlay
 br_netfilter
 EOF
-  for i in $(cat /etc/modules-load.d/ipvs.conf)
+  cat /etc/modules-load.d/ipvs.conf | while read line
   do
-    modinfo -F filename $i &>/dev/null && modprobe $i
-    result_msg "加载 module $i" || return 1
+    modinfo -F filename $line > /dev/null && modprobe $line
+    result_msg "加载 module $line" || return 1
   done
 }
 
@@ -101,7 +101,19 @@ net.netfilter.nf_conntrack_tcp_timeout_time_wait = 30
 net.netfilter.nf_conntrack_tcp_timeout_close_wait = 15
 net.netfilter.nf_conntrack_tcp_timeout_established = 900
 EOF
-  sysctl --system &> /dev/null
+
+  # buckets 无法在 CentOS7 中直接 sysctl，必须配置模块加载 options
+  if [ "${sys_release}${sys_version}" = 'centos7' ]; then
+    echo 262144 > /sys/module/nf_conntrack/parameters/hashsize
+    result_msg "优化 ${sys_release}${sys_version} buckets" || return 1
+    sed -i '/net.netfilter.nf_conntrack_buckets/d' /etc/sysctl.d/k8s.conf
+    cat > /etc/modprobe.d/buckets.conf << EOF
+options nf_conntrack hashsize=262144
+EOF
+    result_msg "添加 buckets 开机加载" || return 1
+  fi
+
+  sysctl --system > /dev/null
   result_msg '优化 kernel parameters' || return 1
 }
 
@@ -110,47 +122,13 @@ EOF
 optimize_system() {
   optimize_base || return 1
   load_modules || return 1
-  optimize_kernel || return 1
+  optimize_kernel || return 1 
 }
 
 
-# 安装工具（通用）
-install_tools() {
-  for i in $@
-  do
-    ${sys_pkg} install -y ${i} &> /dev/null
-    result_msg "安装 $i" || return 1
-  done
-}
-
-
-# 初始化工具（通用）
-initial_config() {
-  if [ ${HOST_NAME} != $(hostname) ]; then
-    hostnamectl set-hostname "${HOST_NAME}"
-    result_msg "设置 ${HOST_NAME}" || return 1
-  fi
-    
-  if ! cat /etc/ssh/sshd_config | grep -Eqi '^GSSAPIAuthentication no|^UseDNS no'; then
-    sed -i '/GSSAPIAuthentication/s/GSSAPIAuthentication yes/GSSAPIAuthentication no/' /etc/ssh/sshd_config && \
-    sed -i '/UseDNS/s/#UseDNS yes/UseDNS no/' /etc/ssh/sshd_config
-    result_msg "优化 sshd" || return 1
-    systemctl restart sshd
-    result_msg "重启 sshd" || return 1
-  fi
-
-  if [ -f /etc/selinux/config ] && cat /etc/selinux/config | grep -Eqi 'SELINUX=enforcing'; then
-    sed -i '/SELINUX=enforcing/s/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config && setenforce 0
-    result_msg "关闭 selinux" || return 1
-  fi
-
-  if systemctl list-unit-files | grep -Eqi 'firewalld'; then
-    systemctl disable --now firewalld &> /dev/null
-    result_msg "停止 firewalld" || return 1
-  fi
-
-  if systemctl list-unit-files | grep -Eqi 'chronyd'; then
-    cat > /etc/chrony.conf << EOF
+# 配置 chrony
+chrony_config() {
+  cat > $1 << EOF
 # 阿里官方配置
 server ntp.aliyun.com iburst
 stratumweight 0
@@ -165,84 +143,118 @@ generatecommandkey
 logchange 0.5
 logdir /var/log/chrony
 EOF
-    result_msg "配置 chronyd" || return 1
+  result_msg "配置 chronyd" || return 1
+}
+
+
+# 初始化配置
+initial_config() {
+  if [ ${HOST_NAME} != $(hostname) ]; then
+    hostnamectl set-hostname "${HOST_NAME}"
+    result_msg "设置 name:${HOST_NAME}" || return 1
+  fi
+    
+  if cat /etc/ssh/sshd_config | grep -Eqi 'GSSAPIAuthentication yes|UseDNS yes'; then
+    sed -e '/GSSAPIAuthentication yes/c GSSAPIAuthentication no' \
+      -e '/UseDNS yes/c UseDNS no' \
+      -i /etc/ssh/sshd_config
+    result_msg "优化 sshd" || return 1
+    systemctl restart sshd &> /dev/null
+    result_msg "重启 sshd" || return 1
+  fi
+
+  if [ -f /etc/selinux/config ] && cat /etc/selinux/config | grep -Eqi 'SELINUX=enforcing'; then
+    sed -i '/SELINUX=enforcing/s/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config && setenforce 0
+    result_msg "关闭 selinux" || return 1
+  fi
+
+  if systemctl list-unit-files | grep -Eqi 'firewalld'; then
+    systemctl disable --now firewalld &> /dev/null
+    result_msg "停止 firewalld" || return 1
   fi
 }
 
 
 # 初始化系统（centos）
 initial_centos() {
-  # 安装必要的软件
-  local install_tools='net-tools ipvsadm chrony bc nfs-utils yum-utils'
-  install_tools "${install_tools}" || return 1
+  # 安装必要的软件 docker 可能需要: device-mapper-persistent-data lvm2
+  local apps='rsync ipvsadm chrony bc nfs-utils yum-utils'
+  install_apps "${apps}" || return 1
 
-  # 优化相关配置，然后 start
+  # 优化初始配置，然后 start
   initial_config || return 1
+  # 优化 chrony 配置，然后 start
   if systemctl list-unit-files | grep -Eqi 'chronyd'; then
+    chrony_config '/etc/chrony.conf'
     systemctl enable --now chronyd &> /dev/null
     result_msg '启动 chronyd' || return 1
   fi
-
-  optimize_system || return 1
 }
+
 
 # 初始化系统（debian）
 initial_debian() {
   # 安装必要的软件
-  local install_tools='net-tools ipvsadm chrony bc nfs-common apt-transport-https ca-certificates'
-  install_tools "${install_tools}" || return 1
+  local apps='rsync ipvsadm chrony bc nfs-common apt-transport-https ca-certificates curl gnupg lsb-release'
+  install_apps "${apps}" || return 1
 
-  # 优化相关配置，然后 start
+  # 优化初始配置，然后 start
   initial_config || return 1
+  # 优化 chrony 配置，然后 start
   if systemctl list-unit-files | grep -Eqi 'chronyd'; then
+    chrony_config '/etc/chrony/chrony.conf'
     systemctl restart chronyd &> /dev/null
     result_msg '重启 chronyd' || return 1
   fi
-
-  # 优化相关系统参数
-  optimize_system || return 1
 }
 
 
 # 初始化系统（centos7）
 initial_centos_7() {
-  # 设置 yum
   if [ ! -f /etc/yum.repos.d/epel.repo ]; then
+    # 设置 yum
     curl -fsSL https://mirrors.aliyun.com/repo/Centos-7.repo -o /etc/yum.repos.d/CentOS-Base.repo
     result_msg "更换 ${sys_pkg} repo" || return 1
+
+    # 设置 epel
     curl -fsSL http://mirrors.aliyun.com/repo/epel-7.repo -o /etc/yum.repos.d/epel.repo
     result_msg "添加 epel repo" || return 1
-    ${sys_pkg} clean all &> /dev/null && ${sys_pkg} makecache &> /dev/null
+
+    ${sys_pkg} makecache > /dev/null
     result_msg "重置 ${sys_pkg} cache" || return 1
   fi
-    
+     
   initial_centos || return 1
-
-   # buckets 无法在 CentOS7 中直接 sysctl，必须配置模块加载 options
-  echo 262144 > /sys/module/nf_conntrack/parameters/hashsize
-  result_msg "优化 kernel buckets" || return 1
-  if [ -f /etc/modprobe.d/buckets.conf ]; then
-    cat > /etc/modprobe.d/buckets.conf << EOF
-options nf_conntrack hashsize=262144
-EOF
-    result_msg "添加 buckets 开机加载" || return 1
-  fi
-  
 }
+
 
 # 初始化系统（centos8）
 initial_centos_8() {
-  # 设置 dnf
   if [ ! -f /etc/yum.repos.d/epel.repo ]; then
-    ${sys_pkg} install -y epel-release &> /dev/null
-    result_msg "安装 epel" || return 1
-    ${sys_pkg} clean all &> /dev/null && ${sys_pkg} makecache &> /dev/null
+    # 设置 dnf
+    if [ -f /etc/yum.repos.d/Rocky-BaseOS.repo ]; then
+      sed -e 's|^mirrorlist=|#mirrorlist=|g' \
+        -e 's|^#baseurl=http://dl.rockylinux.org/$contentdir|baseurl=https://mirrors.aliyun.com/rockylinux|g' \
+        -i.bak /etc/yum.repos.d/Rocky-*.repo
+      result_msg "更换 ${sys_pkg} link" || return 1
+    elif [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then
+      curl -fsSL https://mirrors.aliyun.com/repo/Centos-8.repo -o /etc/yum.repos.d/CentOS-Base.repo
+      result_msg "更换 ${sys_pkg} repo" || return 1
+    fi
+
+    # 设置 epel
+    install_apps "epel-release"
+    sed -e 's|^#baseurl=https://download.example/pub|baseurl=https://mirrors.aliyun.com|' \
+      -e 's|^metalink|#metalink|' \
+      -i /etc/yum.repos.d/epel*
+    result_msg "更换 epel link" || return 1
+
+    ${sys_pkg} makecache > /dev/null
     result_msg "重置 ${sys_pkg} cache" || return 1
   fi
 
   # CentOS 8 额外需要的工具
-  ${sys_pkg} install -y iproute-tc &> /dev/null
-  result_msg "安装 iproute-tc" || return 1
+  install_apps "iproute-tc"
 
   initial_centos || return 1
 }
@@ -250,25 +262,16 @@ initial_centos_8() {
 
 # 初始化系统（debian10）
 initial_debian_10() {
-  # 设置 apt
-  cat > /etc/apt/sources.list << EOF
-deb http://mirrors.aliyun.com/debian/ buster main non-free contrib
-deb-src http://mirrors.aliyun.com/debian/ buster main non-free contrib
-deb http://mirrors.aliyun.com/debian-security buster/updates main
-deb-src http://mirrors.aliyun.com/debian-security buster/updates main
-deb http://mirrors.aliyun.com/debian/ buster-updates main non-free contrib
-deb-src http://mirrors.aliyun.com/debian/ buster-updates main non-free contrib
-deb http://mirrors.aliyun.com/debian/ buster-backports main non-free contrib
-deb-src http://mirrors.aliyun.com/debian/ buster-backports main non-free contrib
-EOF
-  result_msg "更换 ${sys_pkg} repo" || return 1
-  ${sys_pkg} update
-  result_msg "重置 ${sys_pkg} cache" || return 1
+  initial_debian || return 1
+}
 
-  initial_debain || return 1
+
+initial_debian_11() {
+  initial_debian || return 1
 }
 
 
 init_system() {
   initial_${sys_release}_${sys_version} || exit 1
+  optimize_system || exit 1
 }

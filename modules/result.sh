@@ -1,11 +1,24 @@
-# 格式化输出结果
+# 格式化输出结果，提供以下函数：
+# result_msg
 
-RES_COL=48
+
+RES_COL=60
 
 if [ ! ${HOST_IP} ];then
   HOST_IP='127.0.0.1'
 fi
 
+yellow_font() {
+  echo -e "\033[33m\033[01m$1\033[0m"
+}
+
+
+blue_font() {
+  echo -e "\033[34m\033[01m$1\033[0m"
+}
+
+
+# $1 范围 0 ~ 7
 auto_font() {
   echo -e "\033[3$1m\033[01m$2\033[0m"
 }
@@ -36,11 +49,13 @@ echo_failure() {
 }
 
 result_msg() {
-  local ip_end="$(echo ${HOST_IP} | gawk -F '.' '{print $NF}')"
-  local ip_color=$(( ${ip_end} % 7 ))
   if [ $? -eq 0 ];then
+    local ip_end="$(echo ${HOST_IP} | awk -F '.' '{print $NF}')"
+    local ip_color=$(( ${ip_end} % 7 ))
     action "$(auto_font ${ip_color} ${HOST_IP}): $*" "/bin/true"
   else
+    local ip_end="$(echo ${HOST_IP} | awk -F '.' '{print $NF}')"
+    local ip_color=$(( ${ip_end} % 7 ))
     action "$(auto_font ${ip_color} ${HOST_IP}): $*" "/bin/false"
   fi
 }

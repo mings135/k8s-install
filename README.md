@@ -1,169 +1,219 @@
-# Cluster
+# K8S Install
 
-自动部署 k8s 集群环境，然后使用 kubeadm 部署集群。
-
-
-
-
-## 架构
-
-运维节点：192.168.100.31
-
-nginx 代理：无（测试环境，单台 master）
-
-master 节点：192.168.100.31
-
-worker 节点：192.168.100.32
+基于 kubeadm 自动部署 k8s 集群
 
 
 
 ## 环境
 
-1. 系统版本：Centos7.9，还可以使用 Centos8.4 和 Rocky8.4 版本
-2. k8s 版本：1.20.7，还可以使用 1.18.* ~ 1.22.* 版本
-3. docker 版本：19.03.9
-4. containerd 版本：1.4.3
-5. Python 版本：3.6+
-6. shell 环境： bash
+- `Linux：`Centos7.9，支持 Rocky8.4、Debian10、Debian11
+  - Rocky8.4：仅支持 docker 19.03.13+
+  - Debian11：仅支持 docker 20.10.6+
+- `Kubernetes：`1.20.7，支持 1.18.* ~ 1.22.* 版本（CRI 推荐：Containerd）
+- `Docker：`19.03.15，建议版本不要超过 19.03
+  - this Docker version is not on the list of validated versions: 20.10.10. Latest validated version: 19.03
+- `Containerd 版本：`1.4.3+
+- `Python 版本：`3.6+
+- `Shell：` bash
 
 
 
-> 推荐 ：CentOS7 升级内核，如何升级，请自行解决！
+## Cluster node
+
+- `nginx 代理：`无（CLUSTER_VIP 直接用 m1 的 IP 和 api server port）
+
+| Domain | IP            | Role      |
+| ------ | ------------- | --------- |
+| m1.k8s | 192.168.1.100 | m1/devops |
+| m2.k8s | 192.168.1.110 | master    |
+| m3.k8s | 192.168.1.120 | master    |
+| w1.k8s | 192.168.1.130 | work      |
+
+
+
+## Optimization（可选）
+
+> 推荐 ：CentOS7、Debian10 升级内核，Rocky8.4 切换 CgroupV2
+
+
+
+### CentOS7
+
+- 升级内核
+
+```shell
+rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+yum install https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
+# yum --disablerepo="*" --enablerepo="elrepo-kernel" list available
+yum install -y --enablerepo="elrepo-kernel" kernel-lt
+# grub2-set-default 'CentOS Linux (5.4.107-1.el7.elrepo.x86_64) 7 (Core)'
+grub2-set-default 0
+grub2-mkconfig -o /boot/grub2/grub.cfg
+reboot
+
+rpm -qa | grep kernel
+yum remove -y kernel-3.10.0-1160.el7.x86_64 kernel-tools-libs-3.10.0-1160.el7.x86_64 kernel-tools-3.10.0-1160.el7.x86_64
+reboot
+```
+
+
+
+### Rocky8
+
+- 切换 Cgroup V2
+
+```shell
+dnf install -y grubby && \
+grubby \
+  --update-kernel=ALL \
+  --args="systemd.unified_cgroup_hierarchy=1"
+```
+
+
+
+### Debian10
+
+- 升级内核
+
+```shell
+echo "deb http://mirrors.aliyun.com/debian buster-backports main" > /etc/apt/sources.list.d/backports.list
+apt-get update
+apt -t buster-backports  install linux-image-amd64
+update-grub
+reboot
+
+dpkg --list | grep linux-image
+apt purge linux-image-4.19.0-17-amd64
+dpkg --list | grep linux-headers
+apt purge linux-headers-4.19.0-17-amd64
+update-grub
+reboot
+```
 
 
 
 ## 准备
-**运维节点上运行如下步骤：**
-
-- 安装必要 tools
-  - yum install -y python3 git
-
-- clone 项目
-  - git clone https://gitee.com/mings135/k8s-install.git
-- 设置 ssh 免密登录到所有 k8s 节点
-  - ssh-keygen -t rsa -b 2048
-  - ssh-copy-id -i ~/.ssh/id_rsa.pub root@x.x.x.x
-- 根据实际情况修改 config 目录下的 kube.conf 配置
-
-
-
-**安装配置代理（可选）：**
-
-- 请将 `Nginx` 4 层代理配置到第一台 k8s 的主节点
-- 具体如何配置 `Nginx` 代理，自行解决，也可以使用其他代理
-
-
-
-## 初始化
-**所有命令都在运维节点上运行**
-
-
-
-### 自签 CA（可选）
-
-- K8s 的  CA 证书默认10 年，其余 1 年
-- 如果对默认有效期不满足的，可以执行本步骤（有效期可以自定义）
+- Clone Project
 
 ```shell
-# 运维主机：本地生成 ca（生成后做好备份，以免重复执行后，被覆盖）
-sh remote.sh ca
+# 安装必要工具
+yum install -y git python3 sshpass rsync
+apt-get install -y git python3 sshpass rsync
 
-# 生成证书后最好备份一下，以防丢失
-tar -zcvf pki.tar.gz pki/
+# clone project
+git clone https://gitee.com/mings135/k8s-install.git
+
+# 进入 k8s-install
+cd k8s-install
 ```
 
 
 
-### 配置环境
+- 配置 config 目录下 kube.conf 和 nodes.conf
+- 如有 Proxy，须提前配置好，api server 先临时代理到 m1，安装完集群再做修改
+
+
+
+## Quick start
 
 ```shell
-# 分发 k8s project（cluster 目录） 到各个节点
-sh remote.sh distribute
+bash remote.sh freelogin
+bash remote.sh auto
 
-# 所有节点运行初始化、安装应用
-sh remote.sh initial
-
-# mater 节点生成配置文件
-sh remote.sh make
-
-# 也可用使用如下命令，自动依次运行上面命令
-sh remote.sh all
-```
-
-
-
-### 生成证书（可选）
-
-- K8s 的  CA 证书默认10 年，其余 1 年
-- 如果对默认有效期不满足的，可以执行本步骤（有效期可以自定义）
-- 执行之前，请确认已经执行过`自签CA`，如果没有，请删除记录，重复`初始化`的所有步骤
-
-```shell
-# 为 master 节点创建自定义有效期的证书（不包含 kubelet 证书）
-sh  remote.sh certs
-```
-
-
-
-### 更新 hosts
-**`注意：`如果已使用外部 DNS 解析各个 k8s 节点的域名，请跳过此步骤**
-
-- 添加各个节点的主机名解析信息到 /etc/hosts 中
-- 如需修改或删除原解析信息，请将 `INITIAL_HOSTS` 设置为 'y'
-
-```shell
-# 该操作会更新 kube.conf，然后根据 kube.conf 更新 /etc/hosts
-sh remote.sh update_hosts
-```
-
-
-
-## 安装
-
-**所有操作在第一台 k8s master 节点上，并进入 `INSTALL_SCRIPT` 目录**
-
-
-
-- **请确认已经完成以下内容**
-  - 配置好 4 层代理到 api server 6443 端口
-  - 配置好 DNS 域名解析 或 执行过 update_hosts
-
-```shell
-# pull 集群所需镜像
-kubeadm config --config kubeadm-config.yaml images pull
-
-# 初始化集群
-kubeadm init --config kubeadm-config.yaml --upload-certs | tee kubeadm-init.log
-
-# 执行 init 后产生的 命令
-cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-kubeadm join xxx
-
-# 同时 scp 到运维主机上
-mkdir ~/.kube
-scp 192.168.10.31:/etc/kubernetes/admin.conf ~/.kube/config
-
-# 创建 flannel 网络（如果无法下载，请使用网页打开）
+# 在 m1 上创建 fannel 网络，就可以使用了
 kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 ```
 
 
 
-## 优化
+## Initial system
 
-### kubelet 证书（可选）
-
-- 运维主机：执行远程签发所有 k8s 节点 kubelet 证书
-  - 执行之前，请确认已经执行过`自签CA` 和 `生成证书`，如果没有，请勿执行！
+- 分发安装脚本到各个节点
 
 ```shell
-sh remote.sh kubelet
+# 配置免密登录
+bash remote.sh freelogin
+
+# 分发文件到各个节点
+bash remote.sh distribute
 ```
 
 
 
-### Nginx 配置（可选）
+- 安装集群所需的环境和工具
 
-修改 nginx 代理配置，使其代理至所有 master 节点的 api server（负载均衡）
+```shell
+# all 一键安装（也可以分步执行 hosts --> init --> cri --> k8s）
+bash remote.sh all
 
-也可以添加 keepalived 实现高可用
+# 更新 nodes.conf，然后依据 nodes.conf 更新 /etc/hosts
+bash remote.sh hosts
+
+# 初始化和优化系统
+bash remote.sh init
+
+# 安装容器运行时
+bash remote.sh cri
+
+# 安装 kubeadm 等
+bash remote.sh k8s
+```
+
+
+
+### 证书（可选）
+
+- K8s 的  CA 证书默认10 年，其余 1 年
+- 执行以下命令优先创建 50 年的证书（不包含 kubelet，kubelet 需要集群安装后 执行）
+
+```shell
+# 本地生成 ca，并分发到各个节点
+bash remote.sh ca
+
+# 各个 master 节点自签 k8s 证书
+bash  remote.sh certs
+```
+
+
+
+## Install cluster
+
+- 初始化集群
+
+```shell
+# 查看所需镜像
+bash remote.sh imglist
+
+# download images
+bash remote.sh imgpull
+
+# m1 上初始化集群
+bash remote.sh initcluster
+```
+
+
+
+- 加入集群
+
+```shell
+# 生成加入命令
+bash remote.sh joincmd
+
+# 加入集群
+bash remote.sh joincluster
+```
+
+
+
+### Kubelet（可选）
+
+- 执行之前，必须先确认已经执行过`证书` 步骤
+
+```shell
+# 签发 kubelet 证书
+bash remote.sh kubelet
+
+# 完成后可以删除 work 节点上的 pki 目录
+
+```
+

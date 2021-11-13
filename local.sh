@@ -1,170 +1,248 @@
 #!/usr/bin/env bash
 
-script_dir=$(dirname $(readlink -f $0))
+script_dir=$(dirname $(readlink -f $0)) || exit 1
+
+source ${script_dir}/modules/result.sh || exit 1
 source ${script_dir}/config/kube.conf
-source ${script_dir}/script/base.sh
-source ${script_dir}/modules/result.sh
+source ${script_dir}/modules/base.sh
 
 
-make_config() {
-  check_record_exists
-  result_msg "检查 record.txt" || exit 1
+local_init() {
+  check_record
+  source ${script_dir}/modules/init.sh
 
-  # 检查是否需要 make config
-  [ $(grep 'make_config' ${script_dir}/config/record.txt | wc -l) -eq 0 ] || exit 0
-
-  if [ ${IS_MASTER} == 'y' ];then
-    export HOST_IP HOST_NAME CLUSTER_VIP CLUSTER_PORT K8S_VERSION POD_NETWORK SVC_NETWORK IMAGE_REPOSITORY
-    envsubst < ${script_dir}/config_template/kubeadm-config.yaml > ${script_dir}/kubeadm-config.yaml
-    result_msg "生成 kubeadm-config.yaml"
-
-    # k8s 1.22 以上版本需要调整 kubeadm-config 配置
-    ver="${K8S_VERSION}"
-    if [ $(echo "${ver:0:4} >= 1.22" | bc) -eq 1 ]; then
-      sed -i '/type: CoreDNS/d' ${script_dir}/kubeadm-config.yaml
-      sed -i '/dns:/s/dns:/dns: {}/' ${script_dir}/kubeadm-config.yaml
-      sed -i 's#kubeadm\.k8s\.io/v1beta2#kubeadm\.k8s\.io/v1beta3#' ${script_dir}/kubeadm-config.yaml
-      result_msg "修改 kubeadm-config k8s>=v1.22"
-    fi
+  if ! grep -Eqi 'init_system' ${script_dir}/config/record.txt; then
+    init_system
+    echo "init_system" >> ${script_dir}/config/record.txt
   fi
+}
 
-  # 添加记录
-  echo "make_config" >> ${script_dir}/config/record.txt
 
-  # 如果使用 containterd，需要调整 kubeadm-config 配置
-  if [ $(grep 'make_config_containerd' ${script_dir}/config/record.txt | wc -l) -eq 0 ]; then
-    if [ ${IS_MASTER} == 'y' ] && [ ${K8S_CRI} == 'containerd' ];then
-      sed -i '/criSocket/s#/var/run/dockershim.sock#unix:///run/containerd/containerd.sock#' ${script_dir}/kubeadm-config.yaml && \
-      result_msg "修改 kubeadm-config containerd" && echo "make_config_containerd" >> ${script_dir}/config/record.txt
+local_cri() {
+  check_record
+  source ${script_dir}/modules/cri.sh
+
+  if ! grep -Eqi 'install_cri' ${script_dir}/config/record.txt && \
+  grep -Eqi 'init_system' ${script_dir}/config/record.txt; then
+    install_cri
+    echo "install_cri" >> ${script_dir}/config/record.txt
+  fi 
+}
+
+
+local_k8s() {
+  check_record
+  source ${script_dir}/modules/k8s.sh
+
+  if ! grep -Eqi 'install_k8s' ${script_dir}/config/record.txt && \
+  grep -Eqi 'init_system' ${script_dir}/config/record.txt; then
+    install_k8s
+    echo "install_k8s" >> ${script_dir}/config/record.txt
+  fi
+}
+
+
+local_hosts() {
+  source ${script_dir}/modules/cluster.sh
+  cluster_hosts
+}
+
+
+local_imglist() {
+  source ${script_dir}/modules/cluster.sh
+  images_list
+}
+
+
+local_imgpull() {
+  check_record
+  source ${script_dir}/modules/cluster.sh
+
+  if ! grep -Eqi 'images_pull' ${script_dir}/config/record.txt; then
+    images_pull
+    echo "images_pull" >> ${script_dir}/config/record.txt
+  fi
+}
+
+
+local_initcluster() {
+  check_record
+  source ${script_dir}/modules/cluster.sh
+
+  if ! grep -Eqi 'cluster_init_or_join_m' ${script_dir}/config/record.txt; then
+    cluster_init
+    echo "cluster_init_or_join_m" >> ${script_dir}/config/record.txt
+  fi
+}
+
+
+local_joincmd() {
+  check_record
+  source ${script_dir}/modules/cluster.sh
+
+  if grep -Eqi 'cluster_init_or_join_m' ${script_dir}/config/record.txt; then
+    kubectl_config
+    cluster_joincmd
+  fi
+}
+
+
+local_joincluster() {
+  check_record
+  source ${script_dir}/modules/cluster.sh
+
+  if ${IS_MASTER}; then
+    if ! grep -Eqi 'cluster_init_or_join_m' ${script_dir}/config/record.txt; then
+      cluster_join
+      echo "cluster_init_or_join_m" >> ${script_dir}/config/record.txt
+    fi
+  else
+    if ! grep -Eqi 'cluster_init_or_join_w' ${script_dir}/config/record.txt; then
+      cluster_join
+      echo "cluster_init_or_join_w" >> ${script_dir}/config/record.txt
     fi
   fi
 }
 
 
-initial_node() {
-  check_record
-  source ${script_dir}/modules/initial.sh
-  source ${script_dir}/modules/install.sh
+local_ca() {
+  source ${script_dir}/modules/ca.sh
 
-  # 检查是否需要 centos7_initial
-  [ $(grep 'initial_centos' ${script_dir}/config/record.txt | wc -l) -ne 0 ] || {
-    initial_centos
-    # 添加记录
-    echo "initial_centos" >> ${script_dir}/config/record.txt
-  }
-
-  if [ ${K8S_CRI} == 'containerd' ];then
-    [ $(grep 'install_containerd' ${script_dir}/config/record.txt | wc -l) -ne 0 ] || {
-      install_containerd
-      # 添加记录
-      echo "install_containerd" >> ${script_dir}/config/record.txt
-    }
-  elif [ ${K8S_CRI} == 'docker' ]; then
-    [ $(grep 'install_docker' ${script_dir}/config/record.txt | wc -l) -ne 0 ] || {
-      install_docker
-      # 添加记录
-      echo "install_docker" >> ${script_dir}/config/record.txt
-    }
+  if [ -d ${script_dir}/pki ]; then
+    blue_font '已创建过 CA，跳过（如需更新 CA，手动删除 pki 目录）'
+  else
+    set -e
+    mkdir ${script_dir}/pki
+    cd ${script_dir}/pki
+    ca_crt
+    set +e
   fi
-
-  [ $(grep 'install_kubeadm' ${script_dir}/config/record.txt | wc -l) -ne 0 ] || {
-    install_kubeadm
-    # 添加记录
-    echo "install_kubeadm" >> ${script_dir}/config/record.txt
-  }
 }
 
 
-issue_certs() {
+local_certs() {
   check_record
-  source ${script_dir}/script/certs.sh
+  source ${script_dir}/modules/certs.sh
 
-  [ $(grep 'issue_certs' ${script_dir}/config/record.txt | wc -l) -ne 0 ] || {
-    # 复制 CA
+  if ! grep -Eqi 'k8s_certs' ${script_dir}/config/record.txt && \
+  ${IS_MASTER}; then
+    set -e
     mkdir -p ${K8S_PKI}
     rm -rf ${K8S_PKI}
-    /usr/bin/cp -a ${INSTALL_SCRIPT}/pki ${K8S_PKI}
-
+    /usr/bin/cp -a ${script_dir}/pki ${K8S_PKI}
     etcd_crt
     apiserver_crt
     front_crt
     admin_conf
     manager_conf
     scheduler_conf
-    # 添加记录
-    echo "issue_certs" >> ${script_dir}/config/record.txt
-  }
+    set +e
+    echo "k8s_certs" >> ${script_dir}/config/record.txt
+  fi
 }
 
 
-issue_kubelet() {
+local_kubelet() {
   check_record
-  source ${script_dir}/script/kubelet.sh
+  source ${script_dir}/modules/certs.sh
 
-  [ $(grep 'issue_kubelet' ${script_dir}/config/record.txt | wc -l) -ne 0 ] || {
+  if ! grep -Eqi 'kubelet_cert' ${script_dir}/config/record.txt; then
+    set -e
+    /usr/bin/cp -a ${script_dir}/pki/ca.{crt,key} ${KUBELET_PKI}
     kubelet_conf_crt
+    rm -f ${KUBELET_PKI}/ca.{crt,key}
     systemctl restart kubelet
-    # 添加记录
-    echo "issue_kubelet" >> ${script_dir}/config/record.txt
-  }
+    set +e
+    echo "kubelet_cert" >> ${script_dir}/config/record.txt
+  fi
 }
 
 
-update_hosts() {
-  master_number=${#MASTER_NODES[@]}
-  work_number=${#WORK_NODES[@]}
-
-  if [ ${INITIAL_HOSTS} == 'y' ];then
-    echo '127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4' > /etc/hosts
-    echo '::1         localhost localhost.localdomain localhost6 localhost6.localdomain6' >> /etc/hosts
-  fi
-
-  [ ${master_number} -ge 1 ] || exit 1
-  for i in `seq 0 $[master_number - 1]`
+# 删除 scp 过来不必要的文件
+local_needless() {
+  local needless_fd='remote.sh .git'
+  for i in ${needless_fd}
   do
-    [ $(grep "${MASTER_NODES[$i]}" /etc/hosts | wc -l) -ne 0 ] || {
-      echo "${MASTER_NODES[$i]} ${MASTER_NAMES[$i]}" >> /etc/hosts
-      result_msg "添加 ${MASTER_NODES[$i]} ${MASTER_NAMES[$i]}"
-    }
+    if [ -e ${i} ]; then
+      rm -rf ${script_dir}/${i}
+      result_msg "删除 ${i}" || exit 1
+    fi
   done
+}
 
-  if [ ${work_number} -ge 1 ];then
-    for i in `seq 0 $[work_number - 1]`
-    do
-      [ $(grep "${WORK_NODES[$i]}" /etc/hosts | wc -l) -ne 0 ] || {
-        echo "${WORK_NODES[$i]} ${WORK_NAMES[$i]}" >> /etc/hosts
-        result_msg "添加 ${WORK_NODES[$i]} ${WORK_NAMES[$i]}"
-      }
-    done
+
+# 创建记录
+local_record() {
+  if [ ! -f ${script_dir}/config/record.txt ]; then
+    touch ${script_dir}/config/record.txt
+    result_msg "创建 record.txt" || exit 1
   fi
 }
 
 
-scp_check() {
-  rm -f ${script_dir}/remote.sh
-  result_msg "删除所有 node 上的 remote 脚本" || exit 1
-
-  if [ -d ${script_dir}/.git ];then
-    rm -rf ${script_dir}/.git
-    result_msg "删除所有 node 上的 .git" || exit 1
+# 删除记录
+local_delrecord() {
+  if [ -f ${script_dir}/config/record.txt ]; then
+    rm -f ${script_dir}/config/record.txt
+    result_msg "删除 record.txt" || exit 1
   fi
+}
 
-  [ ${IS_MASTER} == 'y' ] || {
+
+# 删除非 master 节点上的 pki 目录
+local_delpki() {
+  if ! ${IS_MASTER} && [ -d ${script_dir}/pki ]; then
     rm -rf ${script_dir}/pki
-    result_msg "删除非 master 节点上的 pki" || exit 1
-  }
+    result_msg "删除 pki dir(not master)" || exit 1
+  fi
 }
 
 
 main() {
+  base_info
+
   case $1 in
-    "initial_node" ) initial_node;;
-    "make_config" ) make_config;;
-    "issue_certs" ) issue_certs;;
-    "issue_kubelet" ) issue_kubelet;;
-    "update_hosts" ) update_hosts;;
-    "scp_check" ) scp_check;;
-    * )
+    "record") local_record;;
+    "delrecord") local_delrecord;;
+    "needless") local_needless;; 
+    "hosts") local_hosts;;
+    "init") local_init;;
+    "cri") local_cri;;
+    "k8s") local_k8s;;
+    "all")
+      local_hosts
+      local_init
+      local_cri
+      local_k8s
+      ;;
+    "imglist") local_imglist;;
+    "imgpull") local_imgpull;;
+    "initcluster") local_initcluster;;
+    "joincmd") local_joincmd;;
+    "joincluster") local_joincluster;;
+    "ca") local_ca;;
+    "certs") local_certs;;
+    "kubelet") local_kubelet;;
+    "delpki") local_delpki;;
+    *)
+    printf "Usage: bash $0 [ ? ] \n"
+    printf "%-16s %-s\n" 'record' '创建 config/record.txt；用于记录步骤'
+    printf "%-16s %-s\n" 'delrecord' '删除 config/record.txt；被记录的步骤不能重复执行'
+    printf "%-16s %-s\n" 'needless' '删除本地不需要的文件'
+    printf "%-16s %-s\n" 'hosts' '更新 config/nodes.conf；然后更新 /etc/hosts'
+    printf "%-16s %-s\n" 'init' '初始化、优化系统'
+    printf "%-16s %-s\n" 'cri' '安装容器运行时'
+    printf "%-16s %-s\n" 'k8s' '安装 kubeadm kubelet kubectl'
+    printf "%-16s %-s\n" 'all' '顺序执行：hosts -> init -> cri --> k8s'
+    printf "%-16s %-s\n" 'imglist' '查看 kubeadm init images'
+    printf "%-16s %-s\n" 'imgpull' '拉取 kubeadm init images'
+    printf "%-16s %-s\n" 'initcluster' 'm1 node 上 kubeadm init cluster'
+    printf "%-16s %-s\n" 'joincmd' '生成 kubeadm-init.log 的节点上获取 join 命令，并写入 config/join.conf'
+    printf "%-16s %-s\n" 'joincluster' 'join 命令生效期间，使用 kubeadm join cluster'
+    printf "%-16s %-s\n" 'ca' '创建 ca 证书，保存在 pki 目录'
+    printf "%-16s %-s\n" 'certs' "如果是 master，签发 k8s 证书，此操作会清空 ${K8S_PKI}！"
+    printf "%-16s %-s\n" 'kubelet' '签发 kubelet 证书，此操作会覆盖原有证书！'
+    printf "%-16s %-s\n" 'delpki' '如果非 master，删除 pki 目录，集群安装完成后可以删除'
     exit 1
     ;;
   esac

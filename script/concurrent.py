@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 
 '''
-多线程并发执行远程脚本，实时输出结果
+同时在多个远程主机上执行命令，并实时输出 stdout（必须先做免密 ssh）
 '''
 
 import threading, sys
@@ -10,11 +10,11 @@ from subprocess import Popen, PIPE
 
 
 class RunCommandThread(threading.Thread):
-
     def __init__(self, cmd, lock):
         super().__init__()
         self.cmd = cmd
         self.lock = lock
+        self.result = 0
 
     def run(self) -> None:
         pipe = Popen(self.cmd, stdout=PIPE, shell=True)
@@ -25,7 +25,7 @@ class RunCommandThread(threading.Thread):
                     print(line.decode('utf-8'), end='')
             else:
                 break
-        pipe.wait()
+        self.result = pipe.wait()
         pipe.stdout.close()
 
 
@@ -34,6 +34,7 @@ def main():
     run_command = sys.argv[1]
     remote_ips = sys.argv[2:]
     remote_runs = []
+    results_code = 0
     for ip in remote_ips:
         cmd = 'ssh root@%s %s' % (ip, run_command)
         rct = RunCommandThread(cmd, lock)
@@ -42,7 +43,10 @@ def main():
 
     for rct in remote_runs:
         rct.join()
+        results_code += rct.result
 
+    if results_code > 0:
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()

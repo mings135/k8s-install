@@ -45,7 +45,7 @@ networking:
   serviceSubnet: ${SVC_NETWORK}
 scheduler: {}
 ---
-# 额外增加的配置，kube-proxy 代理 mode = ipvs，调度算法 = nq
+# 额外增加的配置，kube-proxy 代理 mode = ipvs，调度算法 = wrr
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
 mode: ipvs
