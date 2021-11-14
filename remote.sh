@@ -258,7 +258,7 @@ main() {
     remote_joincmd
     remote_joincluster
     remote_kubelet
-    delpki
+    remote_delpki
     ;;
     *)
     echo ''
@@ -271,19 +271,16 @@ main() {
     printf "%-16s %-s\n" 'cri' '所有节点：安装容器运行时'
     printf "%-16s %-s\n" 'k8s' '所有节点：安装 kubeadm kubelet kubectl'
     printf "%-16s %-s\n" 'all' '所有节点：顺序执行：hosts -> init -> cri --> k8s'
-    echo ''
     blue_font "集群："
     printf "%-16s %-s\n" 'imglist' '查看 kubeadm init images'
     printf "%-16s %-s\n" 'imgpull' '所有 master 节点：拉取 kubeadm init images'
     printf "%-16s %-s\n" 'initcluster' 'master 1 上 kubeadm init cluster'
     printf "%-16s %-s\n" 'joincmd' '获取加入集群的命令，写入 config/join.conf，分发到各个节点'
     printf "%-16s %-s\n" 'joincluster' '所有节点：kubeadm join cluster'
-    echo ''
     blue_font "证书："
     printf "%-16s %-s\n" 'ca' '本地创建 ca 证书（pki 目录，不会覆盖），并分发到各个节点'
     printf "%-16s %-s\n" 'certs' "所有 master 节点：签发 k8s 证书，此操作会清空 ${K8S_PKI}！"
     printf "%-16s %-s\n" 'kubelet' '所有节点：签发 kubelet 证书，此操作会覆盖原有证书！'
-    echo ''
     blue_font "其他："
     printf "%-16s %-s\n" 'auto' '全自动安装，并签发自定义证书'
     printf "%-16s %-s\n" 'upscript' '更新 k8s-install 脚本版本到各个节点'

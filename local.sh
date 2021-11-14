@@ -250,4 +250,12 @@ main() {
 }
 
 
-main $1
+if [ $# -eq 0 ]; then
+  main $1
+fi
+
+while [ $# -gt 0 ]
+do
+  main $1
+  shift
+done

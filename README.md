@@ -4,23 +4,19 @@
 
 
 
-## 环境
+## Environment
 
 - `Linux：`CentOS7.9，支持 Rocky8.4、Debian10、Debian11
 - `Kubernetes：`1.20.7，支持 1.18.* ~ 1.22.* 版本
 - `CRI：` Containerd or Docker，推荐：Containerd
 - `Docker：`19.03.15，建议不要超过 19.03
-  - Debian10：不推荐，警告较多，建议升级内核
-  - Rocky8.4：仅支持 19.03.13+，建议最新版 Docker，切换 CgroupV2
-  - Debian11：仅支持 20.10.6+，建议最新版 Docker
+  - Debian10：不推荐
+  - Rocky8.4：仅支持 19.03.13+，建议切换 CgroupV2，使用最新版Docker
+  - Debian11：仅支持 20.10.6+，建议使用最新版 Docker
 - `Containerd 版本：`1.4.3+，默认使用最新版本
   - Debian10：建议升级内核，否则加入集群会有警告
 - `Python 版本：`3.6+
 - `Shell：` bash
-
-
-
-## Cluster node
 
 - `nginx 代理：`无（CLUSTER_VIP 直接用 m1 的 IP 和 api server port）
 
@@ -33,49 +29,9 @@
 
 
 
-## Optimization（可选）
+### Upgrade
 
-> 推荐 ：CentOS7、Debian10 升级内核，Rocky8.4 切换 CgroupV2
-
-
-
-### CentOS7
-
-- 升级内核
-
-```shell
-rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
-yum install https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
-# yum --disablerepo="*" --enablerepo="elrepo-kernel" list available
-yum install -y --enablerepo="elrepo-kernel" kernel-lt
-# grub2-set-default 'CentOS Linux (5.4.107-1.el7.elrepo.x86_64) 7 (Core)'
-grub2-set-default 0
-grub2-mkconfig -o /boot/grub2/grub.cfg
-reboot
-
-rpm -qa | grep kernel
-yum remove -y kernel-3.10.0-1160.el7.x86_64 kernel-tools-libs-3.10.0-1160.el7.x86_64 kernel-tools-3.10.0-1160.el7.x86_64
-reboot
-```
-
-
-
-### Rocky8
-
-- 切换 Cgroup V2
-
-```shell
-dnf install -y grubby && \
-grubby \
-  --update-kernel=ALL \
-  --args="systemd.unified_cgroup_hierarchy=1"
-```
-
-
-
-### Debian10
-
-- 升级内核
+- Debian 10 升级内核（推荐）
 
 ```shell
 echo "deb http://mirrors.aliyun.com/debian buster-backports main" > /etc/apt/sources.list.d/backports.list
@@ -94,7 +50,18 @@ reboot
 
 
 
-## 准备
+- Rocky 8 切换 CgroupV2（推荐）
+
+```shell
+dnf install -y grubby && \
+grubby \
+  --update-kernel=ALL \
+  --args="systemd.unified_cgroup_hierarchy=1"
+```
+
+
+
+## Ready
 - Clone Project
 
 ```shell
@@ -216,6 +183,23 @@ bash remote.sh joincluster
 bash remote.sh kubelet
 
 # 完成后可以删除 work 节点上的 pki 目录
+bash remote.sh deletepki
+```
 
+
+
+# Install docker
+
+本地只安装 Docker：
+
+```shell
+git clone https://gitee.com/mings135/k8s-install.git
+cd k8a-install
+
+# 版本修改成想要安装的
+sed -i '/^DOCKER_VERSION=/c DOCKER_VERSION="19.03.15"' config/kube.conf
+sed -i '/^K8S_CRI=/c K8S_CRI="docker"' config/kube.conf
+sed -i "/=m1/c localhost=$(ip a | grep global | awk -F '/' '{print $1}' | awk 'NR==1{print $2}')=m1" config/nodes.conf
+bash local.sh record init cri
 ```
 

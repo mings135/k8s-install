@@ -11,7 +11,7 @@ check_node_line() {
     exit 1
   fi
 
-  if ! echo "${node_ip}" | grep -Eqi '([0-9]{1,3}.){3}[0-9]{1,3}'; then
+  if ! echo "${node_ip}" | grep -Eqi '^([0-9]{1,3}\.){3}[0-9]{1,3}$'; then
     yellow_font "nodes.conf 中 ip 地址格式异常 ！"
     exit 1
   fi
