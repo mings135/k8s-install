@@ -5,6 +5,7 @@ script_dir=$(dirname $(readlink -f $0))
 
 source ${script_dir}/modules/result.sh
 source ${script_dir}/config/kube.conf
+source ${script_dir}/modules/check.sh
 
 
 # 分发文件到所有节点
@@ -157,6 +158,7 @@ get_nodes_info() {
     if echo "${line}" | grep -Eqi '^ *#|^ *$'; then
       continue
     fi
+    check_node_line "${line}"
 
     node_ip=$(echo "${line}" | awk -F '=' '{print $2}')
     all_nodes="${all_nodes} ${node_ip}"
@@ -256,10 +258,11 @@ main() {
     remote_joincmd
     remote_joincluster
     remote_kubelet
+    delpki
     ;;
     *)
-    printf "Usage: bash $0 [ ? ] \n"  
     echo ''
+    printf "Usage: bash $0 [ ? ] \n"
     blue_font "节点："
     printf "%-16s %-s\n" 'freelogin' '配置本机免密登录到所有节点，完成后会自动删除密码信息'
     printf "%-16s %-s\n" 'distribute' '分发项目文件到所有节点'
@@ -277,12 +280,12 @@ main() {
     printf "%-16s %-s\n" 'joincluster' '所有节点：kubeadm join cluster'
     echo ''
     blue_font "证书："
-    printf "%-16s %-s\n" 'ca' '创建 ca 证书，保存在本地 pki 目录'
+    printf "%-16s %-s\n" 'ca' '本地创建 ca 证书（pki 目录，不会覆盖），并分发到各个节点'
     printf "%-16s %-s\n" 'certs' "所有 master 节点：签发 k8s 证书，此操作会清空 ${K8S_PKI}！"
     printf "%-16s %-s\n" 'kubelet' '所有节点：签发 kubelet 证书，此操作会覆盖原有证书！'
     echo ''
     blue_font "其他："
-    printf "%-16s %-s\n" 'auto' '自动运行安装集群所需步骤，并安装自定义证书'
+    printf "%-16s %-s\n" 'auto' '全自动安装，并签发自定义证书'
     printf "%-16s %-s\n" 'upscript' '更新 k8s-install 脚本版本到各个节点'
     printf "%-16s %-s\n" 'delpki' '所有非 master：删除不需要的目录 pki，集群安装完成后可以删除'
     printf "%-16s %-s\n" 'delrecord' '所有节点：删除 config/record.txt；被记录的步骤不能重复执行'

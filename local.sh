@@ -4,11 +4,12 @@ script_dir=$(dirname $(readlink -f $0)) || exit 1
 
 source ${script_dir}/modules/result.sh || exit 1
 source ${script_dir}/config/kube.conf
+source ${script_dir}/modules/check.sh
 source ${script_dir}/modules/base.sh
 
 
 local_init() {
-  check_record
+  check_record_exist
   source ${script_dir}/modules/init.sh
 
   if ! grep -Eqi 'init_system' ${script_dir}/config/record.txt; then
@@ -19,7 +20,7 @@ local_init() {
 
 
 local_cri() {
-  check_record
+  check_record_exist
   source ${script_dir}/modules/cri.sh
 
   if ! grep -Eqi 'install_cri' ${script_dir}/config/record.txt && \
@@ -31,7 +32,7 @@ local_cri() {
 
 
 local_k8s() {
-  check_record
+  check_record_exist
   source ${script_dir}/modules/k8s.sh
 
   if ! grep -Eqi 'install_k8s' ${script_dir}/config/record.txt && \
@@ -55,7 +56,7 @@ local_imglist() {
 
 
 local_imgpull() {
-  check_record
+  check_record_exist
   source ${script_dir}/modules/cluster.sh
 
   if ! grep -Eqi 'images_pull' ${script_dir}/config/record.txt; then
@@ -66,7 +67,7 @@ local_imgpull() {
 
 
 local_initcluster() {
-  check_record
+  check_record_exist
   source ${script_dir}/modules/cluster.sh
 
   if ! grep -Eqi 'cluster_init_or_join_m' ${script_dir}/config/record.txt; then
@@ -77,7 +78,7 @@ local_initcluster() {
 
 
 local_joincmd() {
-  check_record
+  check_record_exist
   source ${script_dir}/modules/cluster.sh
 
   if grep -Eqi 'cluster_init_or_join_m' ${script_dir}/config/record.txt; then
@@ -88,7 +89,7 @@ local_joincmd() {
 
 
 local_joincluster() {
-  check_record
+  check_record_exist
   source ${script_dir}/modules/cluster.sh
 
   if ${IS_MASTER}; then
@@ -121,7 +122,7 @@ local_ca() {
 
 
 local_certs() {
-  check_record
+  check_record_exist
   source ${script_dir}/modules/certs.sh
 
   if ! grep -Eqi 'k8s_certs' ${script_dir}/config/record.txt && \
@@ -143,7 +144,7 @@ local_certs() {
 
 
 local_kubelet() {
-  check_record
+  check_record_exist
   source ${script_dir}/modules/certs.sh
 
   if ! grep -Eqi 'kubelet_cert' ${script_dir}/config/record.txt; then
@@ -239,7 +240,7 @@ main() {
     printf "%-16s %-s\n" 'initcluster' 'm1 node 上 kubeadm init cluster'
     printf "%-16s %-s\n" 'joincmd' '生成 kubeadm-init.log 的节点上获取 join 命令，并写入 config/join.conf'
     printf "%-16s %-s\n" 'joincluster' 'join 命令生效期间，使用 kubeadm join cluster'
-    printf "%-16s %-s\n" 'ca' '创建 ca 证书，保存在 pki 目录'
+    printf "%-16s %-s\n" 'ca' '创建 ca 证书（pki 目录，不会覆盖）'
     printf "%-16s %-s\n" 'certs' "如果是 master，签发 k8s 证书，此操作会清空 ${K8S_PKI}！"
     printf "%-16s %-s\n" 'kubelet' '签发 kubelet 证书，此操作会覆盖原有证书！'
     printf "%-16s %-s\n" 'delpki' '如果非 master，删除 pki 目录，集群安装完成后可以删除'

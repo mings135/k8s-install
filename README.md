@@ -6,13 +6,15 @@
 
 ## 环境
 
-- `Linux：`Centos7.9，支持 Rocky8.4、Debian10、Debian11
-  - Rocky8.4：仅支持 docker 19.03.13+
-  - Debian11：仅支持 docker 20.10.6+
-- `Kubernetes：`1.20.7，支持 1.18.* ~ 1.22.* 版本（CRI 推荐：Containerd）
-- `Docker：`19.03.15，建议版本不要超过 19.03
-  - this Docker version is not on the list of validated versions: 20.10.10. Latest validated version: 19.03
-- `Containerd 版本：`1.4.3+
+- `Linux：`CentOS7.9，支持 Rocky8.4、Debian10、Debian11
+- `Kubernetes：`1.20.7，支持 1.18.* ~ 1.22.* 版本
+- `CRI：` Containerd or Docker，推荐：Containerd
+- `Docker：`19.03.15，建议不要超过 19.03
+  - Debian10：不推荐，警告较多，建议升级内核
+  - Rocky8.4：仅支持 19.03.13+，建议最新版 Docker，切换 CgroupV2
+  - Debian11：仅支持 20.10.6+，建议最新版 Docker
+- `Containerd 版本：`1.4.3+，默认使用最新版本
+  - Debian10：建议升级内核，否则加入集群会有警告
 - `Python 版本：`3.6+
 - `Shell：` bash
 

@@ -1,15 +1,16 @@
 # 基础检查和获取基本信息，提供以下函数：
-# check_record
 # base_info
 # install_apps
 
 # 所需变量：
 # script_dir=$(dirname $(readlink -f $0))
 
+# 必须先执行 check.sh
+
 
 # 获取节点信息
 get_node_info() {
-  local node_ip node_role
+  local node_ip
   local host_ip=$(ip a | grep global | awk -F '/' '{print $1}' | awk 'NR==1{print $2}') || return 1
 
   while read line
@@ -17,25 +18,13 @@ get_node_info() {
     if echo "${line}" | grep -Eqi '^ *#|^ *$'; then
       continue
     fi
+    check_node_line "${line}"
 
     node_ip=$(echo "${line}" | awk -F '=' '{print $2}')
-    
     if [ ${host_ip} = ${node_ip} ]; then
       HOST_IP=${node_ip}
       HOST_NAME=$(echo "${line}" | awk -F '=' '{print $1}')
-
-      node_role=$(echo "${line}" | awk -F '=' '{print $3}') 
-      if echo "${node_role}" | grep -Eqi '^m'; then
-        IS_MASTER=true
-        if [ "${node_role}" = 'm1' ]; then
-          IS_MASTER_1=true
-        else
-          IS_MASTER_1=false
-        fi
-      else
-        IS_MASTER=false
-      fi
-      
+      check_node_role "${line}"
       break
     fi
   done < ${script_dir}/config/nodes.conf
@@ -86,15 +75,6 @@ install_apps() {
     ${sys_pkg} install -y ${i} &> /dev/null
     result_msg "安装 $i" || return 1
   done
-}
-
-
-# 检查 record.txt 是否存在
-check_record() {
-  [ -f ${script_dir}/config/record.txt ] || {
-    yellow_font "record.txt 不存在，尝试执行 distribute or record !"
-    exit 1
-  }
 }
 
 
