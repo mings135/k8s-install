@@ -43,3 +43,11 @@ check_node_role() {
     IS_MASTER=false
   fi
 }
+
+
+check_script_dir() {
+  if [ ! ${script_dir} ] || [ ! ${INSTALL_SCRIPT} ] ; then
+    yellow_font "script 目录获取错误，请检查 kube.conf 或者 shell 环境 ！"
+    exit 1
+  fi
+}

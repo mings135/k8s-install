@@ -161,7 +161,7 @@ local_kubelet() {
 
 # 删除 scp 过来不必要的文件
 local_needless() {
-  local needless_fd='remote.sh .git'
+  local needless_fd='remote.sh'
   for i in ${needless_fd}
   do
     if [ -e ${i} ]; then

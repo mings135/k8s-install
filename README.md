@@ -4,13 +4,12 @@
 
 
 
-## Environment
+## Installation env
 
 - `Linux：`CentOS7.9，支持 Rocky8.4、Debian10、Debian11
 - `Kubernetes：`1.20.7，支持 1.18.* ~ 1.22.* 版本
 - `CRI：` Containerd or Docker，推荐：Containerd
-- `Docker：`19.03.15，建议不要超过 19.03
-  - Debian10：不推荐
+- `Docker：`19.03.15，建议不要超过 19.03，不推荐 Debian 10 安装
   - Rocky8.4：仅支持 19.03.13+，建议切换 CgroupV2，使用最新版Docker
   - Debian11：仅支持 20.10.6+，建议使用最新版 Docker
 - `Containerd 版本：`1.4.3+，默认使用最新版本
@@ -61,8 +60,8 @@ grubby \
 
 
 
-## Ready
-- Clone Project
+## Ready work
+**Clone Project：**
 
 ```shell
 # 安装必要工具
@@ -78,18 +77,24 @@ cd k8s-install
 
 
 
-- 配置 config 目录下 kube.conf 和 nodes.conf
-- 如有 Proxy，须提前配置好，api server 先临时代理到 m1，安装完集群再做修改
+**配置 config 目录下 kube.conf 和 nodes.conf**
+
+**如有 Proxy，也必须提前配置好**
 
 
 
 ## Quick start
 
+**快速安装使用：**
+
+- 由于网络等问题可能会导致出错，此时脚本会自动退出（部分流程是并发的，可能存在延迟）
+- 如果出错，手动解决问题后继续运行 `auto` 即可
+
 ```shell
 bash remote.sh freelogin
 bash remote.sh auto
 
-# 在 m1 上创建 fannel 网络，就可以使用了
+# 安装玩集群后，在 m1 上创建 fannel 网络，不能直接用就复制下来运行
 kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 ```
 
@@ -97,7 +102,7 @@ kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documen
 
 ## Initial system
 
-- 分发安装脚本到各个节点
+**分发安装脚本到所有节点：**
 
 ```shell
 # 配置免密登录
@@ -109,12 +114,9 @@ bash remote.sh distribute
 
 
 
-- 安装集群所需的环境和工具
+**所有节点初始化系统环境：**
 
 ```shell
-# all 一键安装（也可以分步执行 hosts --> init --> cri --> k8s）
-bash remote.sh all
-
 # 更新 nodes.conf，然后依据 nodes.conf 更新 /etc/hosts
 bash remote.sh hosts
 
@@ -147,7 +149,7 @@ bash  remote.sh certs
 
 ## Install cluster
 
-- 初始化集群
+**初始化集群：**
 
 ```shell
 # 查看所需镜像
@@ -162,7 +164,7 @@ bash remote.sh initcluster
 
 
 
-- 加入集群
+**加入集群：**
 
 ```shell
 # 生成加入命令
@@ -188,18 +190,19 @@ bash remote.sh deletepki
 
 
 
-# Install docker
+# Docker install
 
-本地只安装 Docker：
+**本地只安装 Docker：**
 
 ```shell
 git clone https://gitee.com/mings135/k8s-install.git
 cd k8a-install
 
 # 版本修改成想要安装的
-sed -i '/^DOCKER_VERSION=/c DOCKER_VERSION="19.03.15"' config/kube.conf
+sed -i '/^DOCKER_VERSION=/c DOCKER_VERSION="20.10.10"' config/kube.conf
 sed -i '/^K8S_CRI=/c K8S_CRI="docker"' config/kube.conf
 sed -i "/=m1/c localhost=$(ip a | grep global | awk -F '/' '{print $1}' | awk 'NR==1{print $2}')=m1" config/nodes.conf
+
 bash local.sh record init cri
 ```
 

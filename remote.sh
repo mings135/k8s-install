@@ -211,19 +211,20 @@ password_free_login() {
 remote_upscript() {
   local rsync_parm rsync_exclude rsync_source rsync_destination
   rsync_parm='-avc --delete'
-  rsync_exclude='--exclude=/config --exclude=/.git --exclude=/pki --exclude=/kubeadm-init.log --exclude=/kubeadm-config.yaml --exclude=/remote.sh'
-  rsync_source="${script_dir}/"
+  rsync_exclude='--exclude=/config --exclude=/pki --exclude=/kubeadm-init.log --exclude=/kubeadm-config.yaml --exclude=/remote.sh'
+  rsync_source="${script_dir}/*"
 
   for i in ${all_nodes}
   do
     blue_font "开始同步：${i}"
-    rsync_destination="root@${i}:${INSTALL_SCRIPT}/"
+    rsync_destination="root@${i}:${INSTALL_SCRIPT}"
     rsync ${rsync_parm} ${rsync_exclude} ${rsync_source} ${rsync_destination}
   done 
 }
 
 
 main() {
+  check_script_dir
   get_nodes_info
 
   case $1 in
