@@ -164,7 +164,7 @@ local_needless() {
   local needless_fd='remote.sh'
   for i in ${needless_fd}
   do
-    if [ -e ${i} ]; then
+    if [ -e ${script_dir}/${i} ]; then
       rm -rf ${script_dir}/${i}
       result_msg "删除 ${i}" || exit 1
     fi
