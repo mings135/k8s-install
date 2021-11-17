@@ -199,7 +199,7 @@ git clone https://gitee.com/mings135/k8s-install.git
 cd k8a-install
 
 # 版本修改成想要安装的
-sed -i '/^DOCKER_VERSION=/c DOCKER_VERSION="20.10.10"' config/kube.conf
+sed -i '/^DOCKER_VERSION=/c DOCKER_VERSION="19.03.15"' config/kube.conf
 sed -i '/^K8S_CRI=/c K8S_CRI="docker"' config/kube.conf
 sed -i "/=m1/c localhost=$(ip a | grep global | awk -F '/' '{print $1}' | awk 'NR==1{print $2}')=m1" config/nodes.conf
 

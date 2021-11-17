@@ -134,3 +134,10 @@ containerd_debian() {
 install_cri() {
   ${K8S_CRI}_${sys_release} || exit 1
 }
+
+
+docker_compose() {
+  curl -L "https://get.daocloud.io/docker/compose/releases/download/${DOCKER_COMPOSE}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && \
+  chmod +x /usr/local/bin/docker-compose
+  result_msg "安装 docker-compose" || exit 1
+}
