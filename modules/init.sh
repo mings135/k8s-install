@@ -5,7 +5,7 @@
 
 
 # 基础优化
-optimize_base() {
+optimization_basic() {
   local limit_file=65536
 
   sed -i 's/.*swap.*/#&/' /etc/fstab && swapoff -a
@@ -48,7 +48,7 @@ EOF
 
 
 # 优化内核参数
-optimize_kernel() {
+optimization_kernel() {
   cat > /etc/sysctl.d/k8s.conf << EOF
 # 必要参数
 net.bridge.bridge-nf-call-iptables  = 1
@@ -119,10 +119,10 @@ EOF
 
 
 # 优化系统
-optimize_system() {
-  optimize_base || return 1
+optimization_system() {
+  optimization_basic || return 1
   load_modules || return 1
-  optimize_kernel || return 1 
+  optimization_kernel || return 1 
 }
 
 
@@ -273,5 +273,5 @@ initial_debian_11() {
 
 init_system() {
   initial_${sys_release}_${sys_version} || exit 1
-  optimize_system || exit 1
+  optimization_system || exit 1
 }
