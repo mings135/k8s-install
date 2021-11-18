@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 
+if ! ps -ocmd $$ | grep -q "^bash"; then
+  echo "请使用 bash $0 运行脚本 ！"
+  exit 1
+fi
+
 script_dir=$(dirname $(readlink -f $0)) || exit 1
 
 source ${script_dir}/modules/result.sh || exit 1
-source ${script_dir}/config/kube.conf
-source ${script_dir}/modules/check.sh
-source ${script_dir}/modules/base.sh
+source ${script_dir}/config/kube.conf || exit 1
+source ${script_dir}/modules/check.sh || exit 1
+source ${script_dir}/modules/base.sh || exit 1
 
 
 local_init() {

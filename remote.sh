@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if ! ps -ocmd $$ | grep -q "^bash"; then
+  echo "请使用 bash $0 运行脚本 ！"
+  exit 1
+fi
+
 set -e
 script_dir=$(dirname $(readlink -f $0))
 
@@ -181,10 +186,10 @@ get_nodes_info() {
 
 # 免密登录各个节点
 password_free_login() {
-  # 配置文件密码为空时，手动输入
+  # 密码为空时，继续手动输入
   while [ ! ${NODE_PASSWORD} ]
   do
-    blue_font "请输入所有节点的统一密码（root）："
+    blue_font "请输入 k8s 所有节点的统一密码（root）："
     read -s NODE_PASSWORD
   done
 
@@ -203,8 +208,6 @@ password_free_login() {
   do
     sshpass -p "${NODE_PASSWORD}" ssh-copy-id -i ~/.ssh/id_rsa.pub root@${i}
   done
-
-  sed -i '/NODE_PASSWORD=/c NODE_PASSWORD=""' ${script_dir}/config/kube.conf
 }
 
 
@@ -265,7 +268,7 @@ main() {
     echo ''
     printf "Usage: bash $0 [ ? ] \n"
     blue_font "节点："
-    printf "%-16s %-s\n" 'freelogin' '配置本机免密登录到所有节点，完成后会自动删除密码信息'
+    printf "%-16s %-s\n" 'freelogin' '配置本机免密登录到所有 k8s 节点'
     printf "%-16s %-s\n" 'distribute' '分发项目文件到所有节点'
     printf "%-16s %-s\n" 'hosts' '所有节点：更新 config/nodes.conf；然后更新 /etc/hosts'
     printf "%-16s %-s\n" 'init' '所有节点：初始化、优化系统'
