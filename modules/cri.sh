@@ -28,12 +28,11 @@ docker_repo_debian() {
     "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
     $(lsb_release -cs) stable" | tee ${docker_list_file} > /dev/null
     result_msg "添加 docker repo" || return 1
-    sed -i 's+download.docker.com+mirrors.aliyun.com/docker-ce+' ${docker_list_file}
+    sed -i 's+download.docker.com+mirrors.tuna.tsinghua.edu.cn/docker-ce+' ${docker_list_file}
     result_msg "修改 repo source" || return 1
     ${sys_pkg} update > /dev/null
     result_msg "更新 apt" || return 1
   fi
-  
 }
 
 
