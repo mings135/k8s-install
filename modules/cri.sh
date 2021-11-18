@@ -22,6 +22,7 @@ docker_repo_debian() {
   local docker_list_file='/etc/apt/sources.list.d/docker.list'
 
   if [ ! -f ${docker_list_file} ]; then
+    rm -f /usr/share/keyrings/docker-archive-keyring.gpg
     curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
     result_msg "添加 docker gpg" || return 1
     echo \

@@ -22,6 +22,7 @@ EOF
 # 添加 k8s repo（debian）
 k8s_repo_debian() {
   if [ ! -f /etc/apt/sources.list.d/kubernetes.list ];then
+    rm -f /usr/share/keyrings/kubernetes-archive-keyring.gpg
     curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg
     result_msg "添加 k8s pgp" || return 1
     echo \
