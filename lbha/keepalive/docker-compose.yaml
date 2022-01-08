@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  keepalived:
+    image: mings135/keepalived:1.0
+    environment:
+      - TZ=Asia/Shanghai
+    privileged: true
+    network_mode: "host"
+    volumes:
+      - "./keepalived.conf:/etc/keepalived/keepalived.conf"
+      - "./check_port.sh:/etc/keepalived/check_port.sh"
+    restart: always
