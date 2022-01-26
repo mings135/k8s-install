@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 
 if ! ps -ocmd $$ | grep -q "^bash"; then
-  echo "请使用 bash $0 运行脚本 ！"
+  echo "请使用 bash $0 运行脚本!"
   exit 1
 fi
 
-script_dir=$(dirname $(readlink -f $0)) || exit 1
+set -e
+script_dir=$(dirname $(readlink -f $0))
 
-source ${script_dir}/modules/result.sh || exit 1
-source ${script_dir}/config/kube.conf || exit 1
-source ${script_dir}/modules/check.sh || exit 1
-source ${script_dir}/modules/base.sh || exit 1
+source ${script_dir}/modules/result.sh
+source ${script_dir}/config/kube.conf
+source ${script_dir}/modules/check.sh
+source ${script_dir}/modules/base.sh
+set +e
 
 
 local_init() {
@@ -183,7 +185,7 @@ local_needless() {
   do
     if [ -e ${script_dir}/${i} ]; then
       rm -rf ${script_dir}/${i}
-      result_msg "删除 ${i}" || exit 1
+      result_msg "删除 ${i}"
     fi
   done
 }
@@ -193,7 +195,7 @@ local_needless() {
 local_record() {
   if [ ! -f ${script_dir}/config/record.txt ]; then
     touch ${script_dir}/config/record.txt
-    result_msg "创建 record.txt" || exit 1
+    result_msg "创建 record.txt"
   fi
 }
 
@@ -202,7 +204,7 @@ local_record() {
 local_delrecord() {
   if [ -f ${script_dir}/config/record.txt ]; then
     rm -f ${script_dir}/config/record.txt
-    result_msg "删除 record.txt" || exit 1
+    result_msg "删除 record.txt"
   fi
 }
 
@@ -211,7 +213,7 @@ local_delrecord() {
 local_delpki() {
   if ! ${IS_MASTER} && [ -d ${script_dir}/pki ]; then
     rm -rf ${script_dir}/pki
-    result_msg "删除 pki dir(not master)" || exit 1
+    result_msg "删除 pki dir(not master)"
   fi
 }
 
@@ -253,15 +255,15 @@ main() {
     printf "%-16s %-s\n" 'cri' '安装容器运行时'
     printf "%-16s %-s\n" 'compose' '安装 docker-compose（仅 CRI 为 docker 时可以使用）'
     printf "%-16s %-s\n" 'k8s' '安装 kubeadm kubelet kubectl'
-    printf "%-16s %-s\n" 'all' '顺序执行：hosts -> init -> cri --> k8s'
+    printf "%-16s %-s\n" 'all' '顺序执行: hosts -> init -> cri --> k8s'
     printf "%-16s %-s\n" 'imglist' '查看 kubeadm init images'
     printf "%-16s %-s\n" 'imgpull' '拉取 kubeadm init images'
     printf "%-16s %-s\n" 'initcluster' 'm1 node 上 kubeadm init cluster'
     printf "%-16s %-s\n" 'joincmd' '生成 kubeadm-init.log 的节点上获取 join 命令，并写入 config/join.conf'
     printf "%-16s %-s\n" 'joincluster' 'join 命令生效期间，使用 kubeadm join cluster'
     printf "%-16s %-s\n" 'ca' '创建 ca 证书（pki 目录，不会覆盖）'
-    printf "%-16s %-s\n" 'certs' "如果是 master，签发 k8s 证书，此操作会清空 ${K8S_PKI}！"
-    printf "%-16s %-s\n" 'kubelet' '签发 kubelet 证书，此操作会覆盖原有证书！'
+    printf "%-16s %-s\n" 'certs' "如果是 master，签发 k8s 证书，此操作会清空 ${K8S_PKI}!!!"
+    printf "%-16s %-s\n" 'kubelet' '签发 kubelet 证书，此操作会覆盖原有证书!!!'
     printf "%-16s %-s\n" 'delpki' '如果非 master，删除 pki 目录，集群安装完成后可以删除'
     exit 1
     ;;

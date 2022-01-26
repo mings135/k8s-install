@@ -4,27 +4,27 @@
 
 
 
-## Installation env
+## Installation Env
 
-- `Linux：`CentOS7.9，支持 Rocky8.4、Debian10、Debian11
-- `Kubernetes：`1.20.7，支持 1.18.* ~ 1.22.* 版本
-- `CRI：` Containerd or Docker，推荐：Containerd
-- `Docker：`19.03.15，建议不要超过 19.03，不推荐 Debian 10 安装
-  - Rocky8.4：仅支持 19.03.13+，建议切换 CgroupV2，使用最新版Docker
+- `Linux：`CentOS7.9，支持 Rocky8、Debian10、Debian11
+- `Kubernetes：`1.20.7，支持 1.18.* ~ 1.23.* 版本
+- `CRI：` Containerd or Docker，默认：Containerd
+- `Docker：`19.03.15，不推荐 Debian 10 安装
+  - Rocky8：仅支持 19.03.13+，建议切换 CgroupV2，使用最新版Docker
   - Debian11：仅支持 20.10.6+，建议使用最新版 Docker
-- `Containerd 版本：`1.4.3+，默认使用最新版本
+- `Containerd：`1.4.3+，默认使用最新版本
   - Debian10：建议升级内核，否则加入集群会有警告
-- `Python 版本：`3.6+
+- `Python：`3.6+
 - `Shell：` bash
 
-- `nginx 代理：`无（CLUSTER_VIP 直接用 m1 的 IP 和 api server port）
+- `Proxy：`无（CLUSTER_VIP 直接用 m1 的 IP）
 
-| Domain | IP            | Role      |
-| ------ | ------------- | --------- |
-| m1.k8s | 192.168.1.100 | m1/devops |
-| m2.k8s | 192.168.1.110 | master    |
-| m3.k8s | 192.168.1.120 | master    |
-| w1.k8s | 192.168.1.130 | work      |
+| Domain | IP            | Role             |
+| ------ | ------------- | ---------------- |
+| m1.k8s | 192.168.1.100 | master/m1/devops |
+| m2.k8s | 192.168.1.110 | master           |
+| m3.k8s | 192.168.1.120 | master           |
+| w1.k8s | 192.168.1.130 | work             |
 
 
 
@@ -79,22 +79,30 @@ cd k8s-install
 
 **配置 config 目录下 kube.conf 和 nodes.conf**
 
-**如有 Proxy，也必须提前配置好**
+- 如存在 Proxy，请先配置 Proxy，IP 和 Port 写入 CLUSTER_VIP 和 CLUSTER_PORT
+- 如果没有，直接将 m1 的 IP 填入 CLUSTER_VIP 即可
+
+
+
+`注意：`所有操作在 devops 节点上执行
 
 
 
 ## Quick start
 
-**快速安装使用：**
+**快速安装：**
 
 - 由于网络等问题可能会导致出错，此时脚本会自动退出（部分流程是并发的，可能存在延迟）
 - 如果出错，手动解决问题后继续运行 `auto` 即可
 
 ```shell
+# 配置免密登录，所有节点必须统一密码（否则请自行配置）
 bash remote.sh freelogin
+
+# 自动安装
 bash remote.sh auto
 
-# 安装玩集群后，在 m1 上创建 fannel 网络，不能直接用就复制下来运行
+# 安装完集群后，在 m1 上创建 fannel 网络（也可以使用其他 CNI）
 kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 ```
 
@@ -105,7 +113,7 @@ kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documen
 **分发安装脚本到所有节点：**
 
 ```shell
-# 配置免密登录
+# 配置免密登录，所有节点必须统一密码（否则请自行配置）
 bash remote.sh freelogin
 
 # 分发文件到各个节点
@@ -184,7 +192,7 @@ bash remote.sh joincluster
 # 签发 kubelet 证书
 bash remote.sh kubelet
 
-# 完成后可以删除 work 节点上的 pki 目录
+# 完成后可以清理 work 节点上的 pki 目录
 bash remote.sh deletepki
 ```
 

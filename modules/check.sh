@@ -6,24 +6,20 @@ check_node_line() {
   node_name=$(echo "${line}" | awk -F '=' '{print $1}')
   node_ip=$(echo "${line}" | awk -F '=' '{print $2}')
 
-  if ! echo "${node_name}" | grep -Eqi '[a-Z].*'; then
-    yellow_font "nodes.conf 中 hostname 格式异常，格式：domain 必须字母开头 ！"
-    exit 1
-  fi
-
-  if ! echo "${node_ip}" | grep -Eqi '^([0-9]{1,3}\.){3}[0-9]{1,3}$'; then
-    yellow_font "nodes.conf 中 ip 地址格式异常 ！"
-    exit 1
-  fi
+  tmp="${RES_LEVEL}" && RES_LEVEL=1
+  echo "${node_name}" | grep -Eqi '^[a-Z].*' && \
+  echo "${node_ip}" | grep -Eqi '^([0-9]{1,3}\.){3}[0-9]{1,3}$'
+  result_msg "检查 ${line} 格式"
+  RES_LEVEL="${tmp}"
 }
 
 
 # 检查 record.txt 是否存在
 check_record_exist() {
-  [ -f ${script_dir}/config/record.txt ] || {
-    yellow_font "record.txt 不存在，尝试执行 distribute or record !"
-    exit 1
-  }
+  tmp="${RES_LEVEL}" && RES_LEVEL=1
+  test -f ${script_dir}/config/record.txt
+  result_msg "检查 record.txt 是否存在"
+  RES_LEVEL="${tmp}"
 }
 
 
@@ -45,9 +41,11 @@ check_node_role() {
 }
 
 
-check_script_dir() {
-  if [ ! ${script_dir} ] || [ ! ${INSTALL_SCRIPT} ] ; then
-    yellow_font "script 目录获取错误，请检查 kube.conf 或者 shell 环境 ！"
-    exit 1
-  fi
+# 检查变量
+check_script_variables() {
+  tmp="${RES_LEVEL}" && RES_LEVEL=1
+  test ${INSTALL_SCRIPT} && \
+  test ${PRIVATE_REPOSITORY}
+  result_msg "检查 variables"
+  RES_LEVEL="${tmp}"
 }

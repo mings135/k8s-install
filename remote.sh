@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if ! ps -ocmd $$ | grep -q "^bash"; then
-  echo "请使用 bash $0 运行脚本 ！"
+  echo "请使用 bash $0 运行脚本!"
   exit 1
 fi
 
@@ -177,10 +177,10 @@ get_nodes_info() {
     fi
   done < ${script_dir}/config/nodes.conf
 
-  if [ ! ${node_m1} ]; then
-    yellow_font "nodes.conf 中必须存在 m1，并且唯一，须修改配置！"
-    exit 1
-  fi
+  tmp="${RES_LEVEL}" && RES_LEVEL=1
+  test ${node_m1}
+  result_msg "检查 m1 是否存在"
+  RES_LEVEL="${tmp}"
 }
 
 
@@ -189,7 +189,7 @@ password_free_login() {
   # 密码为空时，继续手动输入
   while [ ! ${NODE_PASSWORD} ]
   do
-    blue_font "请输入 k8s 所有节点的统一密码（root）："
+    blue_font "请输入 k8s 所有节点的统一密码（root）:"
     read -s NODE_PASSWORD
   done
 
@@ -219,7 +219,7 @@ remote_upscript() {
 
   for i in ${all_nodes}
   do
-    blue_font "开始同步：${i}"
+    blue_font "开始同步: ${i}"
     rsync_destination="root@${i}:${INSTALL_SCRIPT}/"
     rsync ${rsync_parm} ${rsync_exclude} ${rsync_source} ${rsync_destination}
   done 
@@ -227,8 +227,10 @@ remote_upscript() {
 
 
 main() {
-  check_script_dir
+  set +e
+  check_script_variables
   get_nodes_info
+  set -e
 
   case $1 in
     "freelogin") password_free_login;;
@@ -283,8 +285,8 @@ main() {
     printf "%-16s %-s\n" 'joincluster' '所有节点：kubeadm join cluster'
     blue_font "证书："
     printf "%-16s %-s\n" 'ca' '本地创建 ca 证书（pki 目录，不会覆盖），并分发到各个节点'
-    printf "%-16s %-s\n" 'certs' "所有 master 节点：签发 k8s 证书，此操作会清空 ${K8S_PKI}！"
-    printf "%-16s %-s\n" 'kubelet' '所有节点：签发 kubelet 证书，此操作会覆盖原有证书！'
+    printf "%-16s %-s\n" 'certs' "所有 master 节点：签发 k8s 证书，此操作会清空 ${K8S_PKI}!!!"
+    printf "%-16s %-s\n" 'kubelet' '所有节点：签发 kubelet 证书，此操作会覆盖原有证书!!!'
     blue_font "其他："
     printf "%-16s %-s\n" 'auto' '全自动安装，并签发自定义证书'
     printf "%-16s %-s\n" 'upscript' '更新 k8s-install 脚本版本到各个节点'

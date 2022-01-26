@@ -11,25 +11,29 @@
 # 获取节点信息
 get_node_info() {
   local node_ip
-  local host_ip=$(ip a | grep global | awk -F '/' '{print $1}' | awk 'NR==1{print $2}') || return 1
+  local host_ip=$(ip a | grep global | awk -F '/' '{print $1}' | awk 'NR==1{print $2}')
 
-  while read line
-  do
-    if echo "${line}" | grep -Eqi '^ *#|^ *$'; then
-      continue
-    fi
-    check_node_line "${line}"
+  if [ ${host_ip} ]; then
+    while read line
+    do
+      if echo "${line}" | grep -Eqi '^ *#|^ *$'; then
+        continue
+      fi
 
-    node_ip=$(echo "${line}" | awk -F '=' '{print $2}')
-    if [ ${host_ip} = ${node_ip} ]; then
-      HOST_IP=${node_ip}
-      HOST_NAME=$(echo "${line}" | awk -F '=' '{print $1}')
-      check_node_role "${line}"
-      break
-    fi
-  done < ${script_dir}/config/nodes.conf
+      node_ip=$(echo "${line}" | awk -F '=' '{print $2}')
+      if [ ${host_ip} = ${node_ip} ]; then
+        HOST_IP=${node_ip}
+        HOST_NAME=$(echo "${line}" | awk -F '=' '{print $1}')
+        check_node_role "${line}"
+        break
+      fi
+    done < ${script_dir}/config/nodes.conf
+  fi
 
-  [ ${HOST_IP} ] && return 0 || return 1
+  tmp="${RES_LEVEL}" && RES_LEVEL=1
+  test ${HOST_IP}
+  result_msg "获取 node info"
+  RES_LEVEL="${tmp}"
 }
 
 
@@ -43,8 +47,6 @@ get_system_info() {
     elif cat /etc/redhat-release | grep -Eqi 'release 8'; then
       sys_version=8
       sys_pkg="dnf"
-    else
-      return 1
     fi
   elif cat /etc/issue | grep -Eqi "debian"; then
     sys_release="debian"
@@ -54,12 +56,13 @@ get_system_info() {
     elif
       cat /etc/issue | grep -Eqi 'linux 11'; then
       sys_version=11
-    else
-      return 1
     fi
-  else
-    return 1
   fi
+
+  tmp="${RES_LEVEL}" && RES_LEVEL=1
+  test ${sys_release} && test ${sys_pkg} && test ${sys_version}
+  result_msg "获取 system info"
+  RES_LEVEL="${tmp}"
 }
 
 
@@ -73,19 +76,13 @@ install_apps() {
   for i in $@
   do
     ${sys_pkg} install -y ${i} &> /dev/null
-    result_msg "安装 $i" || return 1
+    result_msg "安装 $i"
   done
 }
 
 
 # 获取基础信息
 base_info() {
-  get_system_info ||  {
-    yellow_font "获取 system info 出错！"
-    exit 1
-  }
-  get_node_info ||  {
-    yellow_font "获取 node info 出错！"
-    exit 1
-  }
+  get_node_info
+  get_system_info
 }

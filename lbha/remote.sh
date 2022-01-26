@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if ! ps -ocmd $$ | grep -q "^bash"; then
-  echo "请使用 bash $0 运行脚本 ！"
+  echo "请使用 bash $0 运行脚本!"
   exit 1
 fi
 
