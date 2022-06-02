@@ -6,17 +6,13 @@
 
 ## Installation Env
 
-- `Linux：`CentOS7.9，支持 Rocky8、Debian10、Debian11
-- `Kubernetes：`1.20.7，支持 1.18.* ~ 1.23.* 版本
-- `CRI：` Containerd or Docker，默认：Containerd
-- `Docker：`19.03.15，不推荐 Debian 10 安装
-  - Rocky8：仅支持 19.03.13+，建议切换 CgroupV2，使用最新版Docker
-  - Debian11：仅支持 20.10.6+，建议使用最新版 Docker
-- `Containerd：`1.4.3+，默认使用最新版本
+- `Linux：`CentOS7.9，支持 Rocky8、Debian11
+- `Kubernetes：`1.20.7，支持 1.20.* ~ 1.24.* 版本
+- `CRI：` Containerd
+- `Containerd：`默认使用最新版本，1.4.3 or 1.6.4
   - Debian10：建议升级内核，否则加入集群会有警告
 - `Python：`3.6+
 - `Shell：` bash
-
 - `Proxy：`无（CLUSTER_VIP 直接用 m1 的 IP）
 
 | Domain | IP            | Role             |

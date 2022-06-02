@@ -67,16 +67,27 @@ EOF
 # 配置 containerd
 containerd_config() {
   local config_file='/etc/containerd/config.toml'
+  local ver=$(containerd -v | awk '{print $3}')
+
   mkdir -p /etc/containerd && containerd config default > ${config_file}
   result_msg "创建 containerd 默认配置"
 
-  sed -i "/sandbox_image/s#k8s.gcr.io#${IMAGE_REPOSITORY}#" ${config_file} && \
-  sed -i '/endpoint/a \        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."harbor_ip_or_hostname"]\n          endpoint = ["http://harbor_ip_or_hostname"]' ${config_file} && \
-  sed -i "/harbor_ip_or_hostname/s#harbor_ip_or_hostname#${PRIVATE_REPOSITORY}#" ${config_file}
-  result_msg "修改 containerd 私有仓库"
+  sed -i "/sandbox_image/s#k8s.gcr.io#${IMAGE_REPOSITORY}#" ${config_file}
+  result_msg "修改 仓库地址"
 
-  sed -i '/runc.options/a \            SystemdCgroup = true' ${config_file}
-  result_msg "配置 containerd Cgroup"
+  if [ $(echo "${ver%.*} >= 1.6" | bc) -eq 1 ]; then
+    sed -i '/SystemdCgroup/s#SystemdCgroup = false#SystemdCgroup = true#' ${config_file}
+    result_msg "修改 containerd Cgroup"
+    sed -i '/registry.mirrors/a \        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ip_or_hostname"]\n          endpoint = ["http://ip_or_hostname"]' ${config_file} && \
+    sed -i "/ip_or_hostname/s#ip_or_hostname#${PRIVATE_REPOSITORY}#" ${config_file}
+    result_msg "修改 containerd 私有仓库"
+  else
+    sed -i '/runc.options/a \            SystemdCgroup = true' ${config_file}
+    result_msg "配置 containerd Cgroup"
+    sed -i '/endpoint/a \        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ip_or_hostname"]\n          endpoint = ["http://ip_or_hostname"]' ${config_file} && \
+    sed -i "/ip_or_hostname/s#ip_or_hostname#${PRIVATE_REPOSITORY}#" ${config_file}
+    result_msg "修改 containerd 私有仓库"
+  fi
 }
 
 
