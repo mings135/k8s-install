@@ -44,8 +44,13 @@ check_node_role() {
 # 检查变量
 check_script_variables() {
   tmp="${RES_LEVEL}" && RES_LEVEL=1
+  test ${K8S_CRI} && \
+  test ${VALID_DAYS} && \
+  test ${CERT_SIZE} && \
+  test ${CLUSTER_VIP} && \
+  test ${CLUSTER_PORT} && \
   test ${INSTALL_SCRIPT} && \
-  test ${PRIVATE_REPOSITORY}
+  test ${IMAGE_REPOSITORY}
   result_msg "检查 variables"
   RES_LEVEL="${tmp}"
 }
