@@ -41,16 +41,19 @@ docker_repo_debian() {
 install_containerd() {
   local apps='containerd.io'
 
-   docker_repo_${sys_release}
+  docker_repo_${sys_release}
 
-   # CentOS 查看更多版本：yum list containerd.io --showduplicates | sort -r
-   if [ ${sys_release} = 'centos' ] && [ ${CRI_VERSION} ]; then
+  # CentOS 查看更多版本：yum list containerd.io --showduplicates | sort -r
+  if [ ${sys_release} = 'centos' ] && [ ${CRI_VERSION} ]; then
     apps="${apps}-${CRI_VERSION}"
-   fi
+  fi
 
   # Debian 查看更多版本：apt-cache madison containerd.io
+  if [ ${sys_release} = 'debian' ] && [ ${CRI_VERSION} ]; then
+    apps="${apps}=${CRI_VERSION}-1"
+  fi
 
-   install_apps "${apps}"
+  install_apps "${apps}"
 }
 
 

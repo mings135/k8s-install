@@ -8,11 +8,11 @@
 
 - `Linux：`CentOS7.9，支持 Rocky8、Debian11
 - `Kubernetes：`1.20.7，支持 1.20.* ~ 1.24.* 版本
-- `Containerd CRI：`支持 1.4.3+，debian 只能使用最新版本
+- `Containerd CRI：`默认最新版本，各个系统支持版本范围有所不同
   - Debian10：建议升级内核，否则加入集群会有警告
 - `Python：`3.6+
 - `Shell：` bash
-- `Proxy：`无（CLUSTER_VIP 直接用 m1 的 IP）
+- `Proxy：`None（CLUSTER_VIP 直接用 m1 的 IP）
 
 | Domain | IP            | Role             |
 | ------ | ------------- | ---------------- |
@@ -190,5 +190,4 @@ bash remote.sh kubelet
 # 完成后可以清理 work 节点上的 pki 目录
 bash remote.sh deletepki
 ```
-
 
