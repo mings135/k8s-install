@@ -4,12 +4,11 @@
 
 
 
-## Installation Env
+## Env
 
 - `Linux：`CentOS7.9，支持 Rocky8、Debian11
 - `Kubernetes：`1.20.7，支持 1.20.* ~ 1.24.* 版本
-- `CRI：` Containerd
-- `Containerd：`默认使用最新版本，1.4.3 or 1.6.4
+- `Containerd CRI：`支持 1.4.3+，debian 只能使用最新版本
   - Debian10：建议升级内核，否则加入集群会有警告
 - `Python：`3.6+
 - `Shell：` bash
@@ -56,7 +55,7 @@ grubby \
 
 
 
-## Ready work
+## Ready
 **Clone Project：**
 
 ```shell
@@ -84,7 +83,7 @@ cd k8s-install
 
 
 
-## Quick start
+## Quick
 
 **快速安装：**
 
@@ -192,21 +191,4 @@ bash remote.sh kubelet
 bash remote.sh deletepki
 ```
 
-
-
-# Docker install
-
-**本地只安装 Docker：**
-
-```shell
-git clone https://gitee.com/mings135/k8s-install.git
-cd k8a-install
-
-# 版本修改成想要安装的
-sed -i '/^DOCKER_VERSION=/c DOCKER_VERSION="19.03.15"' config/kube.conf
-sed -i '/^K8S_CRI=/c K8S_CRI="docker"' config/kube.conf
-sed -i "/=m1/c localhost=$(ip a | grep global | awk -F '/' '{print $1}' | awk 'NR==1{print $2}')=m1" config/nodes.conf
-
-bash local.sh record init cri
-```
 
