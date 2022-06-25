@@ -1,6 +1,6 @@
 # K8S Install
 
-基于 kubeadm 自动部署 k8s 集群
+基于 kubeadm 自动部署 k8s 集群。
 
 
 
@@ -8,7 +8,7 @@
 
 - `Linux：`CentOS7.9，支持 Rocky8、Debian11
 - `Kubernetes：`1.20.7，支持 1.20.* ~ 1.24.* 版本
-- `Containerd CRI：`默认最新版本，各个系统支持版本范围有所不同
+- `Containerd CRI：`默认最新版本，支持 1.4.* ~ 1.6.* （不同系统版本范围有所不同）
   - Debian10：建议升级内核，否则加入集群会有警告
 - `Python：`3.6+
 - `Shell：` bash
@@ -98,7 +98,7 @@ bash remote.sh freelogin
 bash remote.sh auto
 
 # 安装完集群后，在 m1 上创建 fannel 网络（也可以使用其他 CNI）
-kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
 ```
 
 
@@ -135,7 +135,7 @@ bash remote.sh k8s
 
 
 
-### 证书（可选）
+### Certs（可选）
 
 - K8s 的  CA 证书默认10 年，其余 1 年
 - 执行以下命令优先创建 50 年的证书（不包含 kubelet，kubelet 需要集群安装后 执行）

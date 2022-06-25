@@ -68,7 +68,7 @@ containerd_config() {
   sed -i "/sandbox_image/s#k8s.gcr.io#${IMAGE_REPOSITORY}#" ${config_file}
   result_msg "修改 仓库地址"
 
-  if [ $(echo "${ver%.*} >= 1.6" | bc) -eq 1 ]; then
+  if [ $(echo "${ver%.*} >= 1.5" | bc) -eq 1 ]; then
     sed -i '/SystemdCgroup/s#SystemdCgroup = false#SystemdCgroup = true#' ${config_file}
     result_msg "修改 containerd Cgroup"
     sed -i '/registry.mirrors/a \        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ip.or.hostname"]\n          endpoint = ["http://ip.or.hostname"]' ${config_file}
