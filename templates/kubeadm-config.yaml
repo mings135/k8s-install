@@ -13,7 +13,7 @@ localAPIEndpoint:
   advertiseAddress: ${HOST_IP}
   bindPort: 6443
 nodeRegistration:
-  criSocket: /var/run/dockershim.sock
+  criSocket: unix:///run/containerd/containerd.sock
   # 本机主机名
   name: ${HOST_NAME}
   taints:
@@ -37,7 +37,7 @@ etcd:
 imageRepository: ${IMAGE_REPOSITORY}
 kind: ClusterConfiguration
 # kubernetes 版本
-kubernetesVersion: v${K8S_VERSION}
+kubernetesVersion: ${K8S_VERSION_V}
 networking:
   dnsDomain: cluster.local
   # POD 网络，要和 flannel 对应，默认 10.244.0.0/16

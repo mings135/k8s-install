@@ -228,7 +228,6 @@ main() {
     "hosts") local_hosts;;
     "init") local_init;;
     "cri") local_cri;;
-    "compose") local_compose;;
     "k8s") local_k8s;;
     "all")
       local_hosts
@@ -253,7 +252,6 @@ main() {
     printf "%-16s %-s\n" 'hosts' '更新 config/nodes.conf；然后更新 /etc/hosts'
     printf "%-16s %-s\n" 'init' '初始化、优化系统'
     printf "%-16s %-s\n" 'cri' '安装容器运行时'
-    printf "%-16s %-s\n" 'compose' '安装 docker-compose（仅 CRI 为 docker 时可以使用）'
     printf "%-16s %-s\n" 'k8s' '安装 kubeadm kubelet kubectl'
     printf "%-16s %-s\n" 'all' '顺序执行: hosts -> init -> cri --> k8s'
     printf "%-16s %-s\n" 'imglist' '查看 kubeadm init images'

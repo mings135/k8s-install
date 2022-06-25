@@ -36,9 +36,14 @@ k8s_repo_debian() {
 
 
 k8s_centos() {
+  local apps="kubectl kubelet kubeadm"
+
   k8s_repo_centos
 
-  local apps="kubectl-${K8S_VERSION} kubelet-${K8S_VERSION} kubeadm-${K8S_VERSION}"
+  if [ ${K8S_VERSION} ]; then
+    apps="kubectl-${K8S_VERSION} kubelet-${K8S_VERSION} kubeadm-${K8S_VERSION}"
+  fi
+  
   install_apps "${apps}"
   
   systemctl enable --now kubelet &> /dev/null
@@ -47,9 +52,14 @@ k8s_centos() {
 
 
 k8s_debian() {
+  local apps="kubectl kubelet kubeadm"
+
   k8s_repo_debian
 
-  local apps="kubectl=${K8S_VERSION}-00 kubelet=${K8S_VERSION}-00 kubeadm=${K8S_VERSION}-00"
+  if [ ${K8S_VERSION} ]; then
+    apps="kubectl=${K8S_VERSION}-00 kubelet=${K8S_VERSION}-00 kubeadm=${K8S_VERSION}-00"
+  fi
+
   install_apps "${apps}"
 
   systemctl restart kubelet &> /dev/null
@@ -59,7 +69,8 @@ k8s_debian() {
 
 k8s_config() {
   if ${IS_MASTER}; then
-    export HOST_IP HOST_NAME CLUSTER_VIP CLUSTER_PORT K8S_VERSION POD_NETWORK SVC_NETWORK IMAGE_REPOSITORY
+    K8S_VERSION_V=$(kubeadm version -o short)
+    export HOST_IP HOST_NAME CLUSTER_VIP CLUSTER_PORT K8S_VERSION_V POD_NETWORK SVC_NETWORK IMAGE_REPOSITORY
     envsubst < ${script_dir}/templates/kubeadm-config.yaml > ${script_dir}/kubeadm-config.yaml
     result_msg "生成 kubeadm-config.yaml"
   fi
@@ -77,28 +88,26 @@ EOF
 }
 
 
-# k8s 各个环境补丁
 k8s_patch() {
   # 使用 containerd，需要配置 crictl
   if [ ${K8S_CRI} = 'containerd' ];then
     crictl_config
   fi
 
-  # 使用 containterd，需要调整 kubeadm-config 配置
-  if ${IS_MASTER} && [ ${K8S_CRI} = 'containerd' ]; then
-    sed -i '/criSocket/s#/var/run/dockershim.sock#unix:///run/containerd/containerd.sock#' ${script_dir}/kubeadm-config.yaml && \
-    result_msg "修改 kubeadm-config containerd"
+  # k8s 1.22 以上版本需要调整 kubeadm-config 配置
+  if ${IS_MASTER}; then
+    local tmp=$(kubeadm version -o short)
+    local ver="${tmp##*v}"
+    if [ $(echo "${ver%.*} >= 1.22" | bc) -eq 1 ]; then
+      sed -e '/type: CoreDNS/d' \
+        -e '/dns:/s/dns:/dns: {}/' \
+        -e 's#kubeadm\.k8s\.io/v1beta2#kubeadm\.k8s\.io/v1beta3#' \
+        -i ${script_dir}/kubeadm-config.yaml
+      result_msg "修改 kubeadm-config v>=1.22"
+    fi
   fi
 
-  # k8s 1.22 以上版本需要调整 kubeadm-config 配置
-  local ver="${K8S_VERSION}"
-  if ${IS_MASTER} && [ $(echo "${ver%.*} >= 1.22" | bc) -eq 1 ]; then
-    sed -e '/type: CoreDNS/d' \
-      -e '/dns:/s/dns:/dns: {}/' \
-      -e 's#kubeadm\.k8s\.io/v1beta2#kubeadm\.k8s\.io/v1beta3#' \
-      -i ${script_dir}/kubeadm-config.yaml
-    result_msg "修改 kubeadm-config v>=1.22"
-  fi
+  
 }
 
 
