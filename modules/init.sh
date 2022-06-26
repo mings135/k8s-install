@@ -211,17 +211,19 @@ initial_debian() {
 
 # 初始化系统（centos7）
 initial_centos_7() {
-  if [ ! -f /etc/yum.repos.d/epel.repo ]; then
-    # 设置 yum
+  # CentOS Linux 修改默认源
+  if [ -f /etc/yum.repos.d/CentOS-Base.repo ] && [ ! -f /etc/yum.repos.d/CentOS-Base.repo.bak ]; then
+    /usr/bin/cp -a /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
     curl -fsSL https://mirrors.aliyun.com/repo/Centos-7.repo -o /etc/yum.repos.d/CentOS-Base.repo
     result_msg "更换 ${sys_pkg} repo"
-
-    # 设置 epel
-    curl -fsSL http://mirrors.aliyun.com/repo/epel-7.repo -o /etc/yum.repos.d/epel.repo
-    result_msg "添加 epel repo"
-
     ${sys_pkg} makecache > /dev/null
     result_msg "重置 ${sys_pkg} cache"
+  fi
+
+  # 添加 EPEL 源
+  if [ ! -f /etc/yum.repos.d/epel.repo ]; then
+    curl -fsSL http://mirrors.aliyun.com/repo/epel-7.repo -o /etc/yum.repos.d/epel.repo
+    result_msg "添加 epel repo"
   fi
      
   initial_centos
@@ -230,27 +232,23 @@ initial_centos_7() {
 
 # 初始化系统（centos8）
 initial_centos_8() {
-  if [ ! -f /etc/yum.repos.d/epel.repo ]; then
-    # 设置 dnf
-    if [ -f /etc/yum.repos.d/Rocky-BaseOS.repo ]; then
-      sed -e 's|^mirrorlist=|#mirrorlist=|g' \
-        -e 's|^#baseurl=http://dl.rockylinux.org/$contentdir|baseurl=https://mirrors.aliyun.com/rockylinux|g' \
-        -i.bak /etc/yum.repos.d/Rocky-*.repo
-      result_msg "更换 ${sys_pkg} link"
-    elif [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then
-      curl -fsSL https://mirrors.aliyun.com/repo/Centos-8.repo -o /etc/yum.repos.d/CentOS-Base.repo
-      result_msg "更换 ${sys_pkg} repo"
-    fi
+  # Rocky Linux 修改默认源
+  if [ -f /etc/yum.repos.d/Rocky-BaseOS.repo ] && [ ! -f /etc/yum.repos.d/Rocky-BaseOS.repo.bak ]; then
+    sed -e 's|^mirrorlist=|#mirrorlist=|g' \
+      -e 's|^#baseurl=http://dl.rockylinux.org/$contentdir|baseurl=https://mirrors.aliyun.com/rockylinux|g' \
+      -i.bak /etc/yum.repos.d/Rocky-*.repo
+    result_msg "更换 ${sys_pkg} link"
+    ${sys_pkg} makecache > /dev/null
+    result_msg "重置 ${sys_pkg} cache"
+  fi
 
-    # 设置 epel
+  # 添加 EPEL 源
+  if [ ! -f /etc/yum.repos.d/epel.repo ]; then
     install_apps "epel-release"
     sed -e 's|^#baseurl=https://download.example/pub|baseurl=https://mirrors.aliyun.com|' \
       -e 's|^metalink|#metalink|' \
-      -i /etc/yum.repos.d/epel*
+      -i /etc/yum.repos.d/epel*.repo
     result_msg "更换 epel link"
-
-    ${sys_pkg} makecache > /dev/null
-    result_msg "重置 ${sys_pkg} cache"
   fi
 
   # CentOS 8 额外需要的工具
