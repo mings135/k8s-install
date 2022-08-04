@@ -113,7 +113,7 @@ EOF
     result_msg "添加 buckets 开机加载"
   fi
 
-  # 4.12 内核版本后没有改参数了
+  # 4.12 内核版本后没有 tcp_tw_recycle 参数了
   local ver=$(uname -r | awk -F '-' '{print $1}')
   if [ $(echo "${ver%.*} >= 4.12" | bc) -eq 1 ]; then
     sed -i '/net.ipv4.tcp_tw_recycle/d' /etc/sysctl.d/k8s.conf

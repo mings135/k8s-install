@@ -9,7 +9,6 @@
 - `Linux：`CentOS7.9，支持 Rocky8、Rocky9、Debian11
 - `Kubernetes：`1.20.7，支持 1.20.* ~ 1.24.* 版本
 - `Containerd：`默认最新版本，支持 1.4.* ~ 1.6.* （不同系统版本范围有所不同）
-  - Debian10：建议升级内核，否则加入集群会有警告
 - `Python：`3.6+
 - `Shell：` bash
 - `Proxy：`None（CLUSTER_VIP 直接用 m1 的 IP）
@@ -77,7 +76,7 @@ cd k8s-install
 **配置 config 目录下 kube.conf 和 nodes.conf**
 
 - 如存在 Proxy，请先配置 Proxy，IP 和 Port 写入 CLUSTER_VIP 和 CLUSTER_PORT
-- 如果没有，直接将 m1 的 IP 填入 CLUSTER_VIP 即可
+- 如果没有，可以直接将 m1 的 IP 填入 CLUSTER_VIP 即可
 
 
 
