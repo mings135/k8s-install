@@ -85,15 +85,14 @@ net.core.bpf_jit_harden=1
 net.core.bpf_jit_kallsyms=1
 net.core.dev_weight_tx_bias=1
 vm.max_map_count=262144
-fs.file-max=2097152
+fs.file-max=419430
 fs.nr_open=1048576
 fs.inotify.max_user_instances=8192
 fs.inotify.max_user_watches=524288
-kernel.core_pattern=core
-kernel.pid_max=65536
-kernel.threads-max=65536
+kernel.pid_max=4194304
+kernel.threads-max=32768
 
-net.netfilter.nf_conntrack_buckets = 262144 # centos 7 not support
+net.netfilter.nf_conntrack_buckets = 262144
 net.netfilter.nf_conntrack_max = 1048576
 net.nf_conntrack_max = 1048576
 net.netfilter.nf_conntrack_tcp_timeout_fin_wait = 30
@@ -102,7 +101,7 @@ net.netfilter.nf_conntrack_tcp_timeout_close_wait = 15
 net.netfilter.nf_conntrack_tcp_timeout_established = 900
 EOF
 
-  # buckets 无法在 CentOS7 中直接 sysctl，必须配置模块加载 options
+  # nf_conntrack_buckets 无法在 CentOS7 中直接 sysctl，必须配置模块加载 options
   if [ "${sys_release}${sys_version}" = 'centos7' ]; then
     echo 262144 > /sys/module/nf_conntrack/parameters/hashsize
     result_msg "优化 ${sys_release}${sys_version} buckets"
