@@ -47,6 +47,9 @@ get_system_info() {
     elif cat /etc/redhat-release | grep -Eqi 'release 8'; then
       sys_version=8
       sys_pkg="dnf"
+    elif cat /etc/redhat-release | grep -Eqi 'release 9'; then
+      sys_version=9
+      sys_pkg="dnf"
     fi
   elif cat /etc/issue | grep -Eqi "debian"; then
     sys_release="debian"

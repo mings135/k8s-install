@@ -113,7 +113,13 @@ EOF
     result_msg "添加 buckets 开机加载"
   fi
 
-  sysctl --system > /dev/null
+  # 4.12 内核版本后没有改参数了
+  local ver=$(uname -r | awk -F '-' '{print $1}')
+  if [ $(echo "${ver%.*} >= 4.12" | bc) -eq 1 ]; then
+    sed -i '/net.ipv4.tcp_tw_recycle/d' /etc/sysctl.d/k8s.conf
+  fi
+
+  sysctl -p /etc/sysctl.d/k8s.conf > /dev/null
   result_msg '优化 kernel parameters'
 }
 
@@ -230,7 +236,7 @@ initial_centos_7() {
 }
 
 
-# 初始化系统（centos8）
+# 初始化系统（rocky 8）
 initial_centos_8() {
   # Rocky Linux 修改默认源
   if [ -f /etc/yum.repos.d/Rocky-BaseOS.repo ] && [ ! -f /etc/yum.repos.d/Rocky-BaseOS.repo.bak ]; then
@@ -253,6 +259,31 @@ initial_centos_8() {
 
   # CentOS 8 额外需要的工具
   install_apps "iproute-tc"
+
+  initial_centos
+}
+
+
+# 初始化系统（rocky 9）
+initial_centos_9() {
+  # Rocky Linux 修改默认源
+  if [ -f /etc/yum.repos.d/rocky.repo ] && [ ! -f /etc/yum.repos.d/rocky.repo.bak ]; then
+    sed -e 's|^mirrorlist=|#mirrorlist=|g' \
+      -e 's|^#baseurl=http://dl.rockylinux.org/$contentdir|baseurl=https://mirrors.aliyun.com/rockylinux|g' \
+      -i.bak /etc/yum.repos.d/rocky*.repo
+    result_msg "更换 ${sys_pkg} link"
+    ${sys_pkg} makecache > /dev/null
+    result_msg "重置 ${sys_pkg} cache"
+  fi
+
+  # 添加 EPEL 源
+  if [ ! -f /etc/yum.repos.d/epel.repo ]; then
+    install_apps "epel-release"
+    sed -e 's|^#baseurl=https://download.example/pub|baseurl=https://mirrors.aliyun.com|' \
+      -e 's|^metalink|#metalink|' \
+      -i /etc/yum.repos.d/epel*.repo
+    result_msg "更换 epel link"
+  fi
 
   initial_centos
 }

@@ -6,9 +6,9 @@
 
 ## Env
 
-- `Linux：`CentOS7.9，支持 Rocky8、Debian11
+- `Linux：`CentOS7.9，支持 Rocky8、Rocky9、Debian11
 - `Kubernetes：`1.20.7，支持 1.20.* ~ 1.24.* 版本
-- `Containerd CRI：`默认最新版本，支持 1.4.* ~ 1.6.* （不同系统版本范围有所不同）
+- `Containerd：`默认最新版本，支持 1.4.* ~ 1.6.* （不同系统版本范围有所不同）
   - Debian10：建议升级内核，否则加入集群会有警告
 - `Python：`3.6+
 - `Shell：` bash
@@ -61,9 +61,11 @@ grubby \
 ```shell
 # 安装必要工具
 yum install -y git python3 sshpass rsync
+dnf install -y git python3 sshpass rsync
 apt-get install -y git python3 sshpass rsync
 
 # clone project
+git clone https://github.com/mings135/k8s-install.git
 git clone https://gitee.com/mings135/k8s-install.git
 
 # 进入 k8s-install
