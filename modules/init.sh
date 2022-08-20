@@ -8,8 +8,10 @@
 optimization_basic() {
   local limit_file=65536
 
-  sed -i 's/.*swap.*/#&/' /etc/fstab && swapoff -a
-  result_msg "关闭 swap"
+  if grep -Eqi '^[^#].*swap.*' /etc/fstab; then
+    sed -i 's/.*swap.*/#&/' /etc/fstab && swapoff -a
+    result_msg "关闭 swap"
+  fi
 
   if ! cat /etc/security/limits.conf |  grep -Eqi 'root - nofile'; then
     cat >> /etc/security/limits.conf << EOF
@@ -218,8 +220,9 @@ initial_debian() {
 initial_centos_7() {
   # CentOS Linux 修改默认源
   if [ -f /etc/yum.repos.d/CentOS-Base.repo ] && [ ! -f /etc/yum.repos.d/CentOS-Base.repo.bak ]; then
-    /usr/bin/cp -a /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
-    curl -fsSL https://mirrors.aliyun.com/repo/Centos-7.repo -o /etc/yum.repos.d/CentOS-Base.repo
+    sed -e 's|^mirrorlist=|#mirrorlist=|g' \
+      -e 's|^#baseurl=http://mirror.centos.org|baseurl=https://mirrors.tuna.tsinghua.edu.cn|g' \
+      -i.bak /etc/yum.repos.d/CentOS-*.repo
     result_msg "更换 ${sys_pkg} repo"
     ${sys_pkg} makecache > /dev/null
     result_msg "重置 ${sys_pkg} cache"
@@ -227,10 +230,16 @@ initial_centos_7() {
 
   # 添加 EPEL 源
   if [ ! -f /etc/yum.repos.d/epel.repo ]; then
-    curl -fsSL http://mirrors.aliyun.com/repo/epel-7.repo -o /etc/yum.repos.d/epel.repo
-    result_msg "添加 epel repo"
+    install_apps "epel-release"
+    sed -e 's!^metalink=!#metalink=!g' \
+      -e 's!^#baseurl=!baseurl=!g' \
+      -e 's!//download\.fedoraproject\.org/pub!//mirrors.tuna.tsinghua.edu.cn!g' \
+      -e 's!//download\.example/pub!//mirrors.tuna.tsinghua.edu.cn!g' \
+      -e 's!http://mirrors!https://mirrors!g' \
+      -i /etc/yum.repos.d/epel*.repo
+    result_msg "更换 epel link"
   fi
-     
+  
   initial_centos
 }
 
