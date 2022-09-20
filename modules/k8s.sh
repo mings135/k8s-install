@@ -102,12 +102,11 @@ k8s_patch() {
       sed -e '/type: CoreDNS/d' \
         -e '/dns:/s/dns:/dns: {}/' \
         -e 's#kubeadm\.k8s\.io/v1beta2#kubeadm\.k8s\.io/v1beta3#' \
+        -e '/criSocket/a \  imagePullPolicy: IfNotPresent' \
         -i ${script_dir}/kubeadm-config.yaml
       result_msg "修改 kubeadm-config v>=1.22"
     fi
   fi
-
-  
 }
 
 

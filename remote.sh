@@ -198,15 +198,10 @@ password_free_login() {
     ssh-keygen -t rsa -b 2048 -f ~/.ssh/id_rsa -N ''
   fi
 
-  # 自动接受 key
-  if ! grep -Eqi 'StrictHostKeyChecking no' /etc/ssh/ssh_config;then
-    echo 'StrictHostKeyChecking no' >> /etc/ssh/ssh_config
-  fi
-
   # copy public key 到各个节点
   for i in ${all_nodes}
   do
-    sshpass -p "${NODE_PASSWORD}" ssh-copy-id -i ~/.ssh/id_rsa.pub root@${i}
+    sshpass -p "${NODE_PASSWORD}" ssh-copy-id -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa.pub root@${i}
   done
 }
 
