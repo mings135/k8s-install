@@ -8,7 +8,7 @@ k8s_repo_centos() {
     cat > /etc/yum.repos.d/kubernetes.repo << EOF
 [kubernetes]
 name=kubernetes
-baseurl=https://mirrors.tuna.tsinghua.edu.cn/kubernetes/yum/repos/kubernetes-el7-$basearch
+baseurl=https://mirrors.tuna.tsinghua.edu.cn/kubernetes/yum/repos/kubernetes-el7-x86_64
 enabled=1
 EOF
     result_msg "添加 k8s repo"
