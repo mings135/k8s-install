@@ -28,46 +28,15 @@
 
 
 
-### Upgrade
-
-- Debian 10 升级内核（推荐）
-
-```shell
-echo "deb http://mirrors.aliyun.com/debian buster-backports main" > /etc/apt/sources.list.d/backports.list
-apt-get update
-apt -t buster-backports  install linux-image-amd64
-update-grub
-reboot
-
-dpkg --list | grep linux-image
-apt purge linux-image-4.19.0-17-amd64
-dpkg --list | grep linux-headers
-apt purge linux-headers-4.19.0-17-amd64
-update-grub
-reboot
-```
-
-
-
-- Rocky 8 切换 CgroupV2（推荐）
-
-```shell
-dnf install -y grubby && \
-grubby \
-  --update-kernel=ALL \
-  --args="systemd.unified_cgroup_hierarchy=1"
-```
-
-
-
 ## Ready
+
 **Clone Project：**
 
 ```shell
 # 安装必要工具
 yum install -y git python3 sshpass rsync
 dnf install -y git python3 sshpass rsync
-apt-get install -y git python3 sshpass rsync
+apt-get update && apt-get install -y git python3 sshpass rsync
 
 # clone project
 git clone https://github.com/mings135/k8s-install.git
@@ -86,7 +55,7 @@ cd k8s-install
 
 
 
-`注意：`所有操作在 devops 节点上执行
+`注意：`所有操作均在 devops 节点上执行
 
 
 
@@ -94,7 +63,7 @@ cd k8s-install
 
 **快速安装：**
 
-- 由于网络等问题可能会导致出错，此时脚本会自动退出（部分流程是并发的，可能存在延迟）
+- 由于网络/镜像源等问题可能会报错，此时脚本会自动退出（部分流程是并发的，可能存在延迟）
 - 如果出错，手动解决问题后继续运行 `auto` 即可
 
 ```shell
@@ -106,6 +75,10 @@ bash remote.sh auto
 
 # 安装完集群后，在 m1 上创建 fannel 网络（也可以使用其他 CNI）
 kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+
+# 命令自动补全
+yum install -y bash-completion
+kubectl completion bash > /etc/bash_completion.d/kubectl
 ```
 
 
