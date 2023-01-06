@@ -15,6 +15,8 @@ repo_gpgcheck=0
 gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
 EOF
     result_msg "添加 k8s repo"
+    ${sys_pkg} makecache > /dev/null
+    result_msg "运行 ${sys_pkg} makecache"
   fi
 }
 

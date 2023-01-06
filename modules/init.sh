@@ -225,7 +225,7 @@ initial_centos_7() {
       -i.bak /etc/yum.repos.d/CentOS-*.repo
     result_msg "更换 ${sys_pkg} repo"
     ${sys_pkg} makecache > /dev/null
-    result_msg "重置 ${sys_pkg} cache"
+    result_msg "运行 ${sys_pkg} makecache"
   fi
 
   # 添加 EPEL 源
@@ -238,31 +238,28 @@ initial_centos_7() {
       -e 's!http://mirrors!https://mirrors!g' \
       -i /etc/yum.repos.d/epel*.repo
     result_msg "更换 epel link"
+    ${sys_pkg} makecache > /dev/null
+    result_msg "运行 ${sys_pkg} makecache"
   fi
   
   initial_centos
 }
 
 
-# 初始化系统（rocky 8）
+# 初始化系统（Alma 8 or Rocky 8）
 initial_centos_8() {
-  # Rocky Linux 修改默认源
-  if [ -f /etc/yum.repos.d/Rocky-BaseOS.repo ] && [ ! -f /etc/yum.repos.d/Rocky-BaseOS.repo.bak ]; then
-    sed -e 's|^mirrorlist=|#mirrorlist=|g' \
-      -e 's|^#baseurl=http://dl.rockylinux.org/$contentdir|baseurl=https://mirrors.aliyun.com/rockylinux|g' \
-      -i.bak /etc/yum.repos.d/Rocky-*.repo
-    result_msg "更换 ${sys_pkg} link"
-    ${sys_pkg} makecache > /dev/null
-    result_msg "重置 ${sys_pkg} cache"
-  fi
-
   # 添加 EPEL 源
   if [ ! -f /etc/yum.repos.d/epel.repo ]; then
     install_apps "epel-release"
-    sed -e 's|^#baseurl=https://download.example/pub|baseurl=https://mirrors.aliyun.com|' \
-      -e 's|^metalink|#metalink|' \
+    sed -e 's!^metalink=!#metalink=!g' \
+      -e 's!^#baseurl=!baseurl=!g' \
+      -e 's!//download\.fedoraproject\.org/pub!//mirrors.tuna.tsinghua.edu.cn!g' \
+      -e 's!//download\.example/pub!//mirrors.tuna.tsinghua.edu.cn!g' \
+      -e 's!http://mirrors!https://mirrors!g' \
       -i /etc/yum.repos.d/epel*.repo
     result_msg "更换 epel link"
+    ${sys_pkg} makecache > /dev/null
+    result_msg "运行 ${sys_pkg} makecache"
   fi
 
   # CentOS 8 额外需要的工具
@@ -272,25 +269,20 @@ initial_centos_8() {
 }
 
 
-# 初始化系统（rocky 9）
+# 初始化系统（Alma 9 or Rocky 9）
 initial_centos_9() {
-  # Rocky Linux 修改默认源
-  if [ -f /etc/yum.repos.d/rocky.repo ] && [ ! -f /etc/yum.repos.d/rocky.repo.bak ]; then
-    sed -e 's|^mirrorlist=|#mirrorlist=|g' \
-      -e 's|^#baseurl=http://dl.rockylinux.org/$contentdir|baseurl=https://mirrors.aliyun.com/rockylinux|g' \
-      -i.bak /etc/yum.repos.d/rocky*.repo
-    result_msg "更换 ${sys_pkg} link"
-    ${sys_pkg} makecache > /dev/null
-    result_msg "重置 ${sys_pkg} cache"
-  fi
-
   # 添加 EPEL 源
   if [ ! -f /etc/yum.repos.d/epel.repo ]; then
     install_apps "epel-release"
-    sed -e 's|^#baseurl=https://download.example/pub|baseurl=https://mirrors.aliyun.com|' \
-      -e 's|^metalink|#metalink|' \
+    sed -e 's!^metalink=!#metalink=!g' \
+      -e 's!^#baseurl=!baseurl=!g' \
+      -e 's!//download\.fedoraproject\.org/pub!//mirrors.tuna.tsinghua.edu.cn!g' \
+      -e 's!//download\.example/pub!//mirrors.tuna.tsinghua.edu.cn!g' \
+      -e 's!http://mirrors!https://mirrors!g' \
       -i /etc/yum.repos.d/epel*.repo
     result_msg "更换 epel link"
+    ${sys_pkg} makecache > /dev/null
+    result_msg "运行 ${sys_pkg} makecache"
   fi
 
   initial_centos
@@ -303,6 +295,7 @@ initial_debian_10() {
 }
 
 
+# 初始化系统（debian11）
 initial_debian_11() {
   initial_debian
 }

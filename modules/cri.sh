@@ -12,7 +12,9 @@ docker_repo_centos() {
     sed -e 's+download.docker.com+mirrors.tuna.tsinghua.edu.cn/docker-ce+' \
       -e '/^gpgcheck=1/s/gpgcheck=1/gpgcheck=0/' \
       -i /etc/yum.repos.d/docker-ce.repo
-    result_msg "修改 repo source"
+    result_msg "修改 docker repo"
+    ${sys_pkg} makecache > /dev/null
+    result_msg "运行 ${sys_pkg} makecache"
   fi
 }
 
