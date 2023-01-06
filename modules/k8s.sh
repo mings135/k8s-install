@@ -7,12 +7,9 @@ k8s_repo_centos() {
   if [ ! -f /etc/yum.repos.d/kubernetes.repo ];then
     cat > /etc/yum.repos.d/kubernetes.repo << EOF
 [kubernetes]
-name=Kubernetes
-baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+name=kubernetes
+baseurl=https://mirrors.tuna.tsinghua.edu.cn/kubernetes/yum/repos/kubernetes-el7-$basearch
 enabled=1
-gpgcheck=0
-repo_gpgcheck=0
-gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
 EOF
     result_msg "添加 k8s repo"
     ${sys_pkg} makecache > /dev/null
@@ -28,7 +25,7 @@ k8s_repo_debian() {
     curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg
     result_msg "添加 k8s pgp"
     echo \
-    "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main" | \
+    "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://mirrors.tuna.tsinghua.edu.cn/kubernetes/apt kubernetes-xenial main" | \
     tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
     result_msg "添加 k8s repo"
     ${sys_pkg} update > /dev/null

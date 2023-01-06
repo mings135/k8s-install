@@ -7,7 +7,7 @@
 ## Env
 
 - `Linux：`CentOS7.9，支持 Alma 8、Alma 9、Rocky 8、Rocky 9、Debian 11
-- `Kubernetes：`1.20.7，支持 1.20.* ~ 1.25.*
+- `Kubernetes：`1.25.5，支持 1.20.* ~ 1.26.*
   - 1.20.* ~ 1.24.* 官方默认镜像仓库地址：`k8s.gcr.io`
   
   - 1.25.* 官方默认镜像仓库地址：`registry.k8s.io`
