@@ -65,13 +65,13 @@ containerd_config() {
   local ver=$(containerd -v | awk '{print $3}')
 
   mkdir -p /etc/containerd && containerd config default > ${config_file}
-  result_msg "创建 containerd 默认配置"
+  result_msg "创建 containerd config"
 
-  sed -i "/sandbox_image/s#k8s.gcr.io#${IMAGE_REPOSITORY}#" ${config_file}
-  result_msg "修改 仓库地址"
+  sed -i "s#\(sandbox_image = \"\).*\(/pause:.*\"\)#\1${IMAGE_REPOSITORY}\2#" ${config_file}
+  result_msg "修改 sandbox image"
 
   if [ $(echo "${ver%.*} >= 1.5" | bc) -eq 1 ]; then
-    sed -i '/SystemdCgroup/s#SystemdCgroup = false#SystemdCgroup = true#' ${config_file}
+    sed -i 's#SystemdCgroup = false#SystemdCgroup = true#' ${config_file}
     result_msg "修改 containerd Cgroup"
     sed -i '/registry.mirrors/a \        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ip.or.hostname"]\n          endpoint = ["http://ip.or.hostname"]' ${config_file}
     result_msg "增加 containerd 私库配置"
