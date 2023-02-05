@@ -6,12 +6,11 @@
 
 ## Env
 
-- `Linux：`CentOS7.9，支持 Alma 8、Alma 9、Rocky 8、Rocky 9、Debian 11
+- `Linux：`CentOS7.9，支持 Alma 8、Alma 9、Debian 11
 - `Kubernetes：`1.25.5，支持 1.20.* ~ 1.26.*
-  - 1.20.* ~ 1.24.* 官方默认镜像仓库地址：`k8s.gcr.io`
-  
-  - 1.25.* 官方默认镜像仓库地址：`registry.k8s.io`
-  
+  - 1.26.* 须用 1.6.* 版本的 containerd
+  - 1.20.* ~ 1.24.* 官方镜像仓库地址：`k8s.gcr.io`
+  - 1.25.* 官方镜像仓库地址：`registry.k8s.io`
   - 国内镜像仓库地址：`registry.cn-hangzhou.aliyuncs.com/google_containers`
   
 - `Containerd：`默认最新版本，支持 1.4.* ~ 1.6.* （不同系统版本范围有所不同）
@@ -40,7 +39,6 @@ apt-get update && apt-get install -y git python3 sshpass rsync
 
 # clone project
 git clone https://github.com/mings135/k8s-install.git
-git clone https://gitee.com/mings135/k8s-install.git
 
 # 进入 k8s-install
 cd k8s-install
