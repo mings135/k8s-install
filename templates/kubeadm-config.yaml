@@ -56,5 +56,5 @@ ipvs:
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
 cgroupDriver: systemd
-containerLogMaxSize: "100Mi"
+containerLogMaxSize: "30Mi"
 containerLogMaxFiles: 5
