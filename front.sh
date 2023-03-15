@@ -1,5 +1,15 @@
-# 格式化输出结果，函数：
-# result_msg
+#!/usr/bin/env bash
+
+# Author: MingQ
+if ! ps -ocmd $$ | grep -q "^bash"; then
+  echo "请使用 bash $0 运行脚本!"
+  exit 1
+fi
+
+# 已经安装 rsync 直接退出
+if which rsync &> /dev/null; then
+  exit 0
+fi
 
 
 # 设置输出级别(0 or 1)
@@ -61,3 +71,29 @@ result_msg() {
     exit 1
   fi
 }
+
+
+if [ -f /etc/redhat-release ]; then
+  SYSTEM_RELEASE="centos"
+  if cat /etc/redhat-release | grep -Eqi 'release 7'; then
+    SYSTEM_PACKAGE="yum"
+  else
+    SYSTEM_PACKAGE="dnf"
+  fi
+elif cat /etc/issue | grep -Eqi "debian"; then
+  SYSTEM_RELEASE="debian"
+  SYSTEM_PACKAGE="apt-get"
+fi
+
+# 检查变量，异常显示
+RES_LEVEL=1 && test ${SYSTEM_RELEASE} && test ${SYSTEM_PACKAGE}
+result_msg "获取 system variables" && RES_LEVEL=0
+
+
+# 解决 debian 系统 debconf: unable to initialize frontend: Dialog 问题
+if [ ${SYSTEM_RELEASE} = 'debian' ]; then
+  export DEBIAN_FRONTEND=noninteractive
+fi
+
+${SYSTEM_PACKAGE} install -y rsync > /dev/null
+result_msg "安装 rsync"

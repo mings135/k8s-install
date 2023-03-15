@@ -1,111 +1,84 @@
-# 集群操作，提供以下函数：
-# kubectl_config
-# cluster_hosts
-# images_list
-# images_pull
-# cluster_init
-# cluster_join
-# jointoken_valid
+# 集群操作
 
 
-# 更新 /etc/hosts 配置
-cluster_hosts() {
-  local node_name node_ip
-
-  sed -i '/^\([0-9]\{1,3\}\.\)\{3\}[0-9]\{1,3\} [^ ].*/d' /etc/hosts
-
-  while read line
-  do
-    if echo "${line}" | grep -Eqi '^ *#|^ *$'; then
-      continue
-    fi
-
-    node_name=$(echo "${line}" | awk -F '=' '{print $1}')
-    node_ip=$(echo "${line}" | awk -F '=' '{print $2}')
-    if ! grep -Eqi "${node_ip} ${node_name}" /etc/hosts; then
-      echo "${node_ip} ${node_name}" >> /etc/hosts
-      result_msg "添加 hosts: ${node_ip}"
-    fi
-  done < ${script_dir}/config/nodes.conf
+# 显示所需 images
+cluster_images_list() {
+  kubeadm config --config ${script_dir}/config/kubeadm-config.yaml images list
+  result_msg "查看 images list"
 }
 
 
-images_list() {
-  if ${IS_MASTER} && [ -f ${script_dir}/kubeadm-config.yaml ]; then
-    kubeadm config --config ${script_dir}/kubeadm-config.yaml images list
-    result_msg "查看 images list"
+# 拉取所需 images
+cluster_images_pull() {
+  kubeadm config --config ${script_dir}/config/kubeadm-config.yaml images pull
+  result_msg "拉取 images"
+}
+
+
+# 初始化集群
+cluster_master1_init() {
+  kubeadm init --config ${script_dir}/config/kubeadm-config.yaml --upload-certs | tee ${script_dir}/kubeadm-init.log
+  result_msg "创建 cluster"
+  cluster_config_kubectl_command
+}
+
+
+# 如果 join 信息失效, 生成新的 join 信息
+cluster_generate_join_command() {
+  if ! cluster_join_token_valid; then
+    local command_basic command_control token_timestamp
+    command_basic="$(kubeadm token create --print-join-command)" \
+      && command_control="--control-plane --certificate-key $(kubeadm init phase upload-certs --upload-certs 2> /dev/null | sed -n '$p')" \
+      && token_timestamp="$(date '+%s')" \
+      && echo "join_command_basic='${command_basic}'" > ${script_dir}/config/join.sh \
+      && echo "join_command_control='${command_control}'" >> ${script_dir}/config/join.sh \
+      && echo "join_token_timestamp='${token_timestamp}'" >> ${script_dir}/config/join.sh
+    result_msg "生成 new join.sh"
   fi
 }
 
 
-images_pull() {
-  if ${IS_MASTER} && [ -f ${script_dir}/kubeadm-config.yaml ]; then
-    kubeadm config --config ${script_dir}/kubeadm-config.yaml images pull
-    result_msg "拉取 images"
+# 加入集群
+cluster_join_cluster() {
+  source ${script_dir}/config/join.sh
+  result_msg "加载 join 信息"
+  if [ ${HOST_ROLE} = "master" ]; then
+    result_blue_font "${join_command_basic} ${join_command_control}"
+    ${join_command_basic} ${join_command_control}
+    result_msg "加入 cluster 成为 master"
+    cluster_config_kubectl_command
+  elif [ ${HOST_ROLE} = "work" ]; then
+    ${join_command_basic}
+    result_msg "加入 cluster 成为 work"
+  fi
+}
+
+
+# 同步更新 .kube/config, 并安装命令自动补全
+cluster_config_kubectl_command() {
+  mkdir -p $HOME/.kube \
+    && /bin/cp ${KUBEADM_CONFIG}/admin.conf $HOME/.kube/config \
+    && chmod 700 $HOME/.kube/config
+  result_msg "配置 kubectl config"
+
+  install_apps "bash-completion"
+  mkdir -p /etc/bash_completion.d \
+    && kubectl completion bash > /etc/bash_completion.d/kubectl
+  result_msg "添加 命令自动补全"
+}
+
+
+# 判断 join 信息是否有效(默认有效期 2 小时)
+cluster_join_token_valid() {
+  if [ -e ${script_dir}/config/join.sh ]; then
+    source ${script_dir}/config/join.sh
+    result_msg "加载 join 信息"
+
+    local current_timestamp=$(date '+%s')
+    local run_interval=$(( current_timestamp - join_token_timestamp ))
+    
+    [ ${run_interval} -le ${JOIN_TOKEN_INTERVAL} ] && return 0 || return 1
   else
-    exit 0
-  fi
-}
-
-
-cluster_init() {
-  if ${IS_MASTER} && ${IS_MASTER_1} && [ -f ${script_dir}/kubeadm-config.yaml ]; then
-    kubeadm init --config ${script_dir}/kubeadm-config.yaml --upload-certs | tee ${script_dir}/kubeadm-init.log
-    result_msg "创建 cluster"
-  else
-    exit 0
-  fi 
-}
-
-
-kubectl_config() {
-  if [ -f ${K8S_CONFIG}/admin.conf ] && [ ! -f $HOME/.kube/config ]; then
-    mkdir -p $HOME/.kube && \
-    /bin/cp ${K8S_CONFIG}/admin.conf $HOME/.kube/config && \
-    chmod 700 $HOME/.kube/config
-    result_msg "配置 kubectl config"
-  fi
-}
-
-
-jointoken_valid() {
-  source ${script_dir}/config/join.conf
-  result_msg "加载 join.conf"
-
-  local current_timestamp=$(date '+%s')
-  local run_interval=$[ current_timestamp - token_timestamp ]
-  
-  [ ${run_interval} -le ${token_interval} ] && return 0 || return 1
-}
-
-
-cluster_joincmd() {
-  if ! jointoken_valid; then
-    local join_command control_append certs_key token_timestamp
-    join_command=$(kubeadm token create --print-join-command) && \
-    certs_key=$(kubeadm init phase upload-certs --upload-certs 2> /dev/null | sed -n '$p') && \
-    control_append="--control-plane --certificate-key ${certs_key}" &&\
-    token_timestamp=$(date '+%s')
-    result_msg "生成 new joincmd"
-
-    sed -e "/join_command=/c join_command='${join_command}'" \
-      -e "/control_append=/c control_append='${control_append}'" \
-      -e "/token_timestamp=/c token_timestamp=${token_timestamp}" \
-      -i ${script_dir}/config/join.conf
-    result_msg "重写 join.conf"
-  fi
-}
-
-
-cluster_join() {
-  if jointoken_valid; then
-    if ${IS_MASTER}; then
-      ${join_command} \
-      ${control_append}
-      result_msg "加入 cluster 成为 master"
-    else
-      ${join_command}
-      result_msg "加入 cluster 成为 work"
-    fi
+    return 1
   fi
 }

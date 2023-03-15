@@ -1,0 +1,30 @@
+# 远程节点保存脚本的目录, 请确保其父目录一定存在(默认 /opt/k8sRemoteScript)
+remoteScriptDir: ""
+cluster:
+  kubernetesVersion: "1.27.4"
+  # 对应 kubeadm 中 controlPlaneEndpoint(默认 master1 address, port 6443)
+  controlPlaneAddress: ""  
+  controlPlanePort: 
+  # 镜像仓库地址
+  imageRepository: ""
+container:
+  criName: "containerd"
+  # 私有仓库地址, 比如 http://192.168.10.38
+  privateRepository: ""
+nodes:
+  # k8s 节点统一密码(root)
+  nodePassword: "123456"
+  # 第一个初始化集群的 master 节点
+  master1:
+    domain: m1.k8s
+    address: "192.168.11.101"
+  # 其他 master 节点
+  master:
+  - domain: m2.k8s
+    address: "192.168.11.102"
+  - domain: m3.k8s
+    address: "192.168.11.103"
+  # 工作节点
+  work:
+  - domain: w1.k8s
+    address: "192.168.11.104"

@@ -1,29 +1,34 @@
 # K8S Install
 
-基于 kubeadm 自动部署 k8s 集群。
+基于 kubeadm 自动部署 k8s 集群。所有操作均在运维主机上完成。所有 k8s 节点只需统一 root 密码，开启 ssh 即可，一般情况下无需其他操作。
 
 
 
-## Env
+## Request
 
-- `Linux：`CentOS7.9，支持 Alma 8、Alma 9、Debian 11
-- `Kubernetes：`1.25.5，支持 1.20.* ~ 1.26.*
-  - 1.26.* 须用 1.6.* 版本的 containerd
-  - 1.20.* ~ 1.24.* 官方镜像仓库地址：`k8s.gcr.io`
-  - 1.25.* 官方镜像仓库地址：`registry.k8s.io`
+- `Linux:` 
+  - 支持 AlmaLinux 8、AlmaLinux 9、Debian 11、Debian 12
+- `Kubernetes:` 
+  - 支持 1.20+
+  - 1.20 ~ 1.24 官方镜像仓库地址：`k8s.gcr.io`
+  - 1.25+ 官方镜像仓库地址：`registry.k8s.io`
   - 国内镜像仓库地址：`registry.cn-hangzhou.aliyuncs.com/google_containers`
-  
-- `Containerd：`默认最新版本，支持 1.4.* ~ 1.6.* （不同系统版本范围有所不同）
-- `Python：`3.6+
-- `Shell：` bash
-- `Proxy：`None（CLUSTER_VIP 直接用 m1 的 IP）
+  - debian 中，当 k8s 版本 >= 1.25 时，cri-tools  版本须 >= 1.25
+  - k8s 版本设置好后，建议自行测试 cri-tools 和 containerd 版本是否支持，或使用默认最新
+- `Containerd：` 
+  - 支持 1.5+
+  - 当 cri-tools  版本 >= 1.26 时，containerd 版本须 >= 1.6
 
-| Domain | IP            | Role             |
-| ------ | ------------- | ---------------- |
-| m1.k8s | 192.168.1.100 | master/m1/devops |
-| m2.k8s | 192.168.1.110 | master           |
-| m3.k8s | 192.168.1.120 | master           |
-| w1.k8s | 192.168.1.130 | work             |
+
+
+**测试环境：**
+
+| Domain | IP             | Role           | System      |
+| ------ | -------------- | -------------- | ----------- |
+| m1.k8s | 192.168.11.101 | master1/devops | AlmaLinux 8 |
+| m2.k8s | 192.168.11.102 | master         | AlmaLinux 9 |
+| m3.k8s | 192.168.11.103 | master         | Debian 11   |
+| w1.k8s | 192.168.11.104 | work           | Debian 12   |
 
 
 
@@ -33,27 +38,12 @@
 
 ```shell
 # 安装必要工具
-yum install -y git python3 sshpass rsync
 dnf install -y git python3 sshpass rsync
 apt-get update && apt-get install -y git python3 sshpass rsync
 
-# clone project
-git clone https://github.com/mings135/k8s-install.git
-
-# 进入 k8s-install
-cd k8s-install
+# 克隆 project
+git clone -b dev https://github.com/mings135/k8s-install.git
 ```
-
-
-
-**配置 config 目录下 kube.conf 和 nodes.conf**
-
-- 如存在 Proxy，请先配置 Proxy，IP 和 Port 写入 CLUSTER_VIP 和 CLUSTER_PORT
-- 如果没有，可以直接将 m1 的 IP 填入 CLUSTER_VIP 即可
-
-
-
-`注意：`所有操作均在 devops 节点上执行
 
 
 
@@ -63,109 +53,16 @@ cd k8s-install
 
 - 由于网络/镜像源等问题可能会报错，此时脚本会自动退出（部分流程是并发的，可能存在延迟）
 - 如果出错，手动解决问题后继续运行 `auto` 即可
+- 不同系统对版本的支持是不同的，debian 11 上有的版本 debian 12 上可能没有
 
 ```shell
-# 配置免密登录，所有节点必须统一密码（否则请自行配置）
-bash remote.sh freelogin
+# 进入 k8s-install
+cd k8s-install
 
-# 自动安装
-bash remote.sh auto
+# 配置 kube.yaml
+vi config/kube.yaml
 
-# 安装完集群后，在 m1 上创建 fannel 网络（也可以使用其他 CNI）
-kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
-
-# 命令自动补全
-yum install -y bash-completion
-kubectl completion bash > /etc/bash_completion.d/kubectl
-```
-
-
-
-## Initial system
-
-**分发安装脚本到所有节点：**
-
-```shell
-# 配置免密登录，所有节点必须统一密码（否则请自行配置）
-bash remote.sh freelogin
-
-# 分发文件到各个节点
-bash remote.sh distribute
-```
-
-
-
-**所有节点初始化系统环境：**
-
-```shell
-# 更新 nodes.conf，然后依据 nodes.conf 更新 /etc/hosts
-bash remote.sh hosts
-
-# 初始化和优化系统
-bash remote.sh init
-
-# 安装容器运行时
-bash remote.sh cri
-
-# 安装 kubeadm 等
-bash remote.sh k8s
-```
-
-
-
-### Certs（可选）
-
-- K8s 的  CA 证书默认10 年，其余 1 年
-- 执行以下命令优先创建 50 年的证书（不包含 kubelet，kubelet 需要集群安装后 执行）
-
-```shell
-# 本地生成 ca，并分发到各个节点
-bash remote.sh ca
-
-# 各个 master 节点自签 k8s 证书
-bash  remote.sh certs
-```
-
-
-
-## Install cluster
-
-**初始化集群：**
-
-```shell
-# 查看所需镜像
-bash remote.sh imglist
-
-# download images
-bash remote.sh imgpull
-
-# m1 上初始化集群
-bash remote.sh initcluster
-```
-
-
-
-**加入集群：**
-
-```shell
-# 生成加入命令
-bash remote.sh joincmd
-
-# 加入集群
-bash remote.sh joincluster
-```
-
-
-
-### Kubelet（可选）
-
-- 执行之前，必须先确认已经执行过`证书` 步骤
-
-```shell
-# 签发 kubelet 证书
-bash remote.sh kubelet
-
-# 完成后可以清理 work 节点上的 pki 目录
-bash remote.sh deletepki
+# 自动安装(-c 安装自签证书, -f 部署 fannel)
+bash remote.sh -cf auto
 ```
 

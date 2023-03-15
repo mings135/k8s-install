@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# Author: MingQ
 if ! ps -ocmd $$ | grep -q "^bash"; then
   echo "请使用 bash $0 运行脚本!"
   exit 1
@@ -9,260 +10,135 @@ set -e
 script_dir=$(dirname $(readlink -f $0))
 
 source ${script_dir}/modules/result.sh
-source ${script_dir}/config/kube.conf
-source ${script_dir}/modules/check.sh
-source ${script_dir}/modules/base.sh
+source ${script_dir}/modules/variables.sh
+
+source ${script_dir}/modules/basic.sh
+source ${script_dir}/modules/cri.sh
+source ${script_dir}/modules/k8s.sh
+
+source ${script_dir}/modules/certs.sh
+source ${script_dir}/modules/cluster.sh
 set +e
 
 
-local_init() {
-  check_record_exist
-  source ${script_dir}/modules/init.sh
-
-  if ! grep -Eqi 'init_system' ${script_dir}/config/record.txt; then
-    init_system
-    echo "init_system" >> ${script_dir}/config/record.txt
-  fi
-}
-
-
-local_cri() {
-  check_record_exist
-  source ${script_dir}/modules/cri.sh
-
-  if ! grep -Eqi 'install_cri' ${script_dir}/config/record.txt && \
-  grep -Eqi 'init_system' ${script_dir}/config/record.txt; then
-    install_cri
-    echo "install_cri" >> ${script_dir}/config/record.txt
-  fi 
-}
-
-
-local_compose() {
-  check_record_exist
-  source ${script_dir}/modules/cri.sh
-
-  if ! grep -Eqi 'docker_compose' ${script_dir}/config/record.txt && \
-  grep -Eqi 'install_cri' ${script_dir}/config/record.txt; then
-    docker_compose
-    echo "docker_compose" >> ${script_dir}/config/record.txt
-  fi 
-}
-
-
-local_k8s() {
-  check_record_exist
-  source ${script_dir}/modules/k8s.sh
-
-  if ! grep -Eqi 'install_k8s' ${script_dir}/config/record.txt && \
-  grep -Eqi 'init_system' ${script_dir}/config/record.txt; then
-    install_k8s
-    echo "install_k8s" >> ${script_dir}/config/record.txt
-  fi
-}
-
-
-local_hosts() {
-  source ${script_dir}/modules/cluster.sh
-  cluster_hosts
-}
-
-
-local_imglist() {
-  source ${script_dir}/modules/cluster.sh
-  images_list
-}
-
-
-local_imgpull() {
-  check_record_exist
-  source ${script_dir}/modules/cluster.sh
-
-  if ! grep -Eqi 'images_pull' ${script_dir}/config/record.txt; then
-    images_pull
-    echo "images_pull" >> ${script_dir}/config/record.txt
-  fi
-}
-
-
-local_initcluster() {
-  check_record_exist
-  source ${script_dir}/modules/cluster.sh
-
-  if ! grep -Eqi 'cluster_init_or_join_m' ${script_dir}/config/record.txt; then
-    cluster_init
-    echo "cluster_init_or_join_m" >> ${script_dir}/config/record.txt
-  fi
-}
-
-
-local_joincmd() {
-  check_record_exist
-  source ${script_dir}/modules/cluster.sh
-
-  if grep -Eqi 'cluster_init_or_join_m' ${script_dir}/config/record.txt; then
-    kubectl_config
-    cluster_joincmd
-  fi
-}
-
-
-local_joincluster() {
-  check_record_exist
-  source ${script_dir}/modules/cluster.sh
-
-  if ${IS_MASTER}; then
-    if ! grep -Eqi 'cluster_init_or_join_m' ${script_dir}/config/record.txt; then
-      cluster_join
-      echo "cluster_init_or_join_m" >> ${script_dir}/config/record.txt
-    fi
-  else
-    if ! grep -Eqi 'cluster_init_or_join_w' ${script_dir}/config/record.txt; then
-      cluster_join
-      echo "cluster_init_or_join_w" >> ${script_dir}/config/record.txt
-    fi
-  fi
-}
-
-
-local_ca() {
-  source ${script_dir}/modules/ca.sh
-
-  if [ -d ${script_dir}/pki ]; then
-    blue_font '已创建过 CA，跳过（如需更新 CA，手动删除 pki 目录）'
-  else
-    set -e
-    mkdir ${script_dir}/pki
-    cd ${script_dir}/pki
-    ca_crt
-    set +e
-  fi
-}
-
-
-local_certs() {
-  check_record_exist
-  source ${script_dir}/modules/certs.sh
-
-  if ! grep -Eqi 'k8s_certs' ${script_dir}/config/record.txt && \
-  ${IS_MASTER}; then
-    set -e
-    mkdir -p ${K8S_PKI}
-    rm -rf ${K8S_PKI}
-    /usr/bin/cp -a ${script_dir}/pki ${K8S_PKI}
-    etcd_crt
-    apiserver_crt
-    front_crt
-    admin_conf
-    manager_conf
-    scheduler_conf
-    set +e
-    echo "k8s_certs" >> ${script_dir}/config/record.txt
-  fi
-}
-
-
-local_kubelet() {
-  check_record_exist
-  source ${script_dir}/modules/certs.sh
-
-  if ! grep -Eqi 'kubelet_cert' ${script_dir}/config/record.txt; then
-    set -e
-    /usr/bin/cp -a ${script_dir}/pki/ca.{crt,key} ${KUBELET_PKI}
-    kubelet_conf_crt
-    rm -f ${KUBELET_PKI}/ca.{crt,key}
-    systemctl restart kubelet
-    set +e
-    echo "kubelet_cert" >> ${script_dir}/config/record.txt
-  fi
-}
-
-
-# 删除 scp 过来不必要的文件
-local_needless() {
-  local needless_fd='remote.sh .git'
-  for i in ${needless_fd}
-  do
-    if [ -e ${script_dir}/${i} ]; then
-      rm -rf ${script_dir}/${i}
-      result_msg "删除 ${i}"
-    fi
-  done
-}
-
-
-# 创建记录
-local_record() {
-  if [ ! -f ${script_dir}/config/record.txt ]; then
-    touch ${script_dir}/config/record.txt
+# 检查并创建 record.txt
+local_check_record() {
+  if [ ! -e ${script_dir}/config/record.txt ]; then
+    mkdir -p ${script_dir}/config \
+      && touch ${script_dir}/config/record.txt
     result_msg "创建 record.txt"
   fi
 }
 
 
-# 删除记录
-local_delrecord() {
-  if [ -f ${script_dir}/config/record.txt ]; then
-    rm -f ${script_dir}/config/record.txt
-    result_msg "删除 record.txt"
+# 安装和配置所需的基础
+local_install_basic() {
+  basic_etc_hosts
+  if ! grep -Eqi '^basic_system_configs$' ${script_dir}/config/record.txt; then
+    basic_system_configs
+    echo "basic_system_configs" >> ${script_dir}/config/record.txt
+  fi
+  if ! grep -Eqi '^cri_install$' ${script_dir}/config/record.txt; then
+    cri_install
+    echo "cri_install" >> ${script_dir}/config/record.txt
+  fi
+  if ! grep -Eqi '^kubernetes_install$' ${script_dir}/config/record.txt; then
+    kubernetes_install
+    echo "kubernetes_install" >> ${script_dir}/config/record.txt
   fi
 }
 
 
-# 删除非 master 节点上的 pki 目录
-local_delpki() {
-  if ! ${IS_MASTER} && [ -d ${script_dir}/pki ]; then
-    rm -rf ${script_dir}/pki
-    result_msg "删除 pki dir(not master)"
+# 签发证书
+local_issue_certs() {
+  set -e
+  if ! grep -Eqi '^certs_all_exclude_kubelet$' ${script_dir}/config/record.txt; then
+    result_blue_font "签发证书: ${HOST_IP}"
+    mkdir -p ${KUBEADM_PKI} && rm -rf ${KUBEADM_PKI}
+    /usr/bin/cp -a ${script_dir}/pki ${KUBEADM_PKI}
+    certs_etcd
+    certs_apiserver
+    certs_front-proxy
+    certs_admin_conf
+    certs_controller-manager_conf
+    certs_scheduler_conf
+    echo "certs_all_exclude_kubelet" >> ${script_dir}/config/record.txt
   fi
+  set +e
+}
+
+
+# 拉取所需 images
+local_images_pull() {
+  if ! grep -Eqi '^cluster_images_pull$' ${script_dir}/config/record.txt; then
+    cluster_images_pull
+    echo "cluster_images_pull" >> ${script_dir}/config/record.txt
+  fi
+}
+
+
+# 初始化集群
+local_init_cluster() {
+  if ! grep -Eqi '^cluster_join_cluster$' ${script_dir}/config/record.txt; then
+    cluster_master1_init
+    echo "cluster_join_cluster" >> ${script_dir}/config/record.txt
+  fi
+  cluster_generate_join_command
+}
+
+
+# 加入集群
+local_join_cluster() {
+  if ! grep -Eqi '^cluster_join_cluster$' ${script_dir}/config/record.txt; then
+    cluster_join_cluster
+    echo "cluster_join_cluster" >> ${script_dir}/config/record.txt
+  fi
+}
+
+
+# 签发 kubelet 证书
+local_kubelet_certs() {
+  set -e
+  if ! grep -Eqi '^certs_kubelet_pem$' ${script_dir}/config/record.txt; then
+    result_blue_font "签发 kubelet 证书: ${HOST_IP}"
+    certs_kubelet_pem
+    sleep 1
+    systemctl restart kubelet
+    echo "certs_kubelet_pem" >> ${script_dir}/config/record.txt
+  fi
+  set +e
+}
+
+
+# 部署 fannel
+local_deploy_fannel() {
+  kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
 }
 
 
 main() {
-  base_info
+  local_check_record
+  variables_settings
 
   case $1 in
-    "record") local_record;;
-    "delrecord") local_delrecord;;
-    "needless") local_needless;; 
-    "hosts") local_hosts;;
-    "init") local_init;;
-    "cri") local_cri;;
-    "k8s") local_k8s;;
-    "all")
-      local_hosts
-      local_init
-      local_cri
-      local_k8s
-      ;;
-    "imglist") local_imglist;;
-    "imgpull") local_imgpull;;
-    "initcluster") local_initcluster;;
-    "joincmd") local_joincmd;;
-    "joincluster") local_joincluster;;
-    "ca") local_ca;;
-    "certs") local_certs;;
-    "kubelet") local_kubelet;;
-    "delpki") local_delpki;;
+    "install") local_install_basic;;
+    "imglist") cluster_images_list;;
+    "imgpull") local_images_pull;;
+    "initcluster") local_init_cluster;;
+    "joincluster") local_join_cluster;;
+    "certs") local_issue_certs;;
+    "kubelet") local_kubelet_certs;;
+    "fannel") local_deploy_fannel;;
+    "test") variables_display_test;;
     *)
     printf "Usage: bash $0 [ ? ] \n"
-    printf "%-16s %-s\n" 'record' '创建 config/record.txt；用于记录步骤'
-    printf "%-16s %-s\n" 'delrecord' '删除 config/record.txt；被记录的步骤不能重复执行'
-    printf "%-16s %-s\n" 'needless' '删除本地不需要的文件'
-    printf "%-16s %-s\n" 'hosts' '更新 config/nodes.conf；然后更新 /etc/hosts'
-    printf "%-16s %-s\n" 'init' '初始化、优化系统'
-    printf "%-16s %-s\n" 'cri' '安装容器运行时'
-    printf "%-16s %-s\n" 'k8s' '安装 kubeadm kubelet kubectl'
-    printf "%-16s %-s\n" 'all' '顺序执行: hosts -> init -> cri --> k8s'
-    printf "%-16s %-s\n" 'imglist' '查看 kubeadm init images'
-    printf "%-16s %-s\n" 'imgpull' '拉取 kubeadm init images'
-    printf "%-16s %-s\n" 'initcluster' 'm1 node 上 kubeadm init cluster'
-    printf "%-16s %-s\n" 'joincmd' '生成 kubeadm-init.log 的节点上获取 join 命令，并写入 config/join.conf'
-    printf "%-16s %-s\n" 'joincluster' 'join 命令生效期间，使用 kubeadm join cluster'
-    printf "%-16s %-s\n" 'ca' '创建 ca 证书（pki 目录，不会覆盖）'
-    printf "%-16s %-s\n" 'certs' "如果是 master，签发 k8s 证书，此操作会清空 ${K8S_PKI}!!!"
+    printf "%-16s %-s\n" 'install' '更新 hosts 文件, 优化系统, 安装 cri 和 kubeadm 等'
+    printf "%-16s %-s\n" 'imglist' '查看 images'
+    printf "%-16s %-s\n" 'imgpull' '拉取 images'
+    printf "%-16s %-s\n" 'initcluster' '初始化 k8s 集群, 同时生成 join 信息'
+    printf "%-16s %-s\n" 'joincluster' '根据自身 Role 信息加入集群'
+    printf "%-16s %-s\n" 'certs' '签发 k8s 证书, 此操作会清空 ${KUBEADM_PKI}!!!'
     printf "%-16s %-s\n" 'kubelet' '签发 kubelet 证书，此操作会覆盖原有证书!!!'
-    printf "%-16s %-s\n" 'delpki' '如果非 master，删除 pki 目录，集群安装完成后可以删除'
     exit 1
     ;;
   esac

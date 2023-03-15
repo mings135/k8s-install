@@ -1,85 +1,69 @@
-# 安装 k8s 组件 kubeadm 等，提供以下函数：
-# install_k8s
+# 安装 k8s 组件 kubeadm 等
 
 
-# 添加 k8s repo（centos）
-k8s_repo_centos() {
-  if [ ! -f /etc/yum.repos.d/kubernetes.repo ];then
-    cat > /etc/yum.repos.d/kubernetes.repo << EOF
-[kubernetes]
-name=Kubernetes
-baseurl=https://mirrors.tuna.tsinghua.edu.cn/kubernetes/yum/repos/kubernetes-el7-\$basearch
-enabled=1
-gpgcheck=0
-gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+# 安装 k8s
+kubernetes_install_apps() {
+  if [ ${crictlVersion} = 'latest' ]; then
+    install_apps "cri-tools"
+  elif [ ${SYSTEM_RELEASE} = 'centos' ]; then
+    # CentOS 查看更多版本：yum list cri-tools --showduplicates | sort -r
+    install_apps "cri-tools-${crictlVersion}"
+  elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    # Debian 查看更多版本：apt-cache madison cri-tools
+    install_apps "cri-tools=${crictlVersion}-00"
+  fi
+  
+  if [ ${kubernetesVersion} = 'latest' ]; then
+    local apps="kubectl kubelet kubeadm"
+  elif [ ${SYSTEM_RELEASE} = 'centos' ]; then
+    # CentOS 查看更多版本：yum list kubeadm --showduplicates | sort -r
+    local apps="kubectl-${kubernetesVersion} kubelet-${kubernetesVersion} kubeadm-${kubernetesVersion}"
+  elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    # Debian 查看更多版本：apt-cache madison kubeadm
+    local apps="kubectl=${kubernetesVersion}-00 kubelet=${kubernetesVersion}-00 kubeadm=${kubernetesVersion}-00"
+  fi
+  install_apps "${apps}"
+}
+
+
+# 设置 k8s
+kubernetes_kubeadm_config() {
+  cd ${script_dir}/config
+  kubeadm config print init-defaults | yq -M 'select(document_index == 0)' > initConfiguration.yaml
+  kubeadm config print init-defaults | yq -M 'select(document_index == 1)' > clusterConfiguration.yaml
+  cat > otherConfiguration.yaml << EOF
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+mode: ipvs
+ipvs:
+  scheduler: "wrr"
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+cgroupDriver: systemd
+containerLogMaxSize: "30Mi"
+containerLogMaxFiles: 5
 EOF
-    result_msg "添加 k8s repo"
-    ${sys_pkg} makecache > /dev/null
-    result_msg "运行 ${sys_pkg} makecache"
+  tmp_var=${HOST_IP} yq -i '.localAPIEndpoint.advertiseAddress = strenv(tmp_var)' initConfiguration.yaml
+  tmp_var=${criSocket} yq -i '.nodeRegistration.criSocket = strenv(tmp_var)' initConfiguration.yaml
+  tmp_var=${HOST_NAME} yq -i '.nodeRegistration.name = strenv(tmp_var)' initConfiguration.yaml
+  if [ ${controlPlaneEndpoint} ]; then
+    tmp_var=${controlPlaneEndpoint} yq -i '.controlPlaneEndpoint = strenv(tmp_var)' clusterConfiguration.yaml
   fi
+  if [ ${imageRepository} ]; then
+    tmp_var=${imageRepository} yq -i '.imageRepository = strenv(tmp_var)' clusterConfiguration.yaml
+  fi
+  tmp_var=${serviceSubnet} yq -i '.networking.serviceSubnet = strenv(tmp_var)' clusterConfiguration.yaml
+  tmp_var=${podSubnet} yq -i '.networking.podSubnet = strenv(tmp_var)' clusterConfiguration.yaml
+  yq -M initConfiguration.yaml clusterConfiguration.yaml otherConfiguration.yaml > kubeadm-config.yaml
 }
 
 
-# 添加 k8s repo（debian）
-k8s_repo_debian() {
-  if [ ! -f /etc/apt/sources.list.d/kubernetes.list ];then
-    rm -f /usr/share/keyrings/kubernetes-archive-keyring.gpg
-    curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg
-    result_msg "添加 k8s pgp"
-    echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://mirrors.tuna.tsinghua.edu.cn/kubernetes/apt/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
-    result_msg "添加 k8s repo"
-    ${sys_pkg} update > /dev/null
-    result_msg "更新 apt"
-  fi
-}
-
-
-k8s_centos() {
-  local apps="kubectl kubelet kubeadm"
-
-  k8s_repo_centos
-
-  if [ ${K8S_VERSION} ]; then
-    apps="kubectl-${K8S_VERSION} kubelet-${K8S_VERSION} kubeadm-${K8S_VERSION}"
-  fi
-  
-  install_apps "${apps}"
-  
-  systemctl enable --now kubelet &> /dev/null
-  result_msg '启动 kubelet'
-}
-
-
-k8s_debian() {
-  local apps="kubectl kubelet kubeadm"
-
-  k8s_repo_debian
-
-  if [ ${K8S_VERSION} ]; then
-    apps="kubectl=${K8S_VERSION}-00 kubelet=${K8S_VERSION}-00 kubeadm=${K8S_VERSION}-00"
-  fi
-
-  install_apps "${apps}"
-
-  systemctl restart kubelet &> /dev/null
-  result_msg '重启 kubelet'
-}
-
-
-k8s_config() {
-  if ${IS_MASTER}; then
-    K8S_VERSION_V=$(kubeadm version -o short)
-    export HOST_IP HOST_NAME CLUSTER_VIP CLUSTER_PORT K8S_VERSION_V POD_NETWORK SVC_NETWORK IMAGE_REPOSITORY
-    envsubst < ${script_dir}/templates/kubeadm-config.yaml > ${script_dir}/kubeadm-config.yaml
-    result_msg "生成 kubeadm-config.yaml"
-  fi
-}
-
-
-crictl_config() {
+# 设置 crictl
+kubernetes_crictl_config() {
   cat > /etc/crictl.yaml << EOF
-runtime-endpoint: unix:///run/containerd/containerd.sock
-image-endpoint: unix:///run/containerd/containerd.sock
+runtime-endpoint: ${criSocket}
+image-endpoint: ${criSocket}
 timeout: 10
 debug: false
 EOF
@@ -87,30 +71,24 @@ EOF
 }
 
 
-k8s_patch() {
-  # 使用 containerd，需要配置 crictl
-  if [ ${K8S_CRI} = 'containerd' ];then
-    crictl_config
-  fi
-
-  # k8s 1.22 以上版本需要调整 kubeadm-config 配置
-  if ${IS_MASTER}; then
-    local tmp=$(kubeadm version -o short)
-    local ver="${tmp##*v}"
-    if [ $(echo "${ver%.*} >= 1.22" | bc) -eq 1 ]; then
-      sed -e '/type: CoreDNS/d' \
-        -e '/dns:/s/dns:/dns: {}/' \
-        -e 's#kubeadm\.k8s\.io/v1beta2#kubeadm\.k8s\.io/v1beta3#' \
-        -e '/criSocket/a \  imagePullPolicy: IfNotPresent' \
-        -i ${script_dir}/kubeadm-config.yaml
-      result_msg "修改 kubeadm-config v>=1.22"
-    fi
+# 启动 kubelet
+kubernetes_start_kubelet() {
+  if [ ${SYSTEM_RELEASE} = 'centos' ]; then
+    systemctl enable kubelet &> /dev/null \
+      && systemctl restart kubelet
+    result_msg '启动 kubelet'
+  elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    systemctl restart kubelet &> /dev/null
+    result_msg '重启 kubelet'
   fi
 }
 
 
-install_k8s() {
-  k8s_${sys_release}
-  k8s_config
-  k8s_patch
+kubernetes_install() {
+  kubernetes_install_apps
+  kubernetes_crictl_config
+  kubernetes_start_kubelet
+  if echo "${HOST_ROLE}" | grep -Eqi 'master'; then
+    kubernetes_kubeadm_config
+  fi
 }

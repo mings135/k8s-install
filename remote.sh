@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# Author: MingQ
 if ! ps -ocmd $$ | grep -q "^bash"; then
   echo "请使用 bash $0 运行脚本!"
   exit 1
@@ -9,188 +10,16 @@ set -e
 script_dir=$(dirname $(readlink -f $0))
 
 source ${script_dir}/modules/result.sh
-source ${script_dir}/config/kube.conf
-source ${script_dir}/modules/check.sh
+source ${script_dir}/modules/variables.sh
 
 
-# 分发文件到所有节点
-remote_distribute() {
-  for i in ${all_nodes}
-  do
-    if ! ssh root@${i} test -f ${INSTALL_SCRIPT}/config/record.txt; then
-      # 删除原目录，然后分发文件
-      ssh root@${i} rm -rf ${INSTALL_SCRIPT}
-      scp -r ${script_dir} root@${i}:${INSTALL_SCRIPT}
-      # 删除不必要的文件
-      ssh root@${i} bash ${INSTALL_SCRIPT}/local.sh needless
-      # 创建记录
-      ssh root@${i} bash ${INSTALL_SCRIPT}/local.sh record
-    fi
-  done
-}
-
-
-# 更新所有节点上 config/nodes.conf 和 /etc/hosts
-remote_hosts() {
-  for i in ${all_nodes}
-  do
-    scp ${script_dir}/config/nodes.conf root@${i}:${INSTALL_SCRIPT}/config
-    ssh root@${i} bash ${INSTALL_SCRIPT}/local.sh hosts
-  done
-}
-
-
-# 初始化、优化所有节点
-remote_init() {
-  python3 ${script_dir}/script/concurrent.py "bash ${INSTALL_SCRIPT}/local.sh init" ${all_nodes}
-}
-
-
-# 所有节点安装 cri
-remote_cri() {
-  python3 ${script_dir}/script/concurrent.py "bash ${INSTALL_SCRIPT}/local.sh cri" ${all_nodes}
-}
-
-
-# 所有节点安装 kubeadm 等
-remote_k8s() {
-  python3 ${script_dir}/script/concurrent.py "bash ${INSTALL_SCRIPT}/local.sh k8s" ${all_nodes}
-}
-
-
-# 所有节点依次执行 hosts、init、cri、k8s
-remote_all() {
-  python3 ${script_dir}/script/concurrent.py "bash ${INSTALL_SCRIPT}/local.sh all" ${all_nodes}
-}
-
-
-# 查看所需镜像列表
-remote_imglist() {
-  local random_master=$(echo -e "${master_nodes}" | grep -v '^ *$' | sort --random-sort | head -n 1)
-  ssh root@${random_master} bash ${INSTALL_SCRIPT}/local.sh imglist
-}
-
-
-# pull 所需的 k8s 镜像
-remote_imgpull() {
-  python3 ${script_dir}/script/concurrent.py "bash ${INSTALL_SCRIPT}/local.sh imgpull" ${all_nodes}
-}
-
-
-# 初始化集群
-remote_initcluster() {
-  ssh root@${node_m1} bash ${INSTALL_SCRIPT}/local.sh initcluster
-}
-
-
-# 获取加入集群的命令，并写入 config/join.conf
-remote_joincmd() {
-  ssh root@${node_m1} bash ${INSTALL_SCRIPT}/local.sh joincmd
-  sleep 1
-  scp -r root@${node_m1}:${INSTALL_SCRIPT}/config/join.conf ${script_dir}/config
-  sleep 1
-  for i in ${all_nodes}
-  do
-    scp -r ${script_dir}/config/join.conf root@${i}:${INSTALL_SCRIPT}/config
-  done
-}
-
-
-remote_joincluster() {
-  for i in ${all_nodes}
-  do
-    ssh root@${i} bash ${INSTALL_SCRIPT}/local.sh joincluster
-  done
-}
-
-
-# 本地创建 3 张 CA 证书，分发到各个节点
-remote_ca() {
-  bash ${script_dir}/local.sh ca
-  for i in ${all_nodes}
-  do
-    ssh root@${i} rm -rf ${INSTALL_SCRIPT}/pki
-    scp -r ${script_dir}/pki root@${i}:${INSTALL_SCRIPT}/pki
-  done
-}
-
-
-# 所有 master 节点签发 k8s 证书
-remote_certs() {
-  for i in ${all_nodes}
-  do
-    ssh root@${i} bash ${INSTALL_SCRIPT}/local.sh certs
-  done
-}
-
-
-# 所有节点签发 kubelet 证书
-remote_kubelet() {
-  for i in ${all_nodes}
-  do
-    ssh root@${i} bash ${INSTALL_SCRIPT}/local.sh kubelet
-  done
-}
-
-
-# 删除非 master 节点上的 pki 目录
-remote_delpki() {
-  for i in ${all_nodes}
-  do
-    ssh root@${i} bash ${INSTALL_SCRIPT}/local.sh delpki
-  done
-}
-
-
-# 删除记录 record.txt
-remote_delrecord() {
-  for i in ${all_nodes}
-  do
-    ssh root@${i} bash ${INSTALL_SCRIPT}/local.sh delrecord
-  done
-}
-
-
-# 获取所有节点信息 all_nodes node_m1 master_nodes
-get_nodes_info() {
-  local node_ip node_role
-  all_nodes=''
-  master_nodes=''
-  node_m1=''
-
-  while read line
-  do
-    if echo "${line}" | grep -Eqi '^ *#|^ *$'; then
-      continue
-    fi
-    check_node_line "${line}"
-
-    node_ip=$(echo "${line}" | awk -F '=' '{print $2}')
-    all_nodes="${all_nodes} ${node_ip}"
-
-    node_role=$(echo "${line}" | awk -F '=' '{print $3}')
-    if echo "${node_role}" | grep -Eqi '^m'; then
-      master_nodes="${master_nodes}\n${node_ip}"
-      if [ "${node_role}" = 'm1' ]; then
-        node_m1="${node_ip}"
-      fi
-    fi
-  done < ${script_dir}/config/nodes.conf
-
-  tmp="${RES_LEVEL}" && RES_LEVEL=1
-  test ${node_m1}
-  result_msg "检查 m1 是否存在"
-  RES_LEVEL="${tmp}"
-}
-
-
-# 免密登录各个节点
-password_free_login() {
+# 免密登录节点
+remote_free_login() {
   # 密码为空时，继续手动输入
-  while [ ! ${NODE_PASSWORD} ]
+  while [ ! ${nodePassword} ]
   do
-    blue_font "请输入 k8s 所有节点的统一密码（root）:"
-    read -s NODE_PASSWORD
+    result_blue_font "请输入所有节点的统一密码 (root):"
+    read -s nodePassword
   done
 
   # 创建 ssh 密钥
@@ -199,98 +28,262 @@ password_free_login() {
   fi
 
   # copy public key 到各个节点
-  for i in ${all_nodes}
+  for i in ${NODES_ALL}
   do
-    sshpass -p "${NODE_PASSWORD}" ssh-copy-id -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa.pub root@${i}
+    sshpass -p "${nodePassword}" ssh-copy-id -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa.pub root@${i}
   done
 }
 
 
-remote_upscript() {
-  local rsync_parm rsync_exclude rsync_source rsync_destination
-  rsync_parm='-avc --delete'
-  rsync_exclude='--exclude=/config --exclude=/.git --exclude=/pki --exclude=/kubeadm-init.log --exclude=/kubeadm-config.yaml --exclude=/remote.sh'
-  rsync_source="${script_dir}/"
-
-  for i in ${all_nodes}
+# 前置操作, 安装 rsync
+remote_front_operator() {
+  for i in ${NODES_ALL}
   do
-    blue_font "开始同步: ${i}"
-    rsync_destination="root@${i}:${INSTALL_SCRIPT}/"
+    scp -r ${script_dir}/front.sh root@${i}:/tmp/front.sh
+  done
+  python3 ${script_dir}/concurrent.py "bash /tmp/front.sh" ${NODES_ALL}
+}
+
+
+# 安装和配置所需的基础
+remote_install_basic() {
+  remote_rsync_script
+  python3 ${script_dir}/concurrent.py "bash ${remoteScriptDir}/local.sh install" ${NODES_ALL}
+}
+
+
+# 签发 CA 证书(创建 pki 目录)
+remote_issue_ca() {
+  source ${script_dir}/modules/certs.sh
+
+  if [ -d ${script_dir}/pki ]; then
+    result_blue_font "已创建过 CA, 如需更换 CA, 请先手动删除 ${script_dir}/pki 目录!!!"
+  else
+    mkdir -p ${script_dir}/pki
+    certs_ca_remote
+  fi
+}
+
+
+# 签发证书
+remote_issue_certs() {
+  local rsync_exclude='--include=/pki/ --include=/pki/** --exclude=*'
+  remote_rsync_update "同步 CA 证书" "${NODES_MASTER1_MASTER}" "${rsync_exclude}"
+  sleep 1
+  for i in ${NODES_MASTER1_MASTER}
+  do
+    ssh root@${i} bash ${remoteScriptDir}/local.sh certs
+  done
+}
+
+
+# 查看所需 images
+remote_images_list() {
+  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh imglist
+}
+
+
+# 拉取所需 images
+remote_images_pull() {
+  python3 ${script_dir}/concurrent.py "bash ${remoteScriptDir}/local.sh imgpull" ${NODES_MASTER1_MASTER}
+}
+
+
+# 安装集群
+remote_install_cluster() {
+  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh initcluster
+  sleep 1
+  remote_rsync_join
+  sleep 1
+  for i in ${NODES_NOT_MASTER1}
+  do
+    ssh root@${i} bash ${remoteScriptDir}/local.sh joincluster
+  done
+}
+
+
+# 签发 kubelet 证书
+remote_kubelet_certs() {
+  remote_rsync_kubelet_ca
+  for i in ${NODES_ALL}
+  do
+    ssh root@${i} bash ${remoteScriptDir}/local.sh kubelet
+    ssh root@${i} rm -f ${KUBELET_PKI}/ca.crt
+    ssh root@${i} rm -f ${KUBELET_PKI}/ca.key
+  done
+}
+
+
+# 部署 fannel
+remote_deploy_fannel() {
+  sleep 3
+  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh fannel
+}
+
+
+# 删除整个集群
+remote_clean_cluster() {
+  for i in ${NODES_ALL}
+  do
+    result_blue_font "清理节点: ${i}"
+    ssh root@${i} kubeadm reset -f
+    ssh root@${i} ipvsadm --clear
+    ssh root@${i} rm -rf ${remoteScriptDir} /etc/cni/net.d /root/.kube/config
+  done
+}
+###
+
+# 同步脚本文件和配置文件
+remote_rsync_script() {
+  local rsync_exclude='--include=/modules/ --include=/modules/* --include=/config/ --include=/config/kube.yaml --include=/local.sh --exclude=*'
+  remote_rsync_update "同步脚本" "${NODES_ALL}" "${rsync_exclude}"
+}
+
+
+# 同步 master1 上的 cluster join 信息到非 master1 节点
+remote_rsync_join() {
+  local rsync_exclude='--include=/config/ --include=/config/join.sh --exclude=*'
+  remote_rsync_passive_update "被同步 join.sh" "${MASTER1_IP}" "${rsync_exclude}"
+  remote_rsync_update "同步 join.sh" "${NODES_NOT_MASTER1}" "${rsync_exclude}"
+}
+
+
+# rsync 同步脚本内容到多个节点, 参数 $1=message $2=nodes $3=include and exclude parm
+remote_rsync_update() {
+  local rsync_destination
+  local rsync_parm='-avc --delete'
+  local rsync_exclude="$3"
+  local rsync_source="${script_dir}/"
+
+  for i in $2
+  do
+    result_blue_font "$1: ${i}"
+    rsync_destination="root@${i}:${remoteScriptDir}/"
     rsync ${rsync_parm} ${rsync_exclude} ${rsync_source} ${rsync_destination}
-  done 
+  done
+}
+
+
+# rsync 被某个节点同步, 参数 $1=message $2=node $3=include and exclude parm
+remote_rsync_passive_update() {
+  local rsync_destination
+  local rsync_parm='-avc'
+  local rsync_exclude="$3"
+  local rsync_source="${script_dir}/"
+  local i="$2"
+
+  result_blue_font "$1: ${i}"
+  rsync_destination="root@${i}:${remoteScriptDir}/"
+  rsync ${rsync_parm} ${rsync_exclude} ${rsync_destination} ${rsync_source}
+}
+
+
+# rsync 同步 kubelet 所需 ca 到所有节点
+remote_rsync_kubelet_ca() {
+  local rsync_destination
+  local rsync_parm='-avc'
+  local rsync_exclude="--include=/ca.crt --include=/ca.key --exclude=*"
+  local rsync_source="${script_dir}/pki/"
+
+  for i in ${NODES_ALL}
+  do
+    result_blue_font "同步 kubelet CA: ${i}"
+    rsync_destination="root@${i}:${KUBELET_PKI}/"
+    rsync ${rsync_parm} ${rsync_exclude} ${rsync_source} ${rsync_destination}
+  done
 }
 
 
 main() {
   set +e
-  check_script_variables
-  get_nodes_info
+  variables_settings_remote
   set -e
 
   case $1 in
-    "freelogin") password_free_login;;
-    "distribute") remote_distribute;;
-    "hosts") remote_hosts;;
-    "init") remote_init;;
-    "cri") remote_cri;;
-    "k8s") remote_k8s;;
-    "all") remote_all;;
-    "imglist") remote_imglist;;
-    "imgpull") remote_imgpull;;
-    "initcluster") remote_initcluster;;
-    "joincmd") remote_joincmd;;
-    "joincluster") remote_joincluster;;
-    "ca") remote_ca;;
-    "certs") remote_certs;;
-    "kubelet") remote_kubelet;;
-    "delpki") remote_delpki;;
-    "delrecord") remote_delrecord;;
-    "upscript") remote_upscript;;
+    "freelogin") remote_free_login;;
+    "front") remote_front_operator;;  # scp front.sh --> install rsync
+    "install") remote_install_basic;;  # update --> hosts -> basic -> cri --> k8s
+    "imglist") remote_images_list;;
+    "imgpull") remote_images_pull;;
+    "cluster") remote_install_cluster;; # init first node --> create or update join.sh --> update join.sh --> join cluster
+    "ca") remote_issue_ca;;
+    "certs") remote_issue_certs;;
+    "kubelet") remote_kubelet_certs;;
+    "clean") remote_clean_cluster;;
     "auto")
-    remote_distribute
-    remote_hosts
-    remote_init
-    remote_cri
-    remote_k8s
-    remote_ca
-    remote_certs
-    remote_imgpull
-    remote_initcluster
-    remote_joincmd
-    remote_joincluster
-    remote_kubelet
-    remote_delpki
+    remote_free_login
+    remote_front_operator
+    remote_install_basic
+    if [ ${remote_CERTS_SWITCH} -eq 1 ]; then
+      remote_issue_ca
+      remote_issue_certs
+    fi
+    remote_images_pull
+    remote_install_cluster
+    if [ ${remote_CERTS_SWITCH} -eq 1 ]; then
+      remote_kubelet_certs
+    fi
+    if [ ${remote_FANNEL_SWITCH} -eq 1 ]; then
+      remote_deploy_fannel
+    fi
+    result_blue_font "集群自动安装已完成!"
     ;;
     *)
     echo ''
-    printf "Usage: bash $0 [ ? ] \n"
-    blue_font "节点："
-    printf "%-16s %-s\n" 'freelogin' '配置本机免密登录到所有 k8s 节点'
-    printf "%-16s %-s\n" 'distribute' '分发项目文件到所有节点'
-    printf "%-16s %-s\n" 'hosts' '所有节点：更新 config/nodes.conf；然后更新 /etc/hosts'
-    printf "%-16s %-s\n" 'init' '所有节点：初始化、优化系统'
-    printf "%-16s %-s\n" 'cri' '所有节点：安装容器运行时'
-    printf "%-16s %-s\n" 'k8s' '所有节点：安装 kubeadm kubelet kubectl'
-    printf "%-16s %-s\n" 'all' '所有节点：顺序执行：hosts -> init -> cri --> k8s'
-    blue_font "集群："
-    printf "%-16s %-s\n" 'imglist' '查看 kubeadm init images'
-    printf "%-16s %-s\n" 'imgpull' '所有 master 节点：拉取 kubeadm init images'
-    printf "%-16s %-s\n" 'initcluster' 'master 1 上 kubeadm init cluster'
-    printf "%-16s %-s\n" 'joincmd' '获取加入集群的命令，写入 config/join.conf，分发到各个节点'
-    printf "%-16s %-s\n" 'joincluster' '所有节点：kubeadm join cluster'
-    blue_font "证书："
-    printf "%-16s %-s\n" 'ca' '本地创建 ca 证书（pki 目录，不会覆盖），并分发到各个节点'
-    printf "%-16s %-s\n" 'certs' "所有 master 节点：签发 k8s 证书，此操作会清空 ${K8S_PKI}!!!"
-    printf "%-16s %-s\n" 'kubelet' '所有节点：签发 kubelet 证书，此操作会覆盖原有证书!!!'
-    blue_font "其他："
-    printf "%-16s %-s\n" 'auto' '全自动安装，并签发自定义证书'
-    printf "%-16s %-s\n" 'upscript' '更新 k8s-install 脚本版本到各个节点'
-    printf "%-16s %-s\n" 'delpki' '所有非 master：删除不需要的目录 pki，集群安装完成后可以删除'
-    printf "%-16s %-s\n" 'delrecord' '所有节点：删除 config/record.txt；被记录的步骤不能重复执行'
+    printf "Usage: bash $0 [ option ] [ ? ] \n"
+    result_blue_font "节点:"
+    printf "%-16s %-s\n" 'freelogin' '配置本机免密登录到所有节点'
+    printf "%-16s %-s\n" 'front' '分发 front.sh 到 /tmp 目录下, 并执行安装 rsync 前置工具'
+    printf "%-16s %-s\n" 'install' '更新 script、kube.yaml, 修改 hosts, 优化系统, 安装 cri 和 kubeadm 等'
+    result_blue_font "集群:"
+    printf "%-16s %-s\n" 'imglist' '查看 images 信息'
+    printf "%-16s %-s\n" 'imgpull' '并发拉取 images'
+    printf "%-16s %-s\n" 'cluster' '初始化集群(master1), 然后生成并分发 join.sh, 其余节点依次加入集群'
+    result_blue_font "证书:"
+    printf "%-16s %-s\n" 'ca' '创建 CA 证书(pki 目录，不会覆盖)'
+    printf "%-16s %-s\n" 'certs' "分发 CA, 并签发 k8s 证书(master node), 此操作会清空 ${KUBEADM_PKI}!!!"
+    printf "%-16s %-s\n" 'kubelet' '分发 CA, 签发 kubelet 证书，此操作会覆盖原有证书!!!'
+    result_blue_font "其他："
+    printf "%-16s %-s\n" 'auto' '全自动安装集群'
+    printf "%-16s %-s\n" 'clean' '删除整个集群'
+    result_blue_font "选项:"
+    printf "%-16s %-s\n" '-c' '全自动安装集群时, 签发自定义 k8s 证书, 默认 50 年'
+    printf "%-16s %-s\n" '-f' '全自动安装集群后, 自动部署 fannel 到集群中'
     exit 1
     ;;
   esac
 }
 
 
+# 默认变量
+remote_CERTS_SWITCH=0
+remote_FANNEL_SWITCH=0
+
+
+# 开头 ':' 表示不打印错误信息, 字符后面 ':' 表示需要参数
+while getopts ":a:cf" opt; do
+  case $opt in
+    a)
+      # OPTIND 指的下一个选项的 index
+      result_blue_font "test: -a arg:$OPTARG index:$OPTIND"
+      ;;
+    c)
+      remote_CERTS_SWITCH=1
+      ;;
+    f)
+      remote_FANNEL_SWITCH=1
+      ;;
+    :)
+      result_blue_font "Option -$OPTARG requires an argument."
+      exit 1
+      ;;
+    ?)
+      result_blue_font "Invalid option: -$OPTARG"
+      exit 1
+      ;;
+  esac
+done
+
+# shift 后, $1 = opts 后面的第一个参数
+shift $(($OPTIND - 1))
 main $1

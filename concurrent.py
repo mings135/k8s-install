@@ -2,7 +2,8 @@
 # -*- coding:utf-8 -*-
 
 '''
-同时在多个远程主机上执行命令，并实时输出 stdout（必须先做免密 ssh）
+Author: MingQ
+用途: 同时在多个远程主机上执行命令, 并实时输出stdout(必须先做免密)
 '''
 
 import threading, sys

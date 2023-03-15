@@ -1,0 +1,269 @@
+# 设置所有变量
+
+
+# 提供安装 app 函数
+install_apps() {
+  # 解决 debian 系统 debconf: unable to initialize frontend: Dialog 问题
+  if [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    export DEBIAN_FRONTEND=noninteractive
+  fi
+  # 安装 app
+  for i in $@
+  do
+    ${SYSTEM_PACKAGE} install -y ${i} &> /dev/null
+    result_msg "安装 $i"
+  done
+}
+
+
+# 检查是否存在配置文件
+variables_check_config() {
+  RES_LEVEL=1 && test -e ${script_dir}/config/kube.yaml
+  result_msg "检查存在 kube.yaml" && RES_LEVEL=0
+}
+
+
+# 设置系统信息变量
+variables_set_system() {
+  if [ -f /etc/redhat-release ]; then
+    SYSTEM_RELEASE="centos"
+    SYSTEM_PACKAGE="dnf"
+    # 判断版本
+    if cat /etc/redhat-release | grep -Eqi 'release 7'; then
+      SYSTEM_PACKAGE="yum"
+      SYSTEM_VERSION=7
+    elif cat /etc/redhat-release | grep -Eqi 'release 8'; then
+      SYSTEM_VERSION=8
+    elif cat /etc/redhat-release | grep -Eqi 'release 9'; then
+      SYSTEM_VERSION=9
+    fi
+  elif cat /etc/issue | grep -Eqi "debian"; then
+    SYSTEM_RELEASE="debian"
+    SYSTEM_PACKAGE="apt-get"
+    # 判断版本
+    if cat /etc/issue | grep -Eqi 'linux 10'; then
+      SYSTEM_VERSION=10
+    elif cat /etc/issue | grep -Eqi 'linux 11'; then
+      SYSTEM_VERSION=11
+    elif cat /etc/issue | grep -Eqi 'linux 12'; then
+      SYSTEM_VERSION=12
+    fi
+  fi
+  # 检查变量，异常显示
+  RES_LEVEL=1 && test ${SYSTEM_RELEASE} && test ${SYSTEM_PACKAGE} && test ${SYSTEM_VERSION}
+  result_msg "设置 system variables" && RES_LEVEL=0
+}
+
+
+# 安装依赖工具
+variables_install_dependencies() {
+  variables_set_system
+  if ! which bc &> /dev/null; then
+    install_apps "bc"
+  fi
+  if ! which curl &> /dev/null; then
+    install_apps "curl"
+  fi
+  if ! which yq &> /dev/null; then
+    curl -fsSL -o /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+      && chmod +x /usr/bin/yq
+    result_msg "安装 yq"
+  fi
+}
+
+
+# 设置 master1 节点变量
+variables_set_master1() {
+  local kube_conf=${script_dir}/config/kube.yaml
+  # 获取 master1 变量
+  MASTER1_IP="$(yq -M '.nodes.master1.address' ${kube_conf} | grep -v '^null$')"
+  MASTER1_NAME="$(yq -M '.nodes.master1.domain' ${kube_conf} | grep -v '^null$')"
+  # 检查变量，异常显示
+  RES_LEVEL=1 && test ${MASTER1_IP} && test ${MASTER1_NAME}
+  result_msg "设置 master1 variables" && RES_LEVEL=0
+}
+
+
+# 节点分类变量
+variables_nodes_class() {
+  local kube_conf=${script_dir}/config/kube.yaml
+  NODES_MASTER="$(yq -M '.nodes.master[].address' ${kube_conf} | tr '\n' ' ' | sed 's/ *$//')"
+  NODES_WORK="$(yq -M '.nodes.work[].address' ${kube_conf} | tr '\n' ' ' | sed 's/ *$//')"
+  NODES_ALL="${MASTER1_IP} ${NODES_MASTER} ${NODES_WORK}"
+  NODES_NOT_MASTER1="${NODES_MASTER} ${NODES_WORK}"
+  NODES_MASTER1_MASTER="${MASTER1_IP} ${NODES_MASTER}"
+}
+
+
+# 设置当前节点变量
+variables_set_host() {
+  local kube_conf=${script_dir}/config/kube.yaml
+  local host_ip=$(ip a | grep global | awk -F '/' '{print $1}' | awk 'NR==1{print $2}')
+  local index
+  # 检查变量，异常显示
+  RES_LEVEL=1 && echo "${host_ip}" | grep -Eqi '^([0-9]{1,3}\.){3}[0-9]{1,3}$'
+  result_msg "获取 host ip" && RES_LEVEL=0
+  # 根据 role 信息, 设置 host 变量
+  if [ ${host_ip} = ${MASTER1_IP} ]; then
+    HOST_IP=${MASTER1_IP}
+    HOST_NAME=${MASTER1_NAME}
+    HOST_ROLE='master1'
+  elif tmp_var=${host_ip} yq -M '.nodes.master[].address == strenv(tmp_var)' ${kube_conf} | grep -Eqi 'true'; then
+    index=$(tmp_var=${host_ip} yq -M '.nodes.master[].address | select(. == strenv(tmp_var)) | path | .[-2]' ${kube_conf})
+    HOST_IP=${host_ip}
+    HOST_NAME=$(tmp_var=${index} yq -M '.nodes.master[env(tmp_var)].domain' ${kube_conf})
+    HOST_ROLE='master'
+  elif tmp_var=${host_ip} yq -M '.nodes.work[].address == strenv(tmp_var)' ${kube_conf} | grep -Eqi 'true'; then
+    index=$(tmp_var=${host_ip} yq -M '.nodes.work[].address | select(. == strenv(tmp_var)) | path | .[-2]' ${kube_conf})
+    HOST_IP=${host_ip}
+    HOST_NAME=$(tmp_var=${index} yq -M '.nodes.work[env(tmp_var)].domain' ${kube_conf})
+    HOST_ROLE='work'
+  fi
+  # 检查变量，异常显示
+  RES_LEVEL=1 && test ${HOST_IP} && test ${HOST_NAME} && test ${HOST_ROLE}
+  result_msg "设置 host variables" && RES_LEVEL=0
+}
+
+
+# 读取配置文件变量
+variables_read_config() {
+  local kube_conf=${script_dir}/config/kube.yaml
+  remoteScriptDir="$(yq -M '.remoteScriptDir' ${kube_conf} | grep -v '^null$')"
+  kubernetesVersion="$(yq -M '.cluster.kubernetesVersion' ${kube_conf} | grep -v '^null$')"
+  crictlVersion="$(yq -M '.cluster.crictlVersion' ${kube_conf} | grep -v '^null$')"
+  controlPlaneAddress="$(yq -M '.cluster.controlPlaneAddress' ${kube_conf} | grep -v '^null$')"
+  controlPlanePort="$(yq -M '.cluster.controlPlanePort' ${kube_conf} | grep -v '^null$')"
+  imageRepository="$(yq -M '.cluster.imageRepository' ${kube_conf} | grep -v '^null$')"
+  criName="$(yq -M '.container.criName' ${kube_conf} | grep -v '^null$')"
+  criVersion="$(yq -M '.container.criVersion' ${kube_conf} | grep -v '^null$')"
+  privateRepository="$(yq -M '.container.privateRepository' ${kube_conf} | grep -v '^null$')"
+  certificatesVaild="$(yq -M '.cluster.certificatesVaild' ${kube_conf} | grep -v '^null$')"
+  certificatesSize="$(yq -M '.cluster.certificatesSize' ${kube_conf} | grep -v '^null$')"
+  serviceSubnet="$(yq -M '.cluster.serviceSubnet' ${kube_conf} | grep -v '^null$')"
+  apiServerClusterIP="$(yq -M '.cluster.apiServerClusterIP' ${kube_conf} | grep -v '^null$')"
+  podSubnet="$(yq -M '.cluster.podSubnet' ${kube_conf} | grep -v '^null$')"
+  nodePassword="$(yq -M '.nodes.nodePassword' ${kube_conf} | grep -v '^null$')"
+}
+
+
+# 设置默认值(未配置的)
+variables_default_config() {
+  # 远程集群主机存放 k8s 安装脚本的目录 (目录会在复制之前清空，请注意!!!)
+  remoteScriptDir=${remoteScriptDir:-'/opt/k8sRemoteScript'}
+  # k8s version(支持 1.20+)
+  kubernetesVersion=${kubernetesVersion:-'latest'}  # 1.25.5
+  crictlVersion=${crictlVersion:-'latest'} # 1.26.0 开始 containerd 必须大于 1.26
+  # k8s controlPlaneEndpoint 地址和端口, 没有该参数拒绝添加 master 节点
+  controlPlaneAddress=${controlPlaneAddress:-"${MASTER1_IP}"}
+  controlPlanePort=${controlPlanePort:-'6443'}
+  # k8s 各个组件的镜像仓库地址: pause(Include containerd)、etcd、api-server 等
+  imageRepository=${imageRepository:-''}  # 国内使用 registry.cn-hangzhou.aliyuncs.com/google_containers
+  # 容器运行时: containerd(latest 表示最新版本)
+  criName=${criName:-'containerd'}
+  criVersion=${criVersion:-'latest'} # 1.5.11
+  # 容器运行时: 配置 harbor 私库地址
+  privateRepository=${privateRepository:-''}  # 私有 harbor 仓库地址 http://192.168.13.13
+  # 证书有效期和密钥大小(50年)
+  certificatesVaild=${certificatesVaild:-'18250'}
+  certificatesSize=${certificatesSize:-'2048'}
+  # Services 子网和 API Server 集群内部地址 (即 Service 网络的第一个 IP)
+  serviceSubnet=${serviceSubnet:-'10.96.0.0/16'}
+  apiServerClusterIP=${apiServerClusterIP:-'10.96.0.1'}
+  # Pod 网络, flannel 默认使用 10.244.0.0/16, 除非想修改 flannel 配置, 否则不要修改
+  podSubnet=${podSubnet:-'10.244.0.0/16'}
+  # 节点密码, 默认为空(也就是手动输入)
+  nodePassword=${nodePassword:-''}
+
+  # 设置常量
+  KUBEADM_PKI='/etc/kubernetes/pki'
+  KUBEADM_CONFIG='/etc/kubernetes'
+  KUBELET_PKI='/var/lib/kubelet/pki'
+  JOIN_TOKEN_INTERVAL=7200
+
+  # 自动生成变量
+  if [ ${controlPlaneAddress} ] && [ ${controlPlanePort} ]; then
+    controlPlaneEndpoint="${controlPlaneAddress}:${controlPlanePort}"
+  fi
+  if [ ${criName} = 'containerd' ]; then
+    criSocket='unix:///run/containerd/containerd.sock'
+  fi
+
+  # 检查变量
+  if [ ${kubernetesVersion} != 'latest' ]; then
+    RES_LEVEL=1 && test $(echo "${kubernetesVersion}" | awk -F '.' '{print NF}') -eq 3
+    result_msg "检查 kubernetesVersion 格式" && RES_LEVEL=0
+    RES_LEVEL=1 && test $(echo "${kubernetesVersion%.*} >= 1.20" | bc) -eq 1
+    result_msg "检查 kubernetesVersion >= 1.20" && RES_LEVEL=0
+  fi
+  RES_LEVEL=1 && test ${criSocket}
+  result_msg "检查 criSocket variable" && RES_LEVEL=0
+  if [ ${criName} = 'containerd' ] && [ ${criVersion} != 'latest' ]; then
+    RES_LEVEL=1 && test $(echo "${criVersion%.*} >= 1.5" | bc) -eq 1
+    result_msg "检查 criVersion >= 1.5" && RES_LEVEL=0
+  fi
+}
+
+
+# 查看所有变量
+variables_display_test() {
+  # system variables
+  echo "SYSTEM_RELEASE=${SYSTEM_RELEASE}"
+  echo "SYSTEM_PACKAGE=${SYSTEM_PACKAGE}"
+  echo "SYSTEM_VERSION=${SYSTEM_VERSION}"
+  # master1 variables
+  echo "MASTER1_IP=${MASTER1_IP}"
+  echo "MASTER1_NAME=${MASTER1_NAME}"
+  # host variables
+  echo "HOST_IP=${HOST_IP}"
+  echo "HOST_NAME=${HOST_NAME}"
+  echo "HOST_ROLE=${HOST_ROLE}"
+  # kubernetes variables
+  echo "remoteScriptDir=${remoteScriptDir}"
+  echo "kubernetesVersion=${kubernetesVersion}"
+  echo "crictlVersion=${crictlVersion}"
+  echo "controlPlaneAddress=${controlPlaneAddress}"
+  echo "controlPlanePort=${controlPlanePort}"
+  echo "imageRepository=${imageRepository}"
+  echo "criName=${criName}"
+  echo "criVersion=${criVersion}"
+  echo "privateRepository=${privateRepository}"
+  echo "certificatesVaild=${certificatesVaild}"
+  echo "certificatesSize=${certificatesSize}"
+  echo "serviceSubnet=${serviceSubnet}"
+  echo "apiServerClusterIP=${apiServerClusterIP}"
+  echo "podSubnet=${podSubnet}"
+  echo "nodePassword=${nodePassword}"
+  # auto make
+  echo "controlPlaneEndpoint=${controlPlaneEndpoint}"
+  echo "criSocket=${criSocket}"
+  # nodes class
+  echo "NODES_ALL=${NODES_ALL}"
+  echo "NODES_NOT_MASTER1=${NODES_NOT_MASTER1}"
+  echo "NODES_MASTER1_MASTER=${NODES_MASTER1_MASTER}"
+  echo "NODES_MASTER=${NODES_MASTER}"
+  echo "NODES_WORK=${NODES_WORK}"
+}
+
+
+# 设置所有变量
+variables_settings() {
+  variables_check_config
+  variables_set_system
+  variables_install_dependencies
+  variables_set_master1
+  variables_set_host
+  variables_read_config
+  variables_default_config
+}
+
+
+# 设置所有变量(remote.sh)
+variables_settings_remote() {
+  variables_check_config
+  variables_set_system
+  variables_install_dependencies
+  variables_set_master1
+  variables_nodes_class
+  variables_read_config
+  variables_default_config
+}

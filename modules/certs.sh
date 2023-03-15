@@ -1,29 +1,83 @@
-# 安装证书，提供以下函数：
-# etcd_crt
-# apiserver_crt
-# front-proxy_crt
-# admin_conf
-# controller-manager_conf
-# scheduler_conf 
-# kubelet_conf_crt
+# 安装证书，函数:
+# certs_ca_remote
+# certs_etcd
+# certs_apiserver
+# certs_front-proxy
+# certs_admin_conf
+# certs_controller-manager_conf
+# certs_scheduler_conf
+# certs_kubelet_pem
 
-# 所需变量：
-# CERT_SIZE=2048
-# VALID_DAYS=18250
-# K8S_PKI='/etc/kubernetes/pki'
-# K8S_CONFIG='/etc/kubernetes'
+# 所需变量:
+# script_dir=''
+# certificatesSize=2048
+# certificatesVaild=18250
+# KUBEADM_PKI='/etc/kubernetes/pki'
+# KUBEADM_CONFIG='/etc/kubernetes'
 # KUBELET_PKI='/var/lib/kubelet/pki'
 # HOST_NAME=''
 # HOST_IP=''
-# CLUSTER_VIP='192.168.10.31'
-# CLUSTER_PORT=6443
-# CLUSTER_IP='10.96.0.1'
+# apiServerClusterIP=''
+# controlPlaneAddress='192.168.10.31'
+# controlPlaneEndpoint='192.168.10.31:6443'
+
+
+# 签发所有 CA 和 sa 证书
+certs_ca_remote() {
+  cd ${script_dir}/pki
+  mkdir -p etcd
+  cat > ca.cnf << EOF
+[ root_ca ]
+basicConstraints        = critical, CA:TRUE
+subjectKeyIdentifier    = hash
+keyUsage                = critical, cRLSign, digitalSignature, keyCertSign
+EOF
+
+  # ca.crt(CN=kubernetes)
+  openssl genrsa -out "ca.key" ${certificatesSize}
+  openssl req -new -key "ca.key" \
+          -out "ca.csr" -sha256 \
+          -subj '/CN=kubernetes'
+
+  openssl x509 -req -days ${certificatesVaild} -in "ca.csr" \
+               -signkey "ca.key" -sha256 -out "ca.crt" \
+               -extfile "ca.cnf" -extensions \
+               root_ca
+
+  # front-proxy-ca.crt(CN=front-proxy-ca)
+  openssl genrsa -out "front-proxy-ca.key" ${certificatesSize}
+  openssl req -new -key "front-proxy-ca.key" \
+          -out "front-proxy-ca.csr" -sha256 \
+          -subj '/CN=front-proxy-ca'
+
+  openssl x509 -req -days ${certificatesVaild} -in "front-proxy-ca.csr" \
+               -signkey "front-proxy-ca.key" -sha256 -out "front-proxy-ca.crt" \
+               -extfile "ca.cnf" -extensions \
+               root_ca
+
+  # etcd/ca.crt(CN=etcd-ca)
+  openssl genrsa -out "etcd/ca.key" ${certificatesSize}
+  openssl req -new -key "etcd/ca.key" \
+          -out "etcd/ca.csr" -sha256 \
+          -subj '/CN=etcd-ca'
+
+  openssl x509 -req -days ${certificatesVaild} -in "etcd/ca.csr" \
+               -signkey "etcd/ca.key" -sha256 -out "etcd/ca.crt" \
+               -extfile "ca.cnf" -extensions \
+               root_ca
+
+  # sa.key sa.pub
+  openssl genrsa -out "sa.key" ${certificatesSize}
+  openssl rsa -in sa.key -pubout > sa.pub
+
+  rm -f ca.cnf {ca,front-proxy-ca}.csr etcd/ca.csr
+}
 
 
 # 创建 etcd/server.crt、etcd/peer.crt、etcd/healthcheck-client.crt、apiserver-etcd-client.crt 证书
-etcd_crt() {
+certs_etcd() {
   # 证书目录
-  cd ${K8S_PKI}
+  cd ${KUBEADM_PKI}
 
   cat > etcd.cnf << EOF
 [ peer ]
@@ -50,54 +104,54 @@ IP.3 = ${HOST_IP}
 EOF
 
   # etcd/server.crt(CN=${HOST_NAME})
-  openssl genrsa -out "etcd/server.key" ${CERT_SIZE}
+  openssl genrsa -out "etcd/server.key" ${certificatesSize}
   openssl req -new -key "etcd/server.key" \
           -out "etcd/server.csr" -sha256 \
           -subj "/CN=${HOST_NAME}"
 
-  openssl x509 -req -days ${VALID_DAYS} -in "etcd/server.csr" -sha256 \
+  openssl x509 -req -days ${certificatesVaild} -in "etcd/server.csr" -sha256 \
       -CA "etcd/ca.crt" -CAkey "etcd/ca.key" -CAcreateserial \
       -out "etcd/server.crt" -extfile "etcd.cnf" -extensions peer
 
   # etcd/peer.crt(CN=${HOST_NAME})
-  openssl genrsa -out "etcd/peer.key" ${CERT_SIZE}
+  openssl genrsa -out "etcd/peer.key" ${certificatesSize}
   openssl req -new -key "etcd/peer.key" \
           -out "etcd/peer.csr" -sha256 \
           -subj "/CN=${HOST_NAME}"
 
-  openssl x509 -req -days ${VALID_DAYS} -in "etcd/peer.csr" -sha256 \
+  openssl x509 -req -days ${certificatesVaild} -in "etcd/peer.csr" -sha256 \
       -CA "etcd/ca.crt" -CAkey "etcd/ca.key" -CAcreateserial \
       -out "etcd/peer.crt" -extfile "etcd.cnf" -extensions peer
 
   # etcd/healthcheck-client.crt(CN=kube-etcd-healthcheck-client)
-  openssl genrsa -out "etcd/healthcheck-client.key" ${CERT_SIZE}
+  openssl genrsa -out "etcd/healthcheck-client.key" ${certificatesSize}
   openssl req -new -key "etcd/healthcheck-client.key" \
           -out "etcd/healthcheck-client.csr" -sha256 \
           -subj "/O=system:masters/CN=kube-etcd-healthcheck-client"
 
-  openssl x509 -req -days ${VALID_DAYS} -in "etcd/healthcheck-client.csr" -sha256 \
+  openssl x509 -req -days ${certificatesVaild} -in "etcd/healthcheck-client.csr" -sha256 \
       -CA "etcd/ca.crt" -CAkey "etcd/ca.key" -CAcreateserial \
       -out "etcd/healthcheck-client.crt" -extfile "etcd.cnf" -extensions client
 
   # apiserver-etcd-client.crt(CN=kube-apiserver-etcd-client)
-  openssl genrsa -out "apiserver-etcd-client.key" ${CERT_SIZE}
+  openssl genrsa -out "apiserver-etcd-client.key" ${certificatesSize}
 
   openssl req -new -key "apiserver-etcd-client.key" \
           -out "apiserver-etcd-client.csr" -sha256 \
           -subj "/O=system:masters/CN=kube-apiserver-etcd-client"
 
-  openssl x509 -req -days ${VALID_DAYS} -in "apiserver-etcd-client.csr" -sha256 \
+  openssl x509 -req -days ${certificatesVaild} -in "apiserver-etcd-client.csr" -sha256 \
       -CA "etcd/ca.crt" -CAkey "etcd/ca.key" -CAcreateserial \
       -out "apiserver-etcd-client.crt" -extfile "etcd.cnf" -extensions client
 
-  rm -f etcd.cnf etcd/{server,peer,healthcheck-client}.csr apiserver-etcd-client.csr
+  rm -f etcd.cnf etcd/{server,peer,healthcheck-client}.csr apiserver-etcd-client.csr etcd/ca.srl
 }
 
 
 # 创建 apiserver.crt 和 apiserver-kubelet-client.crt 证书
-apiserver_crt() {
+certs_apiserver() {
   # pki 目录
-  cd ${K8S_PKI}
+  cd ${KUBEADM_PKI}
 
   cat > apiserver.cnf << EOF
 [server]
@@ -121,38 +175,40 @@ DNS.2 = kubernetes.default
 DNS.3 = kubernetes.default.svc
 DNS.4 = kubernetes.default.svc.cluster.local
 DNS.5 = ${HOST_NAME}
-IP.1 = ${CLUSTER_IP}
+IP.1 = ${apiServerClusterIP}
 IP.2 = ${HOST_IP}
-IP.3 = ${CLUSTER_VIP}
 EOF
+  if [ "${controlPlaneAddress}" != "${HOST_IP}" ]; then
+    echo "IP.3 = ${controlPlaneAddress}" >> apiserver.cnf
+  fi
 
   # apiserver.crt(CN=kube-apiserver)
-  openssl genrsa -out "apiserver.key" ${CERT_SIZE}
+  openssl genrsa -out "apiserver.key" ${certificatesSize}
   openssl req -new -key "apiserver.key" \
           -out "apiserver.csr" -sha256 \
           -subj "/CN=kube-apiserver"
 
-  openssl x509 -req -days ${VALID_DAYS} -in "apiserver.csr" -sha256 \
+  openssl x509 -req -days ${certificatesVaild} -in "apiserver.csr" -sha256 \
       -CA "ca.crt" -CAkey "ca.key" -CAcreateserial \
       -out "apiserver.crt" -extfile "apiserver.cnf" -extensions server
 
   # apiserver-kubelet-client.crt(CN=kube-apiserver-kubelet-client)
-  openssl genrsa -out "apiserver-kubelet-client.key" ${CERT_SIZE}
+  openssl genrsa -out "apiserver-kubelet-client.key" ${certificatesSize}
   openssl req -new -key "apiserver-kubelet-client.key" \
           -out "apiserver-kubelet-client.csr" -sha256 \
           -subj "/O=system:masters/CN=kube-apiserver-kubelet-client"
 
-  openssl x509 -req -days ${VALID_DAYS} -in "apiserver-kubelet-client.csr" -sha256 \
+  openssl x509 -req -days ${certificatesVaild} -in "apiserver-kubelet-client.csr" -sha256 \
       -CA "ca.crt" -CAkey "ca.key" -CAcreateserial \
       -out "apiserver-kubelet-client.crt" -extfile "apiserver.cnf" -extensions client
 
-  rm -f apiserver.cnf {apiserver,apiserver-kubelet-client}.csr
+  rm -f apiserver.cnf {apiserver,apiserver-kubelet-client}.csr ca.srl
 }
 
 
 # 创建 front-proxy-client.crt 证书
-front_crt() {
-  cd ${K8S_PKI}
+certs_front-proxy() {
+  cd ${KUBEADM_PKI}
 
   cat > front.cnf << EOF
 [client]
@@ -164,22 +220,22 @@ subjectKeyIdentifier=hash
 EOF
 
   # front-proxy-client.crt(CN=front-proxy-client)
-  openssl genrsa -out "front-proxy-client.key" ${CERT_SIZE}
+  openssl genrsa -out "front-proxy-client.key" ${certificatesSize}
   openssl req -new -key "front-proxy-client.key" \
           -out "front-proxy-client.csr" -sha256 \
           -subj '/CN=front-proxy-client'
 
-  openssl x509 -req -days ${VALID_DAYS} -in "front-proxy-client.csr" -sha256 \
+  openssl x509 -req -days ${certificatesVaild} -in "front-proxy-client.csr" -sha256 \
       -CA "front-proxy-ca.crt" -CAkey "front-proxy-ca.key" -CAcreateserial \
       -out "front-proxy-client.crt" -extfile "front.cnf" -extensions client
 
-  rm -f front.cnf front-proxy-client.csr
+  rm -f front.cnf front-proxy-client.csr front-proxy-ca.srl
 }
 
 
 # 创建 admin.conf 证书配置文件
-admin_conf() {
-  cd ${K8S_CONFIG}
+certs_admin_conf() {
+  cd ${KUBEADM_CONFIG}
 
   cat > admin.cnf << EOF
 [client]
@@ -190,19 +246,19 @@ keyUsage = critical, digitalSignature, keyEncipherment
 subjectKeyIdentifier=hash
 EOF
 
-  openssl genrsa -out "admin.key" ${CERT_SIZE}
+  openssl genrsa -out "admin.key" ${certificatesSize}
   openssl req -new -key "admin.key" \
           -out "admin.csr" -sha256 \
           -subj '/O=system:masters/CN=kubernetes-admin'
 
-  openssl x509 -req -days ${VALID_DAYS} -in "admin.csr" -sha256 \
+  openssl x509 -req -days ${certificatesVaild} -in "admin.csr" -sha256 \
       -CA "pki/ca.crt" -CAkey "pki/ca.key" -CAcreateserial \
       -out "admin.crt" -extfile "admin.cnf" -extensions client
 
   kubectl config set-cluster kubernetes \
     --certificate-authority=pki/ca.crt \
     --embed-certs=true \
-    --server=https://${CLUSTER_VIP}:${CLUSTER_PORT} \
+    --server=https://${controlPlaneEndpoint} \
     --kubeconfig=admin.conf
 
   kubectl config set-credentials kubernetes-admin \
@@ -218,13 +274,13 @@ EOF
 
   kubectl config use-context kubernetes-admin@kubernetes --kubeconfig=admin.conf
 
-  rm -f admin.{cnf,csr,crt,key}
+  rm -f admin.{cnf,csr,crt,key} pki/ca.srl
 }
 
 
 # 创建 controller-manager.conf 证书配置文件
-manager_conf() {
-  cd ${K8S_CONFIG}
+certs_controller-manager_conf() {
+  cd ${KUBEADM_CONFIG}
 
   cat > manager.cnf << EOF
 [client]
@@ -235,12 +291,12 @@ keyUsage = critical, digitalSignature, keyEncipherment
 subjectKeyIdentifier=hash
 EOF
 
-  openssl genrsa -out "controller-manager.key" ${CERT_SIZE}
+  openssl genrsa -out "controller-manager.key" ${certificatesSize}
   openssl req -new -key "controller-manager.key" \
           -out "controller-manager.csr" -sha256 \
           -subj '/CN=system:kube-controller-manager'
 
-  openssl x509 -req -days ${VALID_DAYS} -in "controller-manager.csr" -sha256 \
+  openssl x509 -req -days ${certificatesVaild} -in "controller-manager.csr" -sha256 \
       -CA "pki/ca.crt" -CAkey "pki/ca.key" -CAcreateserial \
       -out "controller-manager.crt" -extfile "manager.cnf" -extensions client
 
@@ -263,13 +319,13 @@ EOF
 
   kubectl config use-context system:kube-controller-manager@kubernetes --kubeconfig=controller-manager.conf
 
-  rm -f manager.cnf controller-manager.{csr,key,crt}
+  rm -f manager.cnf controller-manager.{csr,key,crt} pki/ca.srl
 }
 
 
 # 创建 scheduler.conf 证书配置文件
-scheduler_conf() {
-  cd ${K8S_CONFIG}
+certs_scheduler_conf() {
+  cd ${KUBEADM_CONFIG}
 
   cat > scheduler.cnf << EOF
 [client]
@@ -280,12 +336,12 @@ keyUsage = critical, digitalSignature, keyEncipherment
 subjectKeyIdentifier=hash
 EOF
 
-  openssl genrsa -out "scheduler.key" ${CERT_SIZE}
+  openssl genrsa -out "scheduler.key" ${certificatesSize}
   openssl req -new -key "scheduler.key" \
           -out "scheduler.csr" -sha256 \
           -subj '/CN=system:kube-scheduler'
 
-  openssl x509 -req -days ${VALID_DAYS} -in "scheduler.csr" -sha256 \
+  openssl x509 -req -days ${certificatesVaild} -in "scheduler.csr" -sha256 \
       -CA "pki/ca.crt" -CAkey "pki/ca.key" -CAcreateserial \
       -out "scheduler.crt" -extfile "scheduler.cnf" -extensions client
 
@@ -308,12 +364,12 @@ EOF
 
   kubectl config use-context system:kube-scheduler@kubernetes --kubeconfig=scheduler.conf
 
-  rm -f scheduler.{cnf,csr,crt,key}
+  rm -f scheduler.{cnf,csr,crt,key} pki/ca.srl
 }
 
 
-# 创建 kubelet.conf 中的证书，以及 kubelet 证书
-kubelet_conf_crt() {
+# 创建新 kubelet 证书, 并将 key 追加到 crt 中, 最后修改软连接 kubelet-client-current.pem 的指向
+certs_kubelet_pem() {
   cd ${KUBELET_PKI}
 
   cat > kubelet.cnf << EOF
@@ -334,24 +390,24 @@ subjectKeyIdentifier=hash
 EOF
 
   # server crt
-  openssl genrsa -out "kubelet.key" ${CERT_SIZE}
+  openssl genrsa -out "kubelet.key" ${certificatesSize}
 
   openssl req -new -key "kubelet.key" \
           -out "kubelet.csr" -sha256 \
           -subj "/CN=kubelet-${HOST_NAME}"
 
-  openssl x509 -req -days ${VALID_DAYS} -in "kubelet.csr" -sha256 \
+  openssl x509 -req -days ${certificatesVaild} -in "kubelet.csr" -sha256 \
       -CA "ca.crt" -CAkey "ca.key" -CAcreateserial \
       -out "kubelet.crt" -extfile "kubelet.cnf" -extensions server
 
   # client conf
-  openssl genrsa -out "client.key" ${CERT_SIZE}
+  openssl genrsa -out "client.key" ${certificatesSize}
 
   openssl req -new -key "client.key" \
           -out "client.csr" -sha256 \
           -subj "/O=system:nodes/CN=system:node:${HOST_NAME}"
 
-  openssl x509 -req -days ${VALID_DAYS} -in "client.csr" -sha256 \
+  openssl x509 -req -days ${certificatesVaild} -in "client.csr" -sha256 \
       -CA "ca.crt" -CAkey "ca.key" -CAcreateserial \
       -out "client.crt" -extfile "kubelet.cnf" -extensions client
 
