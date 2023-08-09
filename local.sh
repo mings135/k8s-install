@@ -110,8 +110,8 @@ local_kubelet_certs() {
 }
 
 
-# 部署 fannel
-local_deploy_fannel() {
+# 部署 flannel
+local_deploy_flannel() {
   kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
 }
 
@@ -128,7 +128,7 @@ main() {
     "joincluster") local_join_cluster;;
     "certs") local_issue_certs;;
     "kubelet") local_kubelet_certs;;
-    "fannel") local_deploy_fannel;;
+    "flannel") local_deploy_flannel;;
     "test") variables_display_test;;
     *)
     printf "Usage: bash $0 [ ? ] \n"

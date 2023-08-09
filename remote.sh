@@ -114,10 +114,10 @@ remote_kubelet_certs() {
 }
 
 
-# 部署 fannel
-remote_deploy_fannel() {
+# 部署 flannel
+remote_deploy_flannel() {
   sleep 3
-  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh fannel
+  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh flannel
 }
 
 
@@ -223,8 +223,8 @@ main() {
     if [ ${remote_CERTS_SWITCH} -eq 1 ]; then
       remote_kubelet_certs
     fi
-    if [ ${remote_FANNEL_SWITCH} -eq 1 ]; then
-      remote_deploy_fannel
+    if [ ${remote_FLANNEL_SWITCH} -eq 1 ]; then
+      remote_deploy_flannel
     fi
     result_blue_font "集群自动安装已完成!"
     ;;
@@ -248,7 +248,7 @@ main() {
     printf "%-16s %-s\n" 'clean' '删除整个集群'
     result_blue_font "选项:"
     printf "%-16s %-s\n" '-c' '全自动安装集群时, 签发自定义 k8s 证书, 默认 50 年'
-    printf "%-16s %-s\n" '-f' '全自动安装集群后, 自动部署 fannel 到集群中'
+    printf "%-16s %-s\n" '-f' '全自动安装集群后, 自动部署 flannel 到集群中'
     exit 1
     ;;
   esac
@@ -257,7 +257,7 @@ main() {
 
 # 默认变量
 remote_CERTS_SWITCH=0
-remote_FANNEL_SWITCH=0
+remote_FLANNEL_SWITCH=0
 
 
 # 开头 ':' 表示不打印错误信息, 字符后面 ':' 表示需要参数
@@ -271,7 +271,7 @@ while getopts ":a:cf" opt; do
       remote_CERTS_SWITCH=1
       ;;
     f)
-      remote_FANNEL_SWITCH=1
+      remote_FLANNEL_SWITCH=1
       ;;
     :)
       result_blue_font "Option -$OPTARG requires an argument."
