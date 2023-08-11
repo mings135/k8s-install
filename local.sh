@@ -116,6 +116,21 @@ local_deploy_flannel() {
 }
 
 
+# 更新集群版本
+local_upgrade_version() {
+  if ! grep -Eqi "cluster_upgrade_version_kubeadm-${upgradeVersion}" ${script_dir}/config/record.txt; then
+    basic_reset_repos_cache
+    cluster_upgrade_version_kubeadm
+    echo "cluster_upgrade_version_kubeadm-${upgradeVersion}" >> ${script_dir}/config/record.txt
+  fi
+
+  if ! grep -Eqi "cluster_upgrade_version_kubelet-${upgradeVersion}" ${script_dir}/config/record.txt; then
+    cluster_upgrade_version_kubelet
+    echo "cluster_upgrade_version_kubelet-${upgradeVersion}" >> ${script_dir}/config/record.txt
+  fi
+}
+
+
 main() {
   local_check_record
   variables_settings
@@ -129,6 +144,12 @@ main() {
     "certs") local_issue_certs;;
     "kubelet") local_kubelet_certs;;
     "flannel") local_deploy_flannel;;
+    "upgrade") local_upgrade_version;;
+    "tmpkubeconfig") cluster_generate_kubeconfig_tmp;;
+    "tmpkubectl") cluster_config_kubectl_tmp;;
+    "backup") cluster_backup_etcd;;
+    "restore") cluster_restore_etcd;;
+    "startetcd") cluster_start_etcd;;
     "test") variables_display_test;;
     *)
     printf "Usage: bash $0 [ ? ] \n"

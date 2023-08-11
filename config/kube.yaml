@@ -3,8 +3,8 @@ remoteScriptDir: ""
 cluster:
   kubernetesVersion: "1.27.4"
   # 对应 kubeadm 中 controlPlaneEndpoint(默认 master1 address, port 6443)
-  controlPlaneAddress: ""  
-  controlPlanePort: 
+  controlPlaneAddress: ""
+  controlPlanePort:
   # 镜像仓库地址
   imageRepository: ""
 container:

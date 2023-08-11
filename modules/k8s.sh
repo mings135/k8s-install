@@ -3,6 +3,12 @@
 
 # 安装 k8s
 kubernetes_install_apps() {
+  if [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    # 解锁版本
+    apt-mark unhold kubectl kubelet kubeadm &> /dev/null
+    result_msg "解锁 kubectl kubelet kubeadm"
+  fi
+
   if [ ${crictlVersion} = 'latest' ]; then
     install_apps "cri-tools"
   elif [ ${SYSTEM_RELEASE} = 'centos' ]; then
@@ -23,6 +29,12 @@ kubernetes_install_apps() {
     local apps="kubectl=${kubernetesVersion}-00 kubelet=${kubernetesVersion}-00 kubeadm=${kubernetesVersion}-00"
   fi
   install_apps "${apps}"
+
+  if [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    # 锁住版本
+    apt-mark hold kubectl kubelet kubeadm &> /dev/null
+    result_msg "锁住 kubectl kubelet kubeadm"
+  fi
 }
 
 
@@ -53,9 +65,13 @@ EOF
   if [ ${imageRepository} ]; then
     tmp_var=${imageRepository} yq -i '.imageRepository = strenv(tmp_var)' clusterConfiguration.yaml
   fi
+  if [ ${kubernetesVersion} != 'latest' ]; then
+    tmp_var=${kubernetesVersion} yq -i '.kubernetesVersion = strenv(tmp_var)' clusterConfiguration.yaml
+  fi
   tmp_var=${serviceSubnet} yq -i '.networking.serviceSubnet = strenv(tmp_var)' clusterConfiguration.yaml
   tmp_var=${podSubnet} yq -i '.networking.podSubnet = strenv(tmp_var)' clusterConfiguration.yaml
   yq -M initConfiguration.yaml clusterConfiguration.yaml otherConfiguration.yaml > kubeadm-config.yaml
+  rm -f initConfiguration.yaml clusterConfiguration.yaml otherConfiguration.yaml
 }
 
 

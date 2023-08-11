@@ -9,8 +9,8 @@
 - `Linux:` 
   - 支持 AlmaLinux 8、AlmaLinux 9、Debian 11、Debian 12
 - `Kubernetes:` 
-  - 支持 1.20+
-  - 1.20 ~ 1.24 官方镜像仓库地址：`k8s.gcr.io`
+  - 支持 1.22+
+  - 1.22 ~ 1.24 官方镜像仓库地址：`k8s.gcr.io`
   - 1.25+ 官方镜像仓库地址：`registry.k8s.io`
   - 国内镜像仓库地址：`registry.cn-hangzhou.aliyuncs.com/google_containers`
   - debian 中，当 k8s 版本 >= 1.25 时，cri-tools  版本须 >= 1.25
@@ -47,13 +47,12 @@ git clone -b dev https://github.com/mings135/k8s-install.git
 
 
 
-## Quick
+## Install
 
 **快速安装：**
 
 - 由于网络/镜像源等问题可能会报错，此时脚本会自动退出（部分流程是并发的，可能存在延迟）
 - 如果出错，手动解决问题后继续运行 `auto` 即可
-- 不同系统对版本的支持是不同的，debian 11 上有的版本 debian 12 上可能没有
 
 ```shell
 # 进入 k8s-install
@@ -64,5 +63,30 @@ vi config/kube.yaml
 
 # 自动安装(-c 安装自签证书, -f 部署 flannel)
 bash remote.sh -cf auto
+```
+
+
+
+## Upgrade
+
+在 kube.yaml 中修改或添加如下配置：
+
+```yaml
+cluster:
+  # 更新到哪个版本
+  kubernetesVersion: "1.27.4"
+  # 是否更新证书, 如果安装时使用了 -c, 默认 false 即可, 否则使用 true
+  certificateRenewal: "false"
+```
+
+
+
+自动升级集群版本：
+
+- 如果出错，手动解决问题后继续运行 `upgrade` 即可
+
+```shell
+bash remote.sh backup  # 更新之前备份下 etcd
+bash remote.sh upgrade
 ```
 

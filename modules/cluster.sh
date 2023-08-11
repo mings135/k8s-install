@@ -54,6 +54,149 @@ cluster_join_cluster() {
 }
 
 
+# 集群升级 kubeadm 和核心组件版本
+cluster_upgrade_version_kubeadm() {
+  RES_LEVEL=1 && test ${kubernetesVersion} != 'latest'
+  result_msg "检查 kubernetesVersion 不能为 latest" && RES_LEVEL=0
+
+  if [ ${SYSTEM_RELEASE} = 'centos' ]; then
+    install_apps "kubeadm-${upgradeVersion}"
+    result_msg "升级 kubeadm"
+  elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    apt-mark unhold kubeadm \
+      && install_apps "kubeadm=${upgradeVersion}-00" \
+      && apt-mark hold kubeadm
+    result_msg "升级 kubeadm"
+  fi
+
+  if [ "${HOST_ROLE}" = "master1" ]; then
+    kubeadm upgrade plan v${upgradeVersion}
+    result_msg "检查 集群是否可被升级"
+    kubeadm upgrade apply v${upgradeVersion} -y --certificate-renewal=${certificateRenewal}
+    result_msg "升级 master1 上各个容器组件"
+  elif [ "${HOST_ROLE}" = "master" ]; then
+    kubeadm upgrade node --certificate-renewal=${certificateRenewal}
+    result_msg "升级 master 上各个容器组件"
+  elif [ "${HOST_ROLE}" = "work" ]; then
+    kubeadm upgrade node --certificate-renewal=${certificateRenewal}
+    result_msg "升级 work 上 kubelet 配置"
+  fi
+}
+
+
+# 集群升级 kubelet kubectl 版本
+cluster_upgrade_version_kubelet() {
+  kubectl drain ${HOST_NAME} --ignore-daemonsets
+  result_msg "腾空 当前节点"
+
+  if [ ${SYSTEM_RELEASE} = 'centos' ]; then
+    install_apps "kubelet-${upgradeVersion} kubectl-${upgradeVersion}"
+    result_msg "升级 kubelet kubectl"
+  elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    apt-mark unhold kubelet kubectl \
+      && install_apps "kubelet=${upgradeVersion}-00 kubectl=${upgradeVersion}-00" \
+      && apt-mark hold kubelet kubectl
+    result_msg "升级 kubelet kubectl"
+  fi
+
+  systemctl daemon-reload && systemctl restart kubelet
+  result_msg "重启 重载 kubelet"
+
+  kubectl uncordon ${HOST_NAME}
+  result_msg "解除 当前节点的保护"
+}
+
+
+# 备份 etcd 数据库
+cluster_backup_etcd() {
+  cluster_install_etcdctl
+  if [ -e ${script_dir}/config/etcd-snap.db ]; then
+    rm -f ${script_dir}/config/etcd-snap.db
+    result_msg "清理 旧的备份 etcd 数据库快照"
+  fi
+
+  ETCDCTL_API=3 etcdctl snapshot save ${script_dir}/config/etcd-snap.db \
+    --endpoints=https://127.0.0.1:2379 \
+    --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+    --cert=/etc/kubernetes/pki/etcd/server.crt \
+    --key=/etc/kubernetes/pki/etcd/server.key
+  result_msg "备份 etcd 数据库快照"
+}
+
+
+# 恢复 etcd 数据库
+cluster_restore_etcd() {
+  RES_LEVEL=1 && test -e ${script_dir}/config/etcd-snap.db
+  result_msg "检查 是否存在备份快照文件" && RES_LEVEL=0
+
+  if [ -e /etc/kubernetes/manifests/etcd.yaml ]; then
+    mv /etc/kubernetes/manifests/kube-apiserver.yaml ${script_dir}/config/kube-apiserver.yaml \
+      && mv /etc/kubernetes/manifests/etcd.yaml ${script_dir}/config/etcd.yaml
+    result_msg "停止 etcd 和 apiserver 服务"
+    sleep 3
+  fi
+  
+  if [ -e /var/lib/etcd.bak ] && [ -e /var/lib/etcd ]; then
+    rm -rf /var/lib/etcd.bak
+    result_msg "清理 旧的备份 etcd 数据文件夹"
+  fi
+  if [ -e /var/lib/etcd ]; then
+    mv /var/lib/etcd /var/lib/etcd.bak
+    result_msg "备份 etcd 数据文件夹"
+  fi
+
+  cluster_install_etcdctl
+  ETCDCTL_API=3 etcdctl snapshot restore ${script_dir}/config/etcd-snap.db --data-dir=/var/lib/etcd
+  result_msg "恢复 etcd 数据库快照到数据文件夹"
+}
+
+
+# 启动 etcd
+cluster_start_etcd() {
+  if [ -e ${script_dir}/config/etcd.yaml ]; then
+    mv ${script_dir}/config/kube-apiserver.yaml /etc/kubernetes/manifests/kube-apiserver.yaml \
+      && mv ${script_dir}/config/etcd.yaml /etc/kubernetes/manifests/etcd.yaml
+    result_msg "启动 etcd 和 apiserver 服务"
+  fi
+}
+
+
+# 安装 etcdctl 命令(从集群 etcd 容器中获取)
+cluster_install_etcdctl() {
+  local etcd_ver="v3.5.9"
+  if ! which etcdctl &> /dev/null; then
+    curl -fsSL -o /tmp/etcd-linux-amd64.tar.gz https://github.com/etcd-io/etcd/releases/download/${etcd_ver}/etcd-${etcd_ver}-linux-amd64.tar.gz \
+      && rm -rf /tmp/etcd-download-test && mkdir -p /tmp/etcd-download-test \
+      && tar xzf /tmp/etcd-linux-amd64.tar.gz -C /tmp/etcd-download-test --strip-components=1 \
+      && rm -f /tmp/etcd-linux-amd64.tar.gz \
+      && mv /tmp/etcd-download-test/etcdctl /usr/local/bin/etcdctl
+    result_msg "安装 etcdctl"
+    # if [ -e /tmp/etcd-download-test/etcdutl ]; then
+    #   mv /tmp/etcd-download-test/etcdutl /usr/local/bin/etcdutl
+    #   result_msg "安装 etcdutl"
+    # fi
+  fi
+}
+
+
+# 生成 admin.conf, 有效期 24h
+cluster_generate_kubeconfig_tmp() {
+  cd ${script_dir}/config \
+    && kubectl get cm kubeadm-config  -n kube-system -o jsonpath='{.data.ClusterConfiguration}' > tmp-kubeadm-config.yaml \
+    && kubeadm kubeconfig user --client-name=kubernetes-admin --org=system:masters --config=tmp-kubeadm-config.yaml --validity-period=24h > tmp-admin.conf
+  result_msg "生成 tmp-admim.conf(24h)"
+}
+
+
+# 配置临时的 .kube/config
+cluster_config_kubectl_tmp() {
+  mkdir -p $HOME/.kube \
+    && /bin/cp ${script_dir}/config/tmp-admin.conf $HOME/.kube/config \
+    && chmod 700 $HOME/.kube/config
+  result_msg "配置 临时 kubectl config"
+}
+
+
 # 同步更新 .kube/config, 并安装命令自动补全
 cluster_config_kubectl_command() {
   mkdir -p $HOME/.kube \

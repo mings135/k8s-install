@@ -121,6 +121,51 @@ remote_deploy_flannel() {
 }
 
 
+# 更新集群版本
+remote_upgrade_version() {
+  remote_rsync_script
+  
+  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh upgrade
+  sleep 5
+
+  for i in ${NODES_MASTER}
+  do
+    ssh root@${i} bash ${remoteScriptDir}/local.sh upgrade
+  done
+
+  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh tmpkubeconfig
+  remote_rsync_kubeconfig_tmp
+  for i in ${NODES_WORK}
+  do
+    ssh root@${i} bash ${remoteScriptDir}/local.sh tmpkubectl upgrade
+  done
+}
+
+
+# 备份 etcd 快照
+remote_backup_etcd() {
+  remote_rsync_script
+
+  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh backup
+}
+
+
+# 恢复 etcd
+remote_restore_etcd() {
+  remote_rsync_script
+
+  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh restore
+  
+  remote_rsync_etcd_snap
+  for i in ${NODES_MASTER}
+  do
+    ssh root@${i} bash ${remoteScriptDir}/local.sh restore
+  done
+
+  python3 ${script_dir}/concurrent.py "bash ${remoteScriptDir}/local.sh startetcd" ${NODES_MASTER1_MASTER}
+}
+
+
 # 删除整个集群
 remote_clean_cluster() {
   for i in ${NODES_ALL}
@@ -145,6 +190,22 @@ remote_rsync_join() {
   local rsync_exclude='--include=/config/ --include=/config/join.sh --exclude=*'
   remote_rsync_passive_update "被同步 join.sh" "${MASTER1_IP}" "${rsync_exclude}"
   remote_rsync_update "同步 join.sh" "${NODES_NOT_MASTER1}" "${rsync_exclude}"
+}
+
+
+# 同步 master1 上的 tmp-admin.conf 到 work 节点
+remote_rsync_kubeconfig_tmp() {
+  local rsync_exclude='--include=/config/ --include=/config/tmp-admin.conf --exclude=*'
+  remote_rsync_passive_update "被同步 tmp-admin.conf" "${MASTER1_IP}" "${rsync_exclude}"
+  remote_rsync_update "同步 tmp-admin.conf" "${NODES_WORK}" "${rsync_exclude}"
+}
+
+
+# 同步 master1 上的 etcd-snap.db 到其余 master 节点
+remote_rsync_etcd_snap() {
+  local rsync_exclude='--include=/config/ --include=/config/etcd-snap.db --exclude=*'
+  remote_rsync_passive_update "被同步 etcd-snap.db" "${MASTER1_IP}" "${rsync_exclude}"
+  remote_rsync_update "同步 etcd-snap.db" "${NODES_MASTER}" "${rsync_exclude}"
 }
 
 
@@ -200,55 +261,61 @@ main() {
   set -e
 
   case $1 in
-    "freelogin") remote_free_login;;
+    "freelogin") remote_free_login;;  # 配置本机免密登录到所有节点
     "front") remote_front_operator;;  # scp front.sh --> install rsync
-    "install") remote_install_basic;;  # update --> hosts -> basic -> cri --> k8s
-    "imglist") remote_images_list;;
-    "imgpull") remote_images_pull;;
-    "cluster") remote_install_cluster;; # init first node --> create or update join.sh --> update join.sh --> join cluster
-    "ca") remote_issue_ca;;
-    "certs") remote_issue_certs;;
-    "kubelet") remote_kubelet_certs;;
-    "clean") remote_clean_cluster;;
+    "install") remote_install_basic;;  # update script,kube.yaml --> update hosts -> basic -> cri --> k8s
+    "imglist") remote_images_list;;  # 查看 images 信息
+    "imgpull") remote_images_pull;;  # 并发拉取 images
+    "cluster") remote_install_cluster;;  # init first node --> create or update join.sh --> update join.sh --> join cluster
+    "ca") remote_issue_ca;;  # 创建 CA 证书(pki 目录，不会覆盖)
+    "certs") remote_issue_certs;;  # 分发 CA, 并签发 k8s 证书(master node), 此操作会清空 ${KUBEADM_PKI}
+    "kubelet") remote_kubelet_certs;;  # 分发 CA, 签发 kubelet 证书，此操作会覆盖原有证书!!!
+    "backup") remote_backup_etcd;;  # update script,kube.yaml --> backup etcd
+    "restore") remote_restore_etcd;;  # update script,kube.yaml --> resotre etcd
     "auto")
-    remote_free_login
-    remote_front_operator
-    remote_install_basic
-    if [ ${remote_CERTS_SWITCH} -eq 1 ]; then
-      remote_issue_ca
-      remote_issue_certs
-    fi
-    remote_images_pull
-    remote_install_cluster
-    if [ ${remote_CERTS_SWITCH} -eq 1 ]; then
-      remote_kubelet_certs
-    fi
-    if [ ${remote_FLANNEL_SWITCH} -eq 1 ]; then
-      remote_deploy_flannel
-    fi
-    result_blue_font "集群自动安装已完成!"
-    ;;
+      remote_free_login
+      remote_front_operator
+      remote_install_basic
+      if [ ${remote_CERTS_SWITCH} -eq 1 ]; then
+        remote_issue_ca
+        remote_issue_certs
+      fi
+      remote_images_pull
+      remote_install_cluster
+      if [ ${remote_CERTS_SWITCH} -eq 1 ]; then
+        remote_kubelet_certs
+      fi
+      if [ ${remote_FLANNEL_SWITCH} -eq 1 ]; then
+        remote_deploy_flannel
+      fi
+      result_blue_font "集群自动安装已完成!"
+      ;;
+    "upgrade")
+      remote_upgrade_version
+      if [ ${remote_FLANNEL_SWITCH} -eq 1 ]; then
+        remote_deploy_flannel
+      fi
+      result_blue_font "集群升级已完成!"
+      ;;
+    "clean")
+      result_blue_font "请确认是否要清除整个集群(y/n):"
+      read confirm_yn
+      if [ ${confirm_yn} ] && [ ${confirm_yn} = 'y' ]; then
+        remote_clean_cluster
+      fi
+      ;;
     *)
     echo ''
     printf "Usage: bash $0 [ option ] [ ? ] \n"
-    result_blue_font "节点:"
-    printf "%-16s %-s\n" 'freelogin' '配置本机免密登录到所有节点'
-    printf "%-16s %-s\n" 'front' '分发 front.sh 到 /tmp 目录下, 并执行安装 rsync 前置工具'
-    printf "%-16s %-s\n" 'install' '更新 script、kube.yaml, 修改 hosts, 优化系统, 安装 cri 和 kubeadm 等'
-    result_blue_font "集群:"
-    printf "%-16s %-s\n" 'imglist' '查看 images 信息'
-    printf "%-16s %-s\n" 'imgpull' '并发拉取 images'
-    printf "%-16s %-s\n" 'cluster' '初始化集群(master1), 然后生成并分发 join.sh, 其余节点依次加入集群'
-    result_blue_font "证书:"
-    printf "%-16s %-s\n" 'ca' '创建 CA 证书(pki 目录，不会覆盖)'
-    printf "%-16s %-s\n" 'certs' "分发 CA, 并签发 k8s 证书(master node), 此操作会清空 ${KUBEADM_PKI}!!!"
-    printf "%-16s %-s\n" 'kubelet' '分发 CA, 签发 kubelet 证书，此操作会覆盖原有证书!!!'
-    result_blue_font "其他："
+    result_blue_font "命令："
     printf "%-16s %-s\n" 'auto' '全自动安装集群'
+    printf "%-16s %-s\n" 'upgrade' '升级集群版本'
+    printf "%-16s %-s\n" 'backup' '备份 etcd 数据库快照'
+    printf "%-16s %-s\n" 'restore' '恢复 etcd 数据库'
     printf "%-16s %-s\n" 'clean' '删除整个集群'
     result_blue_font "选项:"
     printf "%-16s %-s\n" '-c' '全自动安装集群时, 签发自定义 k8s 证书, 默认 50 年'
-    printf "%-16s %-s\n" '-f' '全自动安装集群后, 自动部署 flannel 到集群中'
+    printf "%-16s %-s\n" '-f' '安装或升级集群后, 自动部署或更新 flannel 网络'
     exit 1
     ;;
   esac

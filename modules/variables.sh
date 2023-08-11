@@ -64,9 +64,13 @@ variables_install_dependencies() {
   if ! which curl &> /dev/null; then
     install_apps "curl"
   fi
+  if ! which tar &> /dev/null; then
+    install_apps "tar"
+  fi
+
   if ! which yq &> /dev/null; then
-    curl -fsSL -o /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
-      && chmod +x /usr/bin/yq
+    curl -fsSL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+      && chmod +x /usr/local/bin/yq
     result_msg "安装 yq"
   fi
 }
@@ -143,6 +147,7 @@ variables_read_config() {
   apiServerClusterIP="$(yq -M '.cluster.apiServerClusterIP' ${kube_conf} | grep -v '^null$')"
   podSubnet="$(yq -M '.cluster.podSubnet' ${kube_conf} | grep -v '^null$')"
   nodePassword="$(yq -M '.nodes.nodePassword' ${kube_conf} | grep -v '^null$')"
+  certificateRenewal="$(yq -M '.cluster.certificateRenewal' ${kube_conf} | grep -v '^null$')"
 }
 
 
@@ -173,12 +178,14 @@ variables_default_config() {
   podSubnet=${podSubnet:-'10.244.0.0/16'}
   # 节点密码, 默认为空(也就是手动输入)
   nodePassword=${nodePassword:-''}
+  certificateRenewal=${certificateRenewal:-'false'}
 
   # 设置常量
   KUBEADM_PKI='/etc/kubernetes/pki'
   KUBEADM_CONFIG='/etc/kubernetes'
   KUBELET_PKI='/var/lib/kubelet/pki'
   JOIN_TOKEN_INTERVAL=7200
+  upgradeVersion="${kubernetesVersion}"
 
   # 自动生成变量
   if [ ${controlPlaneAddress} ] && [ ${controlPlanePort} ]; then
@@ -192,8 +199,8 @@ variables_default_config() {
   if [ ${kubernetesVersion} != 'latest' ]; then
     RES_LEVEL=1 && test $(echo "${kubernetesVersion}" | awk -F '.' '{print NF}') -eq 3
     result_msg "检查 kubernetesVersion 格式" && RES_LEVEL=0
-    RES_LEVEL=1 && test $(echo "${kubernetesVersion%.*} >= 1.20" | bc) -eq 1
-    result_msg "检查 kubernetesVersion >= 1.20" && RES_LEVEL=0
+    RES_LEVEL=1 && test $(echo "${kubernetesVersion%.*} >= 1.22" | bc) -eq 1
+    result_msg "检查 kubernetesVersion >= 1.22" && RES_LEVEL=0
   fi
   RES_LEVEL=1 && test ${criSocket}
   result_msg "检查 criSocket variable" && RES_LEVEL=0
@@ -242,6 +249,9 @@ variables_display_test() {
   echo "NODES_MASTER1_MASTER=${NODES_MASTER1_MASTER}"
   echo "NODES_MASTER=${NODES_MASTER}"
   echo "NODES_WORK=${NODES_WORK}"
+  # upgrade cluster
+  echo "upgradeVersion=${upgradeVersion}"
+  echo "certificateRenewal=${certificateRenewal}"
 }
 
 
