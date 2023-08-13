@@ -14,7 +14,7 @@
   - 1.25+ 官方镜像仓库地址：`registry.k8s.io`
   - 国内镜像仓库地址：`registry.cn-hangzhou.aliyuncs.com/google_containers`
   - debian 中，当 k8s 版本 >= 1.25 时，cri-tools  版本须 >= 1.25
-  - k8s 版本设置好后，建议自行测试 cri-tools 和 containerd 版本是否支持，或使用默认最新
+  - k8s 版本设置后，建议自行测试 cri-tools 和 containerd 版本是否支持，或使用默认值
 - `Containerd：` 
   - 支持 1.5+
   - 当 cri-tools  版本 >= 1.26 时，containerd 版本须 >= 1.6
@@ -32,9 +32,10 @@
 
 
 
-## Ready
+## Install
 
-**Clone Project：**
+- 由于网络/镜像源等问题可能会报错，此时脚本会自动退出（部分流程是并发的，可能存在延迟）
+- 如果出错，手动解决问题后继续运行 `auto` 即可
 
 ```shell
 # 安装必要工具
@@ -43,18 +44,7 @@ apt-get update && apt-get install -y git python3 sshpass rsync
 
 # 克隆 project
 git clone -b dev https://github.com/mings135/k8s-install.git
-```
 
-
-
-## Install
-
-**快速安装：**
-
-- 由于网络/镜像源等问题可能会报错，此时脚本会自动退出（部分流程是并发的，可能存在延迟）
-- 如果出错，手动解决问题后继续运行 `auto` 即可
-
-```shell
 # 进入 k8s-install
 cd k8s-install
 
@@ -69,24 +59,26 @@ bash remote.sh -cf auto
 
 ## Upgrade
 
-在 kube.yaml 中修改或添加如下配置：
+在 config/kube.yaml 中修改或添加如下配置：
 
 ```yaml
 cluster:
   # 更新到哪个版本
   kubernetesVersion: "1.27.4"
-  # 是否更新证书, 如果安装时使用了 -c, 默认 false 即可, 否则使用 true
+  # 是否更新证书, 默认为 false, 执行 auto 命令时如果没有使用 -c, 建议改为 true
   certificateRenewal: "false"
 ```
 
 
 
-自动升级集群版本：
+升级集群版本：
 
 - 如果出错，手动解决问题后继续运行 `upgrade` 即可
 
 ```shell
-bash remote.sh backup  # 更新之前备份下 etcd
+# 更新前建议备份下 etcd
+bash remote.sh backup
+# 更新版本(必须满足 k8s 更新条件, 请自行查看官网)
 bash remote.sh upgrade
 ```
 
