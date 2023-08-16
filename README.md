@@ -43,7 +43,7 @@ dnf install -y git python3 sshpass rsync
 apt-get update && apt-get install -y git python3 sshpass rsync
 
 # 克隆 project
-git clone -b dev https://github.com/mings135/k8s-install.git
+git clone https://github.com/mings135/k8s-install.git
 
 # 进入 k8s-install
 cd k8s-install
