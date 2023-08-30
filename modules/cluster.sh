@@ -104,6 +104,9 @@ cluster_upgrade_version_kubelet() {
 
   kubectl uncordon ${HOST_NAME}
   result_msg "解除 当前节点的保护"
+
+  kubectl wait --for=condition=Ready nodes/${HOST_NAME} --timeout=50s
+  result_msg "等待 节点 Ready"
 }
 
 

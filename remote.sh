@@ -126,7 +126,6 @@ remote_upgrade_version() {
   remote_rsync_script
   
   ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh upgrade
-  sleep 5
 
   for i in ${NODES_MASTER}
   do
