@@ -310,6 +310,7 @@ EOF
 
 # 基础设置
 basic_system_configs() {
+  basic_reset_repos_cache
   basic_install_request_${SYSTEM_RELEASE}
   basic_set_repos_cri
   basic_set_repos_kubernetes
