@@ -17,6 +17,8 @@ cluster_images_pull() {
 
 # 初始化集群
 cluster_master1_init() {
+  systemctl daemon-reload && systemctl restart kubelet
+  result_msg "重启 重载 kubelet"
   kubeadm init --config ${script_dir}/config/kubeadm-config.yaml --upload-certs | tee ${script_dir}/kubeadm-init.log
   result_msg "创建 cluster"
   cluster_config_kubectl_command
@@ -42,6 +44,8 @@ cluster_generate_join_command() {
 cluster_join_cluster() {
   source ${script_dir}/config/join.sh
   result_msg "加载 join 信息"
+  systemctl daemon-reload && systemctl restart kubelet
+  result_msg "重启 重载 kubelet"
   if [ ${HOST_ROLE} = "master" ]; then
     result_blue_font "${join_command_basic} ${join_command_control}"
     ${join_command_basic} ${join_command_control}

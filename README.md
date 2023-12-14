@@ -38,6 +38,7 @@
 
 - 由于网络/镜像源等问题可能会报错，此时脚本会自动退出（部分流程是并发的，可能存在延迟）
 - 如果出错，手动解决问题后继续运行 `auto` 即可
+- 如果 debian 安装软件失败，尝试：`apt-get update --allow-releaseinfo-change`
 
 ```shell
 # 安装必要工具
