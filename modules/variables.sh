@@ -11,7 +11,7 @@ install_apps() {
   # 安装 app, $1 需要安装的软件, space 分隔, $2 额外的参数
   for i in $1
   do
-    if [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    if [ ${SYSTEM_RELEASE} = 'debian' ] && echo $i | grep -Eqi '='; then
       name_val=$(echo $i | awk -F '=' '{print$1}')
       ver_val=$(echo $i | awk -F '=' '{print$2}')
       ver_long=$(apt-cache madison ${name_val} | grep "${ver_val}" | awk '{print $3}')
