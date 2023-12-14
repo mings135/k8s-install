@@ -23,7 +23,7 @@ cluster_master1_init() {
 }
 
 
-# 如果 join 信息失效, 生成新的 join 信息
+# 如果 join token 失效, 生成新的 join token
 cluster_generate_join_command() {
   if ! cluster_join_token_valid; then
     local command_basic command_control token_timestamp
@@ -56,11 +56,8 @@ cluster_join_cluster() {
 
 # 集群升级 kubeadm 和核心组件版本
 cluster_upgrade_version_kubeadm() {
-  RES_LEVEL=1 && test ${kubernetesVersion} != 'latest'
-  result_msg "检查 kubernetesVersion 不能为 latest" && RES_LEVEL=0
-
   if [ ${SYSTEM_RELEASE} = 'centos' ]; then
-    install_apps "kubeadm-${upgradeVersion}"
+    install_apps "kubeadm-${upgradeVersion}" '--disableexcludes=kubernetes'
     result_msg "升级 kubeadm"
   elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
     apt-mark unhold kubeadm \
@@ -90,7 +87,7 @@ cluster_upgrade_version_kubelet() {
   result_msg "腾空 当前节点"
 
   if [ ${SYSTEM_RELEASE} = 'centos' ]; then
-    install_apps "kubelet-${upgradeVersion} kubectl-${upgradeVersion}"
+    install_apps "kubelet-${upgradeVersion} kubectl-${upgradeVersion}" '--disableexcludes=kubernetes'
     result_msg "升级 kubelet kubectl"
   elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
     apt-mark unhold kubelet kubectl \

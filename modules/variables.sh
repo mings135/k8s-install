@@ -7,11 +7,16 @@ install_apps() {
   if [ ${SYSTEM_RELEASE} = 'debian' ]; then
     export DEBIAN_FRONTEND=noninteractive
   fi
-  # 安装 app
-  for i in $@
+  # 安装 app, $1 需要安装的软件, space 分隔, $2 额外的参数
+  for i in $1
   do
-    ${SYSTEM_PACKAGE} install -y ${i} &> /dev/null
-    result_msg "安装 $i"
+    if [ $2 ]; then
+      ${SYSTEM_PACKAGE} install -y ${i} $2 &> /dev/null
+      result_msg "安装 $i $2"
+    else
+      ${SYSTEM_PACKAGE} install -y ${i} &> /dev/null
+      result_msg "安装 $i"
+    fi
   done
 }
 
@@ -133,6 +138,7 @@ variables_set_host() {
 variables_read_config() {
   local kube_conf=${script_dir}/config/kube.yaml
   remoteScriptDir="$(yq -M '.remoteScriptDir' ${kube_conf} | grep -v '^null$')"
+  localMirror="$(yq -M '.localMirror' ${kube_conf} | grep -v '^null$')"
   kubernetesVersion="$(yq -M '.cluster.kubernetesVersion' ${kube_conf} | grep -v '^null$')"
   crictlVersion="$(yq -M '.cluster.crictlVersion' ${kube_conf} | grep -v '^null$')"
   controlPlaneAddress="$(yq -M '.cluster.controlPlaneAddress' ${kube_conf} | grep -v '^null$')"
@@ -155,8 +161,9 @@ variables_read_config() {
 variables_default_config() {
   # 远程集群主机存放 k8s 安装脚本的目录 (目录会在复制之前清空，请注意!!!)
   remoteScriptDir=${remoteScriptDir:-'/opt/k8sRemoteScript'}
+  localMirror=${localMirror:-'0'}
   # k8s version(支持 1.20+)
-  kubernetesVersion=${kubernetesVersion:-'latest'}  # 1.25.5
+  kubernetesVersion=${kubernetesVersion:-'1.28.0'} # 不能用 latest
   crictlVersion=${crictlVersion:-'latest'} # 1.26.0 开始 containerd 必须大于 1.26
   # k8s controlPlaneEndpoint 地址和端口, 没有该参数拒绝添加 master 节点
   controlPlaneAddress=${controlPlaneAddress:-"${MASTER1_IP}"}
@@ -186,8 +193,9 @@ variables_default_config() {
   KUBELET_PKI='/var/lib/kubelet/pki'
   JOIN_TOKEN_INTERVAL=7200
   upgradeVersion="${kubernetesVersion}"
+  kubernetesMajorMinor=${kubernetesVersion%.*}
 
-  # 自动生成变量
+  # 生成变量
   if [ ${controlPlaneAddress} ] && [ ${controlPlanePort} ]; then
     controlPlaneEndpoint="${controlPlaneAddress}:${controlPlanePort}"
   fi
@@ -195,18 +203,21 @@ variables_default_config() {
     criSocket='unix:///run/containerd/containerd.sock'
   fi
 
-  # 检查变量
-  if [ ${kubernetesVersion} != 'latest' ]; then
-    RES_LEVEL=1 && test $(echo "${kubernetesVersion}" | awk -F '.' '{print NF}') -eq 3
-    result_msg "检查 kubernetesVersion 格式" && RES_LEVEL=0
-    RES_LEVEL=1 && test $(echo "${kubernetesVersion%.*} >= 1.22" | bc) -eq 1
-    result_msg "检查 kubernetesVersion >= 1.22" && RES_LEVEL=0
-  fi
+  # 检查 k8s
+  RES_LEVEL=1 && test $(echo "${kubernetesVersion}" | awk -F '.' '{print NF}') -eq 3 \
+    && echo "${kubernetesVersion}" | awk -F '.' '{print $1$2$3}' | grep -Eqi '^[[:digit:]]*$'
+  result_msg "检查 kubernetesVersion 格式" && RES_LEVEL=0
+  RES_LEVEL=1 && test $(echo "${kubernetesMajorMinor} >= 1.22" | bc) -eq 1
+  result_msg "检查 kubernetesVersion >= 1.22" && RES_LEVEL=0
+
+  # 检查 cri
   RES_LEVEL=1 && test ${criSocket}
   result_msg "检查 criSocket variable" && RES_LEVEL=0
-  if [ ${criName} = 'containerd' ] && [ ${criVersion} != 'latest' ]; then
-    RES_LEVEL=1 && test $(echo "${criVersion%.*} >= 1.5" | bc) -eq 1
-    result_msg "检查 criVersion >= 1.5" && RES_LEVEL=0
+  if [ ${criVersion} != 'latest' ]; then
+    if [ ${criName} = 'containerd' ]; then
+      RES_LEVEL=1 && test $(echo "${criVersion%.*} >= 1.5" | bc) -eq 1
+      result_msg "检查 criVersion >= 1.5" && RES_LEVEL=0
+    fi
   fi
 }
 
@@ -226,6 +237,7 @@ variables_display_test() {
   echo "HOST_ROLE=${HOST_ROLE}"
   # kubernetes variables
   echo "remoteScriptDir=${remoteScriptDir}"
+  echo "localMirror=${localMirror}"
   echo "kubernetesVersion=${kubernetesVersion}"
   echo "crictlVersion=${crictlVersion}"
   echo "controlPlaneAddress=${controlPlaneAddress}"

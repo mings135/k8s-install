@@ -1,67 +1,99 @@
 # 系统基础设置
 
 
-# 设置软件源 (centos)
-basic_set_repos_centos() {
-  # 安装前置工具
-  install_apps "yum-utils"
-  # 设置 EPEL 源
-  if [ ! -f /etc/yum.repos.d/epel.repo ]; then
-    install_apps "epel-release"
-    sed -e 's!^metalink=!#metalink=!g' \
-      -e 's!^#baseurl=!baseurl=!g' \
-      -e 's!//download\.fedoraproject\.org/pub!//mirrors.tuna.tsinghua.edu.cn!g' \
-      -e 's!//download\.example/pub!//mirrors.tuna.tsinghua.edu.cn!g' \
-      -e 's!http://mirrors!https://mirrors!g' \
-      -i /etc/yum.repos.d/epel*.repo
-    result_msg "更换 epel link"
-  fi
-  # 设置 docker 源
-  if [ ${criName} = 'containerd' ]; then
+# 设置 cri yum 源
+basic_set_repos_cri() {
+  # centos 设置 docker 源
+  if [ ${criName} = 'containerd' ] && [ ${SYSTEM_RELEASE} = 'centos' ]; then
     yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo > /dev/null
     result_msg "添加 docker repo"
-    sed -e 's+download.docker.com+mirrors.tuna.tsinghua.edu.cn/docker-ce+' \
-      -e '/^gpgcheck=1/s/gpgcheck=1/gpgcheck=0/' \
-      -i /etc/yum.repos.d/docker-ce.repo
-    result_msg "修改 docker repo"
+    if [ ${localMirror} -ne 0 ]; then
+      sed -e 's+download.docker.com+mirrors.tuna.tsinghua.edu.cn/docker-ce+' \
+        -e '/^gpgcheck=1/s/gpgcheck=1/gpgcheck=0/' \
+        -i /etc/yum.repos.d/docker-ce.repo
+      result_msg "修改 docker repo"
+    fi
   fi
-  # 设置 kubernetes 源
-  if [ ! -f /etc/yum.repos.d/kubernetes.repo ];then
-    cat > /etc/yum.repos.d/kubernetes.repo << EOF
-[kubernetes]
-name=Kubernetes
-baseurl=https://mirrors.tuna.tsinghua.edu.cn/kubernetes/yum/repos/kubernetes-el7-\$basearch
-enabled=1
-gpgcheck=0
-gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOF
-    result_msg "添加 k8s repo"
+
+  # debian 设置 docker 源
+  if [ ${criName} = 'containerd' ] && [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    local list_file='/etc/apt/sources.list.d/docker.list'
+    local gpg_file='/etc/apt/keyrings/docker-archive-keyring.gpg'
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --yes --dearmor -o ${gpg_file}
+    result_msg "添加 docker gpg"
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=${gpg_file}] https://download.docker.com/linux/debian $(lsb_release -cs) stable" > ${list_file}
+    result_msg "添加 docker repo"
+    if [ ${localMirror} -ne 0 ];then
+      sed -i 's+download.docker.com+mirrors.tuna.tsinghua.edu.cn/docker-ce+' ${list_file}
+      result_msg "修改 repo source"
+    fi
   fi
 }
 
 
-# 设置软件源 (debian)
-basic_set_repos_debian() {
-  # 安装前置工具 apt-transport-https
-  install_apps "ca-certificates curl gnupg lsb-release"
-  # 设置 docker 源
-  local docker_list_file='/etc/apt/sources.list.d/docker.list'
-  if [ ! -f ${docker_list_file} ]; then
-    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    result_msg "添加 docker gpg"
-    echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
-      $(lsb_release -cs) stable" | tee ${docker_list_file} > /dev/null
-    result_msg "添加 docker repo"
-    sed -i 's+download.docker.com+mirrors.tuna.tsinghua.edu.cn/docker-ce+' ${docker_list_file}
-    result_msg "修改 repo source"
-  fi
-  # 设置 kubernetes 源
-  if [ ! -f /etc/apt/sources.list.d/kubernetes.list ]; then
-    curl -fsSL https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | gpg --yes --dearmor -o /usr/share/keyrings/kubernetes-archive-keyring.gpg
-    result_msg "添加 k8s pgp"
-    echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://mirrors.tuna.tsinghua.edu.cn/kubernetes/apt/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
+# 设置 kubernetes 源
+basic_set_repos_kubernetes() {
+  # centos 设置 kubernetes 源(>= 1.28)
+  if [ $(echo "${kubernetesMajorMinor} >= 1.28" | bc) -eq 1 ] && [ ${SYSTEM_RELEASE} = 'centos' ]; then
+    cat > /etc/yum.repos.d/kubernetes.repo << EOF
+[kubernetes]
+name=Kubernetes
+baseurl=https://pkgs.k8s.io/core:/stable:/v${kubernetesMajorMinor}/rpm/
+enabled=1
+gpgcheck=1
+gpgkey=https://pkgs.k8s.io/core:/stable:/v${kubernetesMajorMinor}/rpm/repodata/repomd.xml.key
+exclude=kubelet kubeadm kubectl cri-tools kubernetes-cni
+EOF
     result_msg "添加 k8s repo"
+  fi
+
+  # centos 设置 kubernetes 源(< 1.28)
+  if [ $(echo "${kubernetesMajorMinor} < 1.28" | bc) -eq 1 ] && [ ${SYSTEM_RELEASE} = 'centos' ]; then
+    cat > /etc/yum.repos.d/kubernetes.repo << EOF
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+enabled=1
+gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kubelet kubeadm kubectl
+EOF
+    result_msg "添加 k8s repo"
+    if [ ${localMirror} -ne 0 ];then
+      sed -e 's+packages.cloud.google.com+mirrors.tuna.tsinghua.edu.cn/kubernetes+' \
+        -e '/^gpgcheck=1/s/gpgcheck=1/gpgcheck=0/' \
+        -i /etc/yum.repos.d/kubernetes.repo
+      result_msg "修改 k8s repo"
+    fi
+  fi
+  
+  # debian 所需变量(/etc/apt/keyrings 在 request 中创建)
+  local list_file='/etc/apt/sources.list.d/kubernetes.list'
+  local gpg_file='/etc/apt/keyrings/kubernetes-archive-keyring.gpg'
+  
+  # debian 设置 kubernetes 源(>= 1.28)
+  if [ $(echo "${kubernetesMajorMinor} >= 1.28" | bc) -eq 1 ] && [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --yes --dearmor -o ${gpg_file}
+    result_msg "添加 k8s pgp"
+    echo "deb [signed-by=${gpg_file}] https://pkgs.k8s.io/core:/stable:/v${kubernetesMajorMinor}/deb/ /" > ${list_file}
+    result_msg "添加 k8s repo"
+  fi
+
+  # debian 设置 kubernetes 源(< 1.28)
+  if [ $(echo "${kubernetesMajorMinor} < 1.28" | bc) -eq 1 ] && [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    if [ ${localMirror} -ne 0 ];then
+      # open local mirror
+      curl -fsSL https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | gpg --yes --dearmor -o ${gpg_file}
+      result_msg "添加 k8s pgp"
+      echo "deb [signed-by=${gpg_file}] https://mirrors.tuna.tsinghua.edu.cn/kubernetes/apt/ kubernetes-xenial main" > ${list_file}
+      result_msg "添加 k8s repo"
+    else
+      # official mirror
+      curl -fsSL https://dl.k8s.io/apt/doc/apt-key.gpg | gpg --yes --dearmor -o ${gpg_file}
+      result_msg "添加 k8s pgp"
+      echo "deb [signed-by=${gpg_file}] https://apt.kubernetes.io/ kubernetes-xenial main" > ${list_file}
+      result_msg "添加 k8s repo"
+    fi
   fi
 }
 
@@ -103,8 +135,21 @@ EOF
 
 # 安装必要的工具 (centos)
 basic_install_request_centos() {
-  local apps='ipvsadm chrony nfs-utils iproute-tc'
-  install_apps "${apps}"
+  # 安装 EPEL 源
+  if [ ! -f /etc/yum.repos.d/epel.repo ]; then
+    install_apps "epel-release"
+    if [ ${localMirror} -ne 0 ]; then
+      sed -e 's!^metalink=!#metalink=!g' \
+        -e 's!^#baseurl=!baseurl=!g' \
+        -e 's!//download\.fedoraproject\.org/pub!//mirrors.tuna.tsinghua.edu.cn!g' \
+        -e 's!//download\.example/pub!//mirrors.tuna.tsinghua.edu.cn!g' \
+        -e 's!http://mirrors!https://mirrors!g' \
+        -i /etc/yum.repos.d/epel*.repo
+      result_msg "修改 epel repo"
+    fi
+  fi
+  # install tools
+  install_apps 'ipvsadm chrony iproute-tc nfs-utils yum-utils'
   # 优化 chrony 配置
   if systemctl list-unit-files | grep -Eqi 'chronyd'; then
     basic_set_chrony_config '/etc/chrony.conf'
@@ -117,8 +162,12 @@ basic_install_request_centos() {
 
 # 安装必要的工具 (debian)
 basic_install_request_debian() {
-  local apps='ipvsadm chrony nfs-common'
-  install_apps "${apps}"
+  # install tools
+  install_apps 'ipvsadm chrony nfs-common ca-certificates curl gnupg lsb-release'
+  # 创建必要目录
+  if [ ! -e /etc/apt/keyrings ]; then
+    mkdir -p /etc/apt/keyrings
+  fi
   # 优化 chrony 配置
   if systemctl list-unit-files | grep -Eqi 'chronyd'; then
     basic_set_chrony_config '/etc/chrony/chrony.conf'
@@ -261,9 +310,10 @@ EOF
 
 # 基础设置
 basic_system_configs() {
-  basic_set_repos_${SYSTEM_RELEASE}
-  basic_reset_repos_cache
   basic_install_request_${SYSTEM_RELEASE}
+  basic_set_repos_cri
+  basic_set_repos_kubernetes
+  basic_reset_repos_cache
   basic_optimization_system
   basic_load_ipvs_modules
   basic_optimization_kernel_parameters

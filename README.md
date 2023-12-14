@@ -8,6 +8,7 @@
 
 - `Linux:` 
   - 支持 AlmaLinux 8、AlmaLinux 9、Debian 11、Debian 12
+  - 目前所有资源默认将使用对应的官方资源，请检查自己的网络是否支持
 - `Kubernetes:` 
   - 支持 1.22+
   - 1.22 ~ 1.24 官方镜像仓库地址：`k8s.gcr.io`
@@ -15,6 +16,7 @@
   - 国内镜像仓库地址：`registry.cn-hangzhou.aliyuncs.com/google_containers`
   - debian 中，当 k8s 版本 >= 1.25 时，cri-tools  版本须 >= 1.25
   - k8s 版本设置后，建议自行测试 cri-tools 和 containerd 版本是否支持，或使用默认值
+  - 1.28 开始官方修改了 k8s 的 apt 和 yum 源
 - `Containerd：` 
   - 支持 1.5+
   - 当 cri-tools  版本 >= 1.26 时，containerd 版本须 >= 1.6
@@ -64,7 +66,7 @@ bash remote.sh -cf auto
 ```yaml
 cluster:
   # 更新到哪个版本
-  kubernetesVersion: "1.27.4"
+  kubernetesVersion: "1.29.0"
   # 是否更新证书, 默认为 false, 执行 auto 命令时如果没有使用 -c, 建议改为 true
   certificateRenewal: "false"
 ```

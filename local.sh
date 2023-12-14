@@ -119,6 +119,7 @@ local_deploy_flannel() {
 # 更新集群版本
 local_upgrade_version() {
   if ! grep -Eqi "cluster_upgrade_version_kubeadm-${upgradeVersion}" ${script_dir}/config/record.txt; then
+    basic_set_repos_kubernetes
     basic_reset_repos_cache
     cluster_upgrade_version_kubeadm
     echo "cluster_upgrade_version_kubeadm-${upgradeVersion}" >> ${script_dir}/config/record.txt

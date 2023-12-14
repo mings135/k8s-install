@@ -3,34 +3,26 @@
 
 # 安装 k8s
 kubernetes_install_apps() {
-  if [ ${SYSTEM_RELEASE} = 'debian' ]; then
+  # 如果设置 crictl version, 安装指定版本, 否则将在 kubeadm 安装时同步安装
+  if [ ${crictlVersion} != 'latest' ]; then
+    if [ ${SYSTEM_RELEASE} = 'centos' ]; then
+      # CentOS 查看更多版本：yum list cri-tools --showduplicates | sort -r
+      install_apps "cri-tools-${crictlVersion}" '--disableexcludes=kubernetes'
+    elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
+      # Debian 查看更多版本：apt-cache madison cri-tools
+      install_apps "cri-tools=${crictlVersion}-00"
+    fi
+  fi
+  # 安装 kubeadm 等应用
+  if [ ${SYSTEM_RELEASE} = 'centos' ]; then
+    # CentOS 查看更多版本：yum list kubeadm --showduplicates --disableexcludes=kubernetes | sort -r
+    install_apps "kubectl-${kubernetesVersion} kubelet-${kubernetesVersion} kubeadm-${kubernetesVersion}" '--disableexcludes=kubernetes'
+  elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
     # 解锁版本
     apt-mark unhold kubectl kubelet kubeadm &> /dev/null
     result_msg "解锁 kubectl kubelet kubeadm"
-  fi
-
-  if [ ${crictlVersion} = 'latest' ]; then
-    install_apps "cri-tools"
-  elif [ ${SYSTEM_RELEASE} = 'centos' ]; then
-    # CentOS 查看更多版本：yum list cri-tools --showduplicates | sort -r
-    install_apps "cri-tools-${crictlVersion}"
-  elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
-    # Debian 查看更多版本：apt-cache madison cri-tools
-    install_apps "cri-tools=${crictlVersion}-00"
-  fi
-  
-  if [ ${kubernetesVersion} = 'latest' ]; then
-    local apps="kubectl kubelet kubeadm"
-  elif [ ${SYSTEM_RELEASE} = 'centos' ]; then
-    # CentOS 查看更多版本：yum list kubeadm --showduplicates | sort -r
-    local apps="kubectl-${kubernetesVersion} kubelet-${kubernetesVersion} kubeadm-${kubernetesVersion}"
-  elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
     # Debian 查看更多版本：apt-cache madison kubeadm
-    local apps="kubectl=${kubernetesVersion}-00 kubelet=${kubernetesVersion}-00 kubeadm=${kubernetesVersion}-00"
-  fi
-  install_apps "${apps}"
-
-  if [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    install_apps "kubectl=${kubernetesVersion}-00 kubelet=${kubernetesVersion}-00 kubeadm=${kubernetesVersion}-00"
     # 锁住版本
     apt-mark hold kubectl kubelet kubeadm &> /dev/null
     result_msg "锁住 kubectl kubelet kubeadm"
