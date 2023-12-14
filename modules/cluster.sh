@@ -61,7 +61,7 @@ cluster_upgrade_version_kubeadm() {
     result_msg "升级 kubeadm"
   elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
     apt-mark unhold kubeadm \
-      && install_apps "kubeadm=${upgradeVersion}-00" \
+      && install_apps "kubeadm=${upgradeVersion}" \
       && apt-mark hold kubeadm
     result_msg "升级 kubeadm"
   fi
@@ -91,7 +91,7 @@ cluster_upgrade_version_kubelet() {
     result_msg "升级 kubelet kubectl"
   elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
     apt-mark unhold kubelet kubectl \
-      && install_apps "kubelet=${upgradeVersion}-00 kubectl=${upgradeVersion}-00" \
+      && install_apps "kubelet=${upgradeVersion} kubectl=${upgradeVersion}" \
       && apt-mark hold kubelet kubectl
     result_msg "升级 kubelet kubectl"
   fi

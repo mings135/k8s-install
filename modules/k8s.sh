@@ -10,7 +10,7 @@ kubernetes_install_apps() {
       install_apps "cri-tools-${crictlVersion}" '--disableexcludes=kubernetes'
     elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
       # Debian 查看更多版本：apt-cache madison cri-tools
-      install_apps "cri-tools=${crictlVersion}-00"
+      install_apps "cri-tools=${crictlVersion}"
     fi
   fi
   # 安装 kubeadm 等应用
@@ -22,7 +22,7 @@ kubernetes_install_apps() {
     apt-mark unhold kubectl kubelet kubeadm &> /dev/null
     result_msg "解锁 kubectl kubelet kubeadm"
     # Debian 查看更多版本：apt-cache madison kubeadm
-    install_apps "kubectl=${kubernetesVersion}-00 kubelet=${kubernetesVersion}-00 kubeadm=${kubernetesVersion}-00"
+    install_apps "kubectl=${kubernetesVersion} kubelet=${kubernetesVersion} kubeadm=${kubernetesVersion}"
     # 锁住版本
     apt-mark hold kubectl kubelet kubeadm &> /dev/null
     result_msg "锁住 kubectl kubelet kubeadm"

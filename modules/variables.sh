@@ -3,6 +3,7 @@
 
 # 提供安装 app 函数
 install_apps() {
+  local ver_val name_val ver_long
   # 解决 debian 系统 debconf: unable to initialize frontend: Dialog 问题
   if [ ${SYSTEM_RELEASE} = 'debian' ]; then
     export DEBIAN_FRONTEND=noninteractive
@@ -10,9 +11,15 @@ install_apps() {
   # 安装 app, $1 需要安装的软件, space 分隔, $2 额外的参数
   for i in $1
   do
+    if [ ${SYSTEM_RELEASE} = 'debian' ]; then
+      name_val=$(echo $i | awk -F '=' '{print$1}')
+      ver_val=$(echo $i | awk -F '=' '{print$2}')
+      ver_long=$(apt-cache madison ${name_val} | grep "${ver_val}" | awk '{print $3}')
+      i="${name_val}=${ver_long}"
+    fi
     if [ $2 ]; then
       ${SYSTEM_PACKAGE} install -y ${i} $2 &> /dev/null
-      result_msg "安装 $i $2"
+      result_msg "安装 $i 2"
     else
       ${SYSTEM_PACKAGE} install -y ${i} &> /dev/null
       result_msg "安装 $i"
