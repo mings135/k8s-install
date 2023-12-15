@@ -167,6 +167,7 @@ remote_restore_etcd() {
 
 # 删除整个集群
 remote_clean_cluster() {
+  remote_rsync_script
   for i in ${NODES_ALL}
   do
     if ssh root@${i} test -e ${remoteScriptDir}/local.sh; then
