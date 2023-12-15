@@ -22,12 +22,27 @@ install_apps() {
     fi
     # 执行安装
     if [ $2 ]; then
-      ${SYSTEM_PACKAGE} install -y ${i} $2 &> /dev/null
+      ${SYSTEM_PACKAGE} install -y ${i} $2 > /dev/null
       result_msg "安装 $i"
     else
-      ${SYSTEM_PACKAGE} install -y ${i} &> /dev/null
+      ${SYSTEM_PACKAGE} install -y ${i} > /dev/null
       result_msg "安装 $i"
     fi
+  done
+}
+
+
+# 提供删除 app 函数
+remove_apps() {
+  # 解决 debian 系统 debconf: unable to initialize frontend: Dialog 问题
+  if [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    export DEBIAN_FRONTEND=noninteractive
+  fi
+  # 移除 app
+  for i in $1
+  do
+    ${SYSTEM_PACKAGE} remove -y ${i} > /dev/null
+    result_msg "移除 $i"
   done
 }
 

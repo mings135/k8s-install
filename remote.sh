@@ -169,10 +169,11 @@ remote_restore_etcd() {
 remote_clean_cluster() {
   for i in ${NODES_ALL}
   do
-    result_blue_font "清理节点: ${i}"
-    ssh root@${i} kubeadm reset -f
-    ssh root@${i} ipvsadm --clear
-    ssh root@${i} rm -rf ${remoteScriptDir} /etc/cni/net.d /root/.kube/config
+    if ssh root@${i} test -e ${remoteScriptDir}/local.sh; then
+      result_blue_font "清理节点: ${i}"
+      ssh root@${i} bash ${remoteScriptDir}/local.sh clean
+      ssh root@${i} rm -rf ${remoteScriptDir}
+    fi
   done
 }
 ###

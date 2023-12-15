@@ -132,6 +132,31 @@ local_upgrade_version() {
 }
 
 
+# 删除集群
+local_clean_cluster() {
+  if which kubeadm &> /dev/null; then
+    kubeadm reset -f
+    remove_apps 'kubeadm'
+  fi
+  if which kubelet &> /dev/null; then
+    remove_apps 'kubelet'
+  fi
+  if which kubectl &> /dev/null; then
+    remove_apps 'kubectl'
+  fi
+  if which crictl &> /dev/null; then
+    remove_apps 'cri-tools'
+  fi
+  if which containerd &> /dev/null; then
+    remove_apps 'containerd.io'
+  fi
+  if which ipvsadm &> /dev/null; then
+    ipvsadm --clear
+  fi
+  rm -rf /etc/cni/net.d /root/.kube/config
+}
+
+
 main() {
   local_check_record
   variables_settings
@@ -151,6 +176,7 @@ main() {
     "backup") cluster_backup_etcd;;
     "restore") cluster_restore_etcd;;
     "startetcd") cluster_start_etcd;;
+    "clean") local_clean_cluster;;
     "test") variables_display_test;;
     *)
     printf "Usage: bash $0 [ ? ] \n"
