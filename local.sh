@@ -136,16 +136,11 @@ local_upgrade_version() {
 local_clean_cluster() {
   if which kubeadm &> /dev/null; then
     kubeadm reset -f
-    remove_apps 'kubeadm'
-  fi
-  if which kubelet &> /dev/null; then
-    remove_apps 'kubelet'
-  fi
-  if which kubectl &> /dev/null; then
-    remove_apps 'kubectl'
-  fi
-  if which crictl &> /dev/null; then
-    remove_apps 'cri-tools'
+    if [ ${SYSTEM_RELEASE} = 'debian' ]; then
+      apt-mark unhold kubectl kubelet kubeadm > /dev/null
+      result_msg "解锁 kubectl kubelet kubeadm"
+    fi
+    remove_apps 'kubeadm kubelet kubectl cri-tools'
   fi
   if which containerd &> /dev/null; then
     remove_apps 'containerd.io'
