@@ -165,11 +165,10 @@ cluster_start_etcd() {
 }
 
 
-# 安装 etcdctl 命令(从集群 etcd 容器中获取)
+# 安装必要的工具(3), 备份还原所需的前置工具
 cluster_install_etcdctl() {
-  local etcd_ver="v3.5.9"
-  if ! which etcdctl &> /dev/null; then
-    curl -fsSL -o /tmp/etcd-linux-amd64.tar.gz https://github.com/etcd-io/etcd/releases/download/${etcd_ver}/etcd-${etcd_ver}-linux-amd64.tar.gz \
+  if ! which etcdctl &> /dev/null || [ $(etcdctl version | grep 'etcdctl version' | awk '{print $3}') != "${etcdctlVersion}" ]; then
+    curl -fsSL -o /tmp/etcd-linux-amd64.tar.gz https://github.com/etcd-io/etcd/releases/download/v${etcdctlVersion}/etcd-v${etcdctlVersion}-linux-amd64.tar.gz \
       && rm -rf /tmp/etcd-download-test && mkdir -p /tmp/etcd-download-test \
       && tar xzf /tmp/etcd-linux-amd64.tar.gz -C /tmp/etcd-download-test --strip-components=1 \
       && rm -f /tmp/etcd-linux-amd64.tar.gz \

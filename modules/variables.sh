@@ -11,15 +11,19 @@ install_apps() {
   # 安装 app, $1 需要安装的软件, space 分隔, $2 额外的参数
   for i in $1
   do
+    # debian 获取完整的版本信息
     if [ ${SYSTEM_RELEASE} = 'debian' ] && echo $i | grep -Eqi '='; then
       name_val=$(echo $i | awk -F '=' '{print$1}')
       ver_val=$(echo $i | awk -F '=' '{print$2}')
-      ver_long=$(apt-cache madison ${name_val} | grep "${ver_val}" | awk '{print $3}')
-      i="${name_val}=${ver_long}"
+      ver_long=$(apt-cache madison ${name_val} | grep "${ver_val}" | awk '{print $3}' | head -n 1)
+      if [ ${ver_long} ]; then
+        i="${name_val}=${ver_long}"
+      fi
     fi
+    # 执行安装
     if [ $2 ]; then
       ${SYSTEM_PACKAGE} install -y ${i} $2 &> /dev/null
-      result_msg "安装 $i 2"
+      result_msg "安装 $i"
     else
       ${SYSTEM_PACKAGE} install -y ${i} &> /dev/null
       result_msg "安装 $i"
@@ -67,7 +71,7 @@ variables_set_system() {
 }
 
 
-# 安装依赖工具
+# 安装必要的工具(1), 脚本所需的前置工具
 variables_install_dependencies() {
   variables_set_system
   if ! which bc &> /dev/null; then
@@ -160,6 +164,7 @@ variables_read_config() {
   apiServerClusterIP="$(yq -M '.cluster.apiServerClusterIP' ${kube_conf} | grep -v '^null$')"
   podSubnet="$(yq -M '.cluster.podSubnet' ${kube_conf} | grep -v '^null$')"
   nodePassword="$(yq -M '.nodes.nodePassword' ${kube_conf} | grep -v '^null$')"
+  etcdctlVersion="$(yq -M '.nodes.etcdctlVersion' ${kube_conf} | grep -v '^null$')"
   certificateRenewal="$(yq -M '.cluster.certificateRenewal' ${kube_conf} | grep -v '^null$')"
 }
 
@@ -192,7 +197,11 @@ variables_default_config() {
   podSubnet=${podSubnet:-'10.244.0.0/16'}
   # 节点密码, 默认为空(也就是手动输入)
   nodePassword=${nodePassword:-''}
+  # 节点安装 etcdctl 的 version
+  etcdctlVersion=${etcdctlVersion:-'3.5.10'}
+  # upgrade 时, 是否更新证书
   certificateRenewal=${certificateRenewal:-'false'}
+  
 
   # 设置常量
   KUBEADM_PKI='/etc/kubernetes/pki'

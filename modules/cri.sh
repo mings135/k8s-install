@@ -10,7 +10,7 @@ cri_install_containerd() {
     local apps="containerd.io-${criVersion}"
   elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
     # Debian 查看更多版本：apt-cache madison containerd.io
-    local apps="containerd.io=${criVersion}-1"
+    local apps="containerd.io=${criVersion}"
   fi
   install_apps "${apps}"
 }

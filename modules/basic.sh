@@ -133,7 +133,7 @@ EOF
 }
 
 
-# 安装必要的工具 (centos)
+# 安装必要的工具(2), centos 安装集群所需的前置工具
 basic_install_request_centos() {
   # 安装 EPEL 源
   if [ ! -f /etc/yum.repos.d/epel.repo ]; then
@@ -160,7 +160,7 @@ basic_install_request_centos() {
 }
 
 
-# 安装必要的工具 (debian)
+# 安装必要的工具(2), debian 安装集群所需的前置工具
 basic_install_request_debian() {
   # install tools
   install_apps 'ipvsadm chrony nfs-common ca-certificates curl gnupg lsb-release'
