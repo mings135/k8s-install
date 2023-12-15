@@ -19,12 +19,12 @@ kubernetes_install_apps() {
     install_apps "kubectl-${kubernetesVersion} kubelet-${kubernetesVersion} kubeadm-${kubernetesVersion}" '--disableexcludes=kubernetes'
   elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
     # 解锁版本
-    apt-mark unhold kubectl kubelet kubeadm > /dev/null
+    apt-mark unhold kubectl kubelet kubeadm &> /dev/null
     result_msg "解锁 kubectl kubelet kubeadm"
     # Debian 查看更多版本：apt-cache madison kubeadm
     install_apps "kubectl=${kubernetesVersion} kubelet=${kubernetesVersion} kubeadm=${kubernetesVersion}"
     # 锁住版本
-    apt-mark hold kubectl kubelet kubeadm > /dev/null
+    apt-mark hold kubectl kubelet kubeadm &> /dev/null
     result_msg "锁住 kubectl kubelet kubeadm"
   fi
 }
@@ -51,10 +51,10 @@ EOF
   tmp_var=${HOST_IP} yq -i '.localAPIEndpoint.advertiseAddress = strenv(tmp_var)' initConfiguration.yaml
   tmp_var=${criSocket} yq -i '.nodeRegistration.criSocket = strenv(tmp_var)' initConfiguration.yaml
   tmp_var=${HOST_NAME} yq -i '.nodeRegistration.name = strenv(tmp_var)' initConfiguration.yaml
-  if [ ${controlPlaneEndpoint} ]; then
+  if [ "${controlPlaneEndpoint}" ]; then
     tmp_var=${controlPlaneEndpoint} yq -i '.controlPlaneEndpoint = strenv(tmp_var)' clusterConfiguration.yaml
   fi
-  if [ ${imageRepository} ]; then
+  if [ "${imageRepository}" ]; then
     tmp_var=${imageRepository} yq -i '.imageRepository = strenv(tmp_var)' clusterConfiguration.yaml
   fi
   if [ ${kubernetesVersion} != 'latest' ]; then

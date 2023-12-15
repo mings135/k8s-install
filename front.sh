@@ -95,5 +95,5 @@ if [ ${SYSTEM_RELEASE} = 'debian' ]; then
   export DEBIAN_FRONTEND=noninteractive
 fi
 
-${SYSTEM_PACKAGE} install -y rsync > /dev/null
+${SYSTEM_PACKAGE} install -y rsync &> /dev/null
 result_msg "安装 rsync"

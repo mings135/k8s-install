@@ -24,7 +24,7 @@ cri_config_containerd() {
   mkdir -p /etc/containerd && containerd config default > ${config_file}
   result_msg "创建 containerd config"
   # 修改默认配置 sandbox_image
-  if [ ${imageRepository} ]; then
+  if [ "${imageRepository}" ]; then
     sed -i "s#\(sandbox_image = \"\).*\(/pause:.*\"\)#\1${imageRepository}\2#" ${config_file}
     result_msg "修改 sandbox image"
   fi
@@ -37,7 +37,7 @@ cri_config_containerd() {
     result_msg "新增 containerd Cgroup"
   fi
   # 新增配置 registry.mirrors
-  if [ ${privateRepository} ]; then
+  if [ "${privateRepository}" ]; then
     # 修改 config_path 值
     sed -i "s#\(config_path = \"\).*\(\"\)#\1${config_path}\2#" ${config_file}
     result_msg "修改 containerd config_path"
@@ -48,7 +48,7 @@ cri_config_containerd() {
       && echo "[host.\"${privateRepository}\"]" > ${config_path}/${url}/hosts.toml
     result_msg "增加 containerd 私有仓库"
     # https 开启 skip_verify
-    if [ ${scheme} = 'https' ]; then
+    if [ "${scheme}" = 'https' ]; then
       echo '  skip_verify = true' >> ${config_path}/${url}/hosts.toml
     fi
   fi

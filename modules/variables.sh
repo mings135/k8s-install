@@ -16,19 +16,33 @@ install_apps() {
       name_val=$(echo $i | awk -F '=' '{print$1}')
       ver_val=$(echo $i | awk -F '=' '{print$2}')
       ver_long=$(apt-cache madison ${name_val} | grep "${ver_val}" | awk '{print $3}' | head -n 1)
-      if [ ${ver_long} ]; then
+      if [ "${ver_long}" ]; then
         i="${name_val}=${ver_long}"
       fi
     fi
     # 执行安装
-    if [ $2 ]; then
-      ${SYSTEM_PACKAGE} install -y ${i} $2 > /dev/null
+    if [ "$2" ]; then
+      ${SYSTEM_PACKAGE} install -y ${i} $2 &> /dev/null
       result_msg "安装 $i"
     else
-      ${SYSTEM_PACKAGE} install -y ${i} > /dev/null
+      ${SYSTEM_PACKAGE} install -y ${i} &> /dev/null
       result_msg "安装 $i"
     fi
   done
+}
+
+
+# 更新镜像源缓存
+update_mirror_source_cache() {
+  # centos
+  if [ ${SYSTEM_RELEASE} = 'centos' ]; then
+    ${SYSTEM_PACKAGE} makecache > /dev/null
+    result_msg "重新 yum makecache"
+  # debian
+  elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
+    ${SYSTEM_PACKAGE} update > /dev/null
+    result_msg "重新 apt update"
+  fi
 }
 
 
@@ -41,7 +55,7 @@ remove_apps() {
   # 移除 app
   for i in $1
   do
-    ${SYSTEM_PACKAGE} remove -y ${i} > /dev/null
+    ${SYSTEM_PACKAGE} remove -y ${i} &> /dev/null
     result_msg "移除 $i"
   done
 }
@@ -88,15 +102,20 @@ variables_set_system() {
 
 # 安装必要的工具(1), 脚本所需的前置工具
 variables_install_dependencies() {
-  variables_set_system
+  local apps=''
   if ! which bc &> /dev/null; then
-    install_apps "bc"
+    apps="${apps} bc"
   fi
   if ! which curl &> /dev/null; then
-    install_apps "curl"
+    apps="${apps} curl"
   fi
   if ! which tar &> /dev/null; then
-    install_apps "tar"
+    apps="${apps} tar"
+  fi
+
+  if [ "$apps" ]; then
+    update_mirror_source_cache
+    install_apps "${apps}"
   fi
 
   if ! which yq &> /dev/null; then
@@ -227,7 +246,7 @@ variables_default_config() {
   kubernetesMajorMinor=${kubernetesVersion%.*}
 
   # 生成变量
-  if [ ${controlPlaneAddress} ] && [ ${controlPlanePort} ]; then
+  if [ "${controlPlaneAddress}" ] && [ "${controlPlanePort}" ]; then
     controlPlaneEndpoint="${controlPlaneAddress}:${controlPlanePort}"
   fi
   if [ ${criName} = 'containerd' ]; then

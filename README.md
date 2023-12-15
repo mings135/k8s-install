@@ -81,6 +81,8 @@ cluster:
 ```shell
 # 更新前建议备份下 etcd
 bash remote.sh backup
+# 更新前修改镜像仓库地址(可选)
+kubectl edit cm -n kube-system kubeadm-config
 # 更新版本(必须满足 k8s 更新条件, 请自行查看官网)
 bash remote.sh upgrade
 ```

@@ -98,20 +98,6 @@ EOF
 }
 
 
-# 重置软件源缓存
-basic_reset_repos_cache() {
-  # centos
-  if [ ${SYSTEM_RELEASE} = 'centos' ]; then
-    ${SYSTEM_PACKAGE} makecache > /dev/null
-    result_msg "重新 yum makecache"
-  # debian
-  elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
-    ${SYSTEM_PACKAGE} update > /dev/null
-    result_msg "重新 apt update"
-  fi
-}
-
-
 # 设置 chrony 配置
 basic_set_chrony_config() {
   cat > $1 << EOF
@@ -310,11 +296,11 @@ EOF
 
 # 基础设置
 basic_system_configs() {
-  basic_reset_repos_cache
+  update_mirror_source_cache
   basic_install_request_${SYSTEM_RELEASE}
   basic_set_repos_cri
   basic_set_repos_kubernetes
-  basic_reset_repos_cache
+  update_mirror_source_cache
   basic_optimization_system
   basic_load_ipvs_modules
   basic_optimization_kernel_parameters
