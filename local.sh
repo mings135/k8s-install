@@ -154,6 +154,7 @@ local_clean_cluster() {
     ipvsadm --clear
   fi
   rm -rf /etc/cni/net.d /root/.kube/config
+  result_msg "移除 cni 和 config"
 }
 
 
