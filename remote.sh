@@ -302,8 +302,13 @@ main() {
       result_blue_font "请确认是否要清除整个集群(y/n):"
       read confirm_yn
       if [ ${confirm_yn} ] && [ ${confirm_yn} = 'y' ]; then
-        remote_clean_cluster
+        result_blue_font "请再次确认是否要清除整个集群(y/n):"
+        read confirm_yn
+        if [ ${confirm_yn} ] && [ ${confirm_yn} = 'y' ]; then
+          remote_clean_cluster
+        fi
       fi
+      result_blue_font "集群卸载已完成, 请手动重启所有节点!"
       ;;
     *)
     echo ''

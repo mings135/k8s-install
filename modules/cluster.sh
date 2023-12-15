@@ -182,12 +182,12 @@ cluster_install_etcdctl() {
 }
 
 
-# 生成 admin.conf, 有效期 24h
+# 生成 admin.conf, 有效期 12h
 cluster_generate_kubeconfig_tmp() {
   cd ${script_dir}/config \
     && kubectl get cm kubeadm-config  -n kube-system -o jsonpath='{.data.ClusterConfiguration}' > tmp-kubeadm-config.yaml \
-    && kubeadm kubeconfig user --client-name=kubernetes-admin --org=system:masters --config=tmp-kubeadm-config.yaml --validity-period=24h > tmp-admin.conf
-  result_msg "生成 tmp-admim.conf(24h)"
+    && kubeadm kubeconfig user --client-name=kubernetes-admin --org=system:masters --config=tmp-kubeadm-config.yaml --validity-period=12h > tmp-admin.conf
+  result_msg "生成 tmp-admim.conf(12h)"
 }
 
 
