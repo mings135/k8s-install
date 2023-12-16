@@ -72,11 +72,12 @@ cri_start_containerd() {
 # 更新 containerd 版本   basic_set_repos_cri   update_mirror_source_cache
 cri_upgarde_containerd() {
   local config_dir='/etc/containerd'
-  local backup_dir="${script_dir}/config/containerd_backup"
+  local backup_dir="${script_dir}/config/containerd_backup-${criVersion}"
   # 备份 config
-  mkdir -p ${backup_dir} && rm -rf ${backup_dir}/*
-  /usr/bin/cp -a ${config_dir}/* ${backup_dir}
-  result_msg "备份 config"
+  if [ ! -e ${backup_dir}/config.toml ]; then
+    mkdir -p ${backup_dir} && /usr/bin/cp -a ${config_dir}/* ${backup_dir}
+    result_msg "备份 config"
+  fi
   # 停止 kubelet
   kubectl drain ${HOST_NAME} --ignore-daemonsets
   result_msg "腾空 当前节点"
@@ -99,6 +100,10 @@ cri_upgarde_containerd() {
   result_msg "解除 当前节点的保护"
   kubectl wait --for=condition=Ready nodes/${HOST_NAME} --timeout=50s
   result_msg "等待 节点 Ready"
+  if [ -e ${backup_dir} ]; then
+    rm -rf ${backup_dir}
+    result_msg "删除 备份 config"
+  fi
 }
 
 
