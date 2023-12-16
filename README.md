@@ -8,18 +8,19 @@
 
 - `Linux:` 
   - 支持 AlmaLinux 8、AlmaLinux 9、Debian 11、Debian 12
-  - 目前所有资源默认将使用对应的官方资源，请检查自己的网络是否支持
 - `Kubernetes:` 
   - 支持 1.22+
   - 1.22 ~ 1.24 官方镜像仓库地址：`k8s.gcr.io`
   - 1.25+ 官方镜像仓库地址：`registry.k8s.io`
   - 国内镜像仓库地址：`registry.cn-hangzhou.aliyuncs.com/google_containers`
   - debian 中，当 k8s 版本 >= 1.25 时，cri-tools  版本须 >= 1.25
-  - k8s 版本设置后，建议自行测试 cri-tools 和 containerd 版本是否支持，或使用默认值
-  - 1.28 开始官方修改了 k8s 的 apt 和 yum 源
+  - 1.28+ 官方 apt 和 yum 源有调整，这里将固定使用官方资源
 - `Containerd：` 
   - 支持 1.5+
   - 当 cri-tools  版本 >= 1.26 时，containerd 版本须 >= 1.6
+- `other:`
+  - 目前所有资源默认将使用对应的官方资源，请检查自己的网络是否支持
+  - cri-tools 和 containerd 默认将安装当前最新版本，如果自定义，请注意版本兼容性
 
 
 
@@ -81,9 +82,18 @@ cluster:
 ```shell
 # 更新前建议备份下 etcd
 bash remote.sh backup
-# 更新前修改镜像仓库地址(可选)
-kubectl edit cm -n kube-system kubeadm-config
 # 更新版本(必须满足 k8s 更新条件, 请自行查看官网)
 bash remote.sh upgrade
+```
+
+
+
+## Other
+
+更改镜像仓库地址，须同时更改 kube.yaml 和 集群配置：
+
+```shell
+# 集群配置修改
+kubectl edit cm -n kube-system kubeadm-config
 ```
 
