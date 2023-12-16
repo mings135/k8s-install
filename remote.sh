@@ -320,7 +320,7 @@ main() {
       ;;
     "criupgrade")
       remote_cri_upgrade_version
-      result_blue_font "集群升级已完成!"
+      result_blue_font "容器运行时升级已完成!"
       ;;
     "clean")
       result_blue_font "请确认是否要清除整个集群(y/n):"

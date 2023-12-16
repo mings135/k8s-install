@@ -215,8 +215,8 @@ variables_default_config() {
   imageRepository=${imageRepository:-''}  # 国内使用 registry.cn-hangzhou.aliyuncs.com/google_containers
   # 容器运行时: containerd(latest 表示最新版本)
   criName=${criName:-'containerd'}
-  criVersion=${criVersion:-'latest'} # 1.5.11
-  criUpgradeReconfig=${criVersion:-'0'}
+  criVersion=${criVersion:-'latest'} # 1.6.9
+  criUpgradeReconfig=${criUpgradeReconfig:-'0'}
   # 容器运行时: 配置 harbor 私库地址
   privateRepository=${privateRepository:-''}  # 私有 harbor 仓库地址 http://192.168.13.13
   # 证书有效期和密钥大小(50年)

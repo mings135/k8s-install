@@ -85,10 +85,11 @@ cri_upgarde_containerd() {
   # 删除重装
   remove_apps 'containerd.io'
   cri_install_containerd
-  if [ ${criUpgradeReconfig} -ne 0 ]; then
+  if [ "${criUpgradeReconfig}" -ne 0 ]; then
     cri_config_containerd
   else
     /usr/bin/cp -a ${backup_dir}/* ${config_dir}
+    result_msg "还原 config"
   fi
   cri_start_containerd
   # 启动 kubelet
