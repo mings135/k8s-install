@@ -141,6 +141,26 @@ remote_upgrade_version() {
 }
 
 
+# 更新容器运行时版本
+remote_cri_upgrade_version() {
+  remote_rsync_script
+
+  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh criupgrade
+
+  for i in ${NODES_MASTER}
+  do
+    ssh root@${i} bash ${remoteScriptDir}/local.sh criupgrade
+  done
+
+  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh tmpkubeconfig
+  remote_rsync_kubeconfig_tmp
+  for i in ${NODES_WORK}
+  do
+    ssh root@${i} bash ${remoteScriptDir}/local.sh tmpkubectl criupgrade
+  done
+}
+
+
 # 备份 etcd 快照
 remote_backup_etcd() {
   remote_rsync_script
@@ -296,6 +316,10 @@ main() {
       if [ ${remote_FLANNEL_SWITCH} -eq 1 ]; then
         remote_deploy_flannel
       fi
+      result_blue_font "集群升级已完成!"
+      ;;
+    "criupgrade")
+      remote_cri_upgrade_version
       result_blue_font "集群升级已完成!"
       ;;
     "clean")

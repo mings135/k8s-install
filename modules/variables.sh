@@ -187,6 +187,7 @@ variables_read_config() {
   imageRepository="$(yq -M '.cluster.imageRepository' ${kube_conf} | grep -v '^null$')"
   criName="$(yq -M '.container.criName' ${kube_conf} | grep -v '^null$')"
   criVersion="$(yq -M '.container.criVersion' ${kube_conf} | grep -v '^null$')"
+  criUpgradeReconfig="$(yq -M '.container.criUpgradeReconfig' ${kube_conf} | grep -v '^null$')"
   privateRepository="$(yq -M '.container.privateRepository' ${kube_conf} | grep -v '^null$')"
   certificatesVaild="$(yq -M '.cluster.certificatesVaild' ${kube_conf} | grep -v '^null$')"
   certificatesSize="$(yq -M '.cluster.certificatesSize' ${kube_conf} | grep -v '^null$')"
@@ -215,6 +216,7 @@ variables_default_config() {
   # 容器运行时: containerd(latest 表示最新版本)
   criName=${criName:-'containerd'}
   criVersion=${criVersion:-'latest'} # 1.5.11
+  criUpgradeReconfig=${criVersion:-'0'}
   # 容器运行时: 配置 harbor 私库地址
   privateRepository=${privateRepository:-''}  # 私有 harbor 仓库地址 http://192.168.13.13
   # 证书有效期和密钥大小(50年)

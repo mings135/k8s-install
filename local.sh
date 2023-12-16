@@ -132,6 +132,17 @@ local_upgrade_version() {
 }
 
 
+# 更新容器运行时版本
+local_cri_upgrade_version() {
+  if ! grep -Eqi "cri_upgrade_version-${criVersion}" ${script_dir}/config/record.txt; then
+    basic_set_repos_cri
+    update_mirror_source_cache
+    cri_upgrade_version
+    echo "cri_upgrade_version-${criVersion}" >> ${script_dir}/config/record.txt
+  fi
+}
+
+
 # 删除集群
 local_clean_cluster() {
   # 集群清理
@@ -190,6 +201,7 @@ main() {
     "kubelet") local_kubelet_certs;;
     "flannel") local_deploy_flannel;;
     "upgrade") local_upgrade_version;;
+    "criupgrade") local_cri_upgrade_version;;
     "tmpkubeconfig") cluster_generate_kubeconfig_tmp;;
     "tmpkubectl") cluster_config_kubectl_tmp;;
     "backup") cluster_backup_etcd;;

@@ -21,7 +21,7 @@ cri_config_containerd() {
   local config_file='/etc/containerd/config.toml'
   local config_path='/etc/containerd/certs.d'
   # 创建默认配置
-  mkdir -p /etc/containerd && containerd config default > ${config_file}
+  mkdir -p ${config_path} && containerd config default > ${config_file}
   result_msg "创建 containerd config"
   # 修改默认配置 sandbox_image
   if [ "${imageRepository}" ]; then
@@ -69,8 +69,45 @@ cri_start_containerd() {
 }
 
 
+# 更新 containerd 版本   basic_set_repos_cri   update_mirror_source_cache
+cri_upgarde_containerd() {
+  local config_dir='/etc/containerd'
+  local backup_dir="${script_dir}/config/containerd_backup"
+  # 备份 config
+  mkdir -p ${backup_dir} && rm -rf ${backup_dir}/*
+  /usr/bin/cp -a ${config_dir}/* ${backup_dir}
+  result_msg "备份 config"
+  # 停止 kubelet
+  kubectl drain ${HOST_NAME} --ignore-daemonsets
+  result_msg "腾空 当前节点"
+  systemctl stop kubelet
+  result_msg "停止 kubelet"
+  # 删除重装
+  remove_apps 'containerd.io'
+  cri_install_containerd
+  if [ ${criUpgradeReconfig} -ne 0 ]; then
+    cri_config_containerd
+  else
+    /usr/bin/cp -a ${backup_dir}/* ${config_dir}
+  fi
+  cri_start_containerd
+  # 启动 kubelet
+  systemctl start kubelet
+  result_msg "启动 kubelet"
+  kubectl uncordon ${HOST_NAME}
+  result_msg "解除 当前节点的保护"
+  kubectl wait --for=condition=Ready nodes/${HOST_NAME} --timeout=50s
+  result_msg "等待 节点 Ready"
+}
+
+
 cri_install() {
   cri_install_containerd
   cri_config_containerd
   cri_start_containerd
+}
+
+
+cri_upgrade_version() {
+  cri_upgarde_containerd
 }
