@@ -134,20 +134,43 @@ local_upgrade_version() {
 
 # 删除集群
 local_clean_cluster() {
+  # 集群清理
   if which kubeadm &> /dev/null; then
     kubeadm reset -f
-    if [ ${SYSTEM_RELEASE} = 'debian' ]; then
-      apt-mark unhold kubectl kubelet kubeadm > /dev/null
-      result_msg "解锁 kubectl kubelet kubeadm"
-    fi
-    remove_apps 'kubeadm kubelet kubectl cri-tools'
-  fi
-  if which containerd &> /dev/null; then
-    remove_apps 'containerd.io'
   fi
   if which ipvsadm &> /dev/null; then
     ipvsadm --clear
   fi
+  # debian 中, 如果被锁, 执行解锁
+  if [ ${SYSTEM_RELEASE} = 'debian' ]; then 
+    local mark_apps=''
+    for i in kubeadm kubelet kubectl
+    do
+      if apt-mark showhold | grep -Eqi "$i"; then
+        mark_apps="${mark_apps} $i"
+      fi
+    done
+    if [ "${mark_apps}" ]; then
+      apt-mark unhold ${mark_apps} > /dev/null
+      result_msg "解锁 ${mark_apps}"
+    fi
+  fi
+  # 移除 kubeadm kubelet kubectl cri-tools
+  local remove_apps=''
+  for i in kubeadm kubelet kubectl cri-tools
+  do
+    if which $i &> /dev/null; then
+      remove_apps="${remove_apps} $i"
+    fi
+  done
+  if [ "$remove_apps" ]; then
+    remove_apps "${remove_apps}"
+  fi
+  # 移除 containerd.io
+  if which containerd &> /dev/null; then
+    remove_apps 'containerd.io'
+  fi
+  # 删除相关目录、文件
   rm -rf /etc/cni/net.d /root/.kube/config
   result_msg "移除 目录和文件"
 }

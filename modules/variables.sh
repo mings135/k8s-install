@@ -103,16 +103,12 @@ variables_set_system() {
 # 安装必要的工具(1), 脚本所需的前置工具
 variables_install_dependencies() {
   local apps=''
-  if ! which bc &> /dev/null; then
-    apps="${apps} bc"
-  fi
-  if ! which curl &> /dev/null; then
-    apps="${apps} curl"
-  fi
-  if ! which tar &> /dev/null; then
-    apps="${apps} tar"
-  fi
-
+  for i in bc curl tar
+  do
+    if ! which $i &> /dev/null; then
+      apps="${apps} $i"
+    fi
+  done
   if [ "$apps" ]; then
     update_mirror_source_cache
     install_apps "${apps}"

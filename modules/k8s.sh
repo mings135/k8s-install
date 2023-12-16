@@ -18,13 +18,22 @@ kubernetes_install_apps() {
     # CentOS 查看更多版本：yum list kubeadm --showduplicates --disableexcludes=kubernetes | sort -r
     install_apps "kubectl-${kubernetesVersion} kubelet-${kubernetesVersion} kubeadm-${kubernetesVersion}" '--disableexcludes=kubernetes'
   elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
-    # 解锁版本
-    apt-mark unhold kubectl kubelet kubeadm &> /dev/null
-    result_msg "解锁 kubectl kubelet kubeadm"
+    # 如果被锁, 解锁
+    local mark_apps=''
+    for i in kubeadm kubelet kubectl
+    do
+      if apt-mark showhold | grep -Eqi "$i"; then
+        mark_apps="${mark_apps} $i"
+      fi
+    done
+    if [ "${mark_apps}" ]; then
+      apt-mark unhold ${mark_apps} > /dev/null
+      result_msg "解锁 ${mark_apps}"
+    fi
     # Debian 查看更多版本：apt-cache madison kubeadm
     install_apps "kubectl=${kubernetesVersion} kubelet=${kubernetesVersion} kubeadm=${kubernetesVersion}"
     # 锁住版本
-    apt-mark hold kubectl kubelet kubeadm &> /dev/null
+    apt-mark hold kubectl kubelet kubeadm > /dev/null
     result_msg "锁住 kubectl kubelet kubeadm"
   fi
 }
