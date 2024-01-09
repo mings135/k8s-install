@@ -241,6 +241,7 @@ variables_default_config() {
   KUBEADM_CONFIG='/etc/kubernetes'
   KUBELET_PKI='/var/lib/kubelet/pki'
   JOIN_TOKEN_INTERVAL=7200
+  etcdDataDir="/var/lib/etcd" # 目前仅用于 etcd 备份恢复
   upgradeVersion="${kubernetesVersion}"
   kubernetesMajorMinor=${kubernetesVersion%.*}
 

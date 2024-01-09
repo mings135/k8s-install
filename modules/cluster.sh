@@ -121,36 +121,41 @@ cluster_backup_etcd() {
 
   ETCDCTL_API=3 etcdctl snapshot save ${script_dir}/config/etcd-snap.db \
     --endpoints=https://127.0.0.1:2379 \
-    --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-    --cert=/etc/kubernetes/pki/etcd/server.crt \
-    --key=/etc/kubernetes/pki/etcd/server.key
+    --cacert=${KUBEADM_PKI}/etcd/ca.crt \
+    --cert=${KUBEADM_PKI}/etcd/server.crt \
+    --key=${KUBEADM_PKI}/etcd/server.key
   result_msg "备份 etcd 数据库快照"
 }
 
 
 # 恢复 etcd 数据库
 cluster_restore_etcd() {
+  if which etcdutl &> /dev/null; then
+    local tmp_command='etcdutl'
+  else
+    local tmp_command='etcdctl'
+  fi
   RES_LEVEL=1 && test -e ${script_dir}/config/etcd-snap.db
   result_msg "检查 是否存在备份快照文件" && RES_LEVEL=0
 
-  if [ -e /etc/kubernetes/manifests/etcd.yaml ]; then
-    mv /etc/kubernetes/manifests/kube-apiserver.yaml ${script_dir}/config/kube-apiserver.yaml \
-      && mv /etc/kubernetes/manifests/etcd.yaml ${script_dir}/config/etcd.yaml
+  if [ -e ${KUBEADM_CONFIG}/manifests/etcd.yaml ]; then
+    mv ${KUBEADM_CONFIG}/manifests/kube-apiserver.yaml ${script_dir}/config/kube-apiserver.yaml \
+      && mv ${KUBEADM_CONFIG}/manifests/etcd.yaml ${script_dir}/config/etcd.yaml
     result_msg "停止 etcd 和 apiserver 服务"
     sleep 3
   fi
-  
-  if [ -e /var/lib/etcd.bak ] && [ -e /var/lib/etcd ]; then
-    rm -rf /var/lib/etcd.bak
+
+  if [ -e ${etcdDataDir}.bak ] && [ -e ${etcdDataDir} ]; then
+    rm -rf ${etcdDataDir}.bak
     result_msg "清理 旧的备份 etcd 数据文件夹"
   fi
-  if [ -e /var/lib/etcd ]; then
-    mv /var/lib/etcd /var/lib/etcd.bak
+  if [ -e ${etcdDataDir} ]; then
+    mv ${etcdDataDir} ${etcdDataDir}.bak
     result_msg "备份 etcd 数据文件夹"
   fi
 
   cluster_install_etcdctl
-  ETCDCTL_API=3 etcdctl snapshot restore ${script_dir}/config/etcd-snap.db --data-dir=/var/lib/etcd
+  ETCDCTL_API=3 ${tmp_command} snapshot restore ${script_dir}/config/etcd-snap.db --data-dir=${etcdDataDir}
   result_msg "恢复 etcd 数据库快照到数据文件夹"
 }
 
@@ -158,8 +163,8 @@ cluster_restore_etcd() {
 # 启动 etcd
 cluster_start_etcd() {
   if [ -e ${script_dir}/config/etcd.yaml ]; then
-    mv ${script_dir}/config/kube-apiserver.yaml /etc/kubernetes/manifests/kube-apiserver.yaml \
-      && mv ${script_dir}/config/etcd.yaml /etc/kubernetes/manifests/etcd.yaml
+    mv ${script_dir}/config/kube-apiserver.yaml ${KUBEADM_CONFIG}/manifests/kube-apiserver.yaml \
+      && mv ${script_dir}/config/etcd.yaml ${KUBEADM_CONFIG}/manifests/etcd.yaml
     result_msg "启动 etcd 和 apiserver 服务"
   fi
 }
@@ -174,10 +179,10 @@ cluster_install_etcdctl() {
       && rm -f /tmp/etcd-linux-amd64.tar.gz \
       && mv /tmp/etcd-download-test/etcdctl /usr/local/bin/etcdctl
     result_msg "安装 etcdctl"
-    # if [ -e /tmp/etcd-download-test/etcdutl ]; then
-    #   mv /tmp/etcd-download-test/etcdutl /usr/local/bin/etcdutl
-    #   result_msg "安装 etcdutl"
-    # fi
+    if [ -e /tmp/etcd-download-test/etcdutl ]; then
+      mv /tmp/etcd-download-test/etcdutl /usr/local/bin/etcdutl
+      result_msg "安装 etcdutl"
+    fi
   fi
 }
 
