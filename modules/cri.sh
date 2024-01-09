@@ -72,9 +72,9 @@ cri_start_containerd() {
 # 更新 containerd 版本
 cri_upgarde_containerd() {
   local config_dir='/etc/containerd'
-  local backup_dir="${script_dir}/config/containerd_backup-${criVersion}"
+  local backup_dir="${script_dir}/config/tmp_cri_upgrade_containerd_config_backup"
   # 备份 config
-  if [ ! -e ${backup_dir}/config.toml ]; then
+  if [ ! -e ${backup_dir} ]; then
     mkdir -p ${backup_dir} && /usr/bin/cp -a ${config_dir}/* ${backup_dir}
     result_msg "备份 config"
   fi
