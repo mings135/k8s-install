@@ -14,7 +14,7 @@
   - 1.25+ 官方镜像仓库地址：`registry.k8s.io`
   - 国内镜像仓库地址：`registry.cn-hangzhou.aliyuncs.com/google_containers`
   - debian 中，当 k8s 版本 >= 1.25 时，cri-tools  版本须 >= 1.25
-  - 1.28+ 官方 apt 和 yum 源有调整，这里将固定使用官方资源
+  - 1.28+ kubernetes 官方 apt 和 yum 源有调整，这里将固定使用官方资源
 - `Containerd：` 
   - 支持 1.5+
   - 当 cri-tools  版本 >= 1.26 时，containerd 版本须 >= 1.6
@@ -88,12 +88,47 @@ bash remote.sh upgrade
 
 
 
+## criUpgrade
+
+在 config/kube.yaml 中修改或添加如下配置：
+
+```yaml
+container:
+  # 更新到哪个版本(默认 latest)
+  criVersion: "1.6.9"
+  # 是否重新配置 cri config(默认 0, 关闭)
+  criUpgradeReconfig: 0
+```
+
+
+
+升级容器运行时版本：
+
+- 如果出错，手动解决问题后继续运行 `criupgrade` 即可
+
+```shell
+bash remote.sh criupgrade
+```
+
+
+
 ## Other
 
-更改镜像仓库地址，须同时更改 kube.yaml 和 集群配置：
+更改集群镜像仓库地址，须同步更改 kube.yaml 相关配置：
 
 ```shell
 # 集群配置修改
 kubectl edit cm -n kube-system kubeadm-config
+```
+
+
+
+添加集群节点，只须更改 kube.yaml，然后运行 `bash remote.sh auto` 即可
+
+删除集群节点，须同步更改 kube.yaml 相关配置：
+
+```shell
+kubectl drain w1.k8s --ignore-daemonsets
+kubectl delete nodes w1.k8s
 ```
 

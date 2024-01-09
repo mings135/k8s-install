@@ -69,7 +69,7 @@ cri_start_containerd() {
 }
 
 
-# 更新 containerd 版本   basic_set_repos_cri   update_mirror_source_cache
+# 更新 containerd 版本
 cri_upgarde_containerd() {
   local config_dir='/etc/containerd'
   local backup_dir="${script_dir}/config/containerd_backup-${criVersion}"

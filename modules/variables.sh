@@ -204,21 +204,22 @@ variables_read_config() {
 variables_default_config() {
   # 远程集群主机存放 k8s 安装脚本的目录 (目录会在复制之前清空，请注意!!!)
   remoteScriptDir=${remoteScriptDir:-'/opt/k8sRemoteScript'}
+  # kubernetes >= 1.28 时, 该配置对 kubernetes source 无效
   localMirror=${localMirror:-'0'}
-  # k8s version(支持 1.20+)
-  kubernetesVersion=${kubernetesVersion:-'1.28.0'} # 不能用 latest
+  # k8s version(支持 1.20+, 不支持 latest)
+  kubernetesVersion=${kubernetesVersion:-'1.28.0'}
   crictlVersion=${crictlVersion:-'latest'} # 1.26.0 开始 containerd 必须大于 1.26
-  # k8s controlPlaneEndpoint 地址和端口, 没有该参数拒绝添加 master 节点
+  # k8s controlPlaneEndpoint 地址和端口, 没有该参数无法添加 master 节点
   controlPlaneAddress=${controlPlaneAddress:-"${MASTER1_IP}"}
   controlPlanePort=${controlPlanePort:-'6443'}
   # k8s 各个组件的镜像仓库地址: pause(Include containerd)、etcd、api-server 等
-  imageRepository=${imageRepository:-''}  # 国内使用 registry.cn-hangzhou.aliyuncs.com/google_containers
-  # 容器运行时: containerd(latest 表示最新版本)
+  imageRepository=${imageRepository:-''}  # 国内 registry.cn-hangzhou.aliyuncs.com/google_containers
+  # 容器运行时: containerd(最新版本: latest, 具体版本: 1.6.9)
   criName=${criName:-'containerd'}
-  criVersion=${criVersion:-'latest'} # 1.6.9
+  criVersion=${criVersion:-'latest'}
   criUpgradeReconfig=${criUpgradeReconfig:-'0'}
-  # 容器运行时: 配置 harbor 私库地址
-  privateRepository=${privateRepository:-''}  # 私有 harbor 仓库地址 http://192.168.13.13
+  # 容器运行时: 配置 harbor 私库地址(http://192.168.13.13)
+  privateRepository=${privateRepository:-''}
   # 证书有效期和密钥大小(50年)
   certificatesVaild=${certificatesVaild:-'18250'}
   certificatesSize=${certificatesSize:-'2048'}

@@ -158,6 +158,11 @@ remote_cri_upgrade_version() {
   do
     ssh root@${i} bash ${remoteScriptDir}/local.sh tmpkubectl criupgrade
   done
+
+  for i in ${NODES_ALL}
+  do
+    ssh root@${i} bash ${remoteScriptDir}/local.sh criupgradeopt
+  done
 }
 
 
@@ -340,7 +345,7 @@ main() {
     result_blue_font "命令："
     printf "%-16s %-s\n" 'auto' '全自动安装集群'
     printf "%-16s %-s\n" 'upgrade' '升级集群版本'
-    printf "%-16s %-s\n" 'criupgrade' '升级容器运行时版本'
+    printf "%-16s %-s\n" 'criupgrade' '升级容器运行时版本(支持 latest 每次升级至最新)'
     printf "%-16s %-s\n" 'backup' '备份 etcd 数据库快照'
     printf "%-16s %-s\n" 'restore' '恢复 etcd 数据库'
     printf "%-16s %-s\n" 'clean' '删除整个集群'

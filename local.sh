@@ -143,6 +143,14 @@ local_cri_upgrade_version() {
 }
 
 
+# 更新容器运行时版本时, 优化 latest, 支持每次使用
+local_cri_upgrade_optimize_latest() {
+  if grep -Eqi "cri_upgrade_version-latest" ${script_dir}/config/record.txt; then
+    sed -i '/cri_upgrade_version-latest/d' ${script_dir}/config/record.txt
+  fi
+}
+
+
 # 删除集群
 local_clean_cluster() {
   # 集群清理
@@ -202,6 +210,7 @@ main() {
     "flannel") local_deploy_flannel;;
     "upgrade") local_upgrade_version;;
     "criupgrade") local_cri_upgrade_version;;
+    "criupgradeopt") local_cri_upgrade_optimize_latest;;
     "tmpkubeconfig") cluster_generate_kubeconfig_tmp;;
     "tmpkubectl") cluster_config_kubectl_tmp;;
     "backup") cluster_backup_etcd;;
