@@ -73,6 +73,7 @@ cri_start_containerd() {
 cri_upgarde_containerd() {
   local config_dir='/etc/containerd'
   local backup_dir="${script_dir}/config/tmp_cri_upgrade_containerd_config_backup"
+  local save_dir="${script_dir}/config/cri_upgrade_containerd_config_backup"
   # 备份 config
   if [ ! -e ${backup_dir} ]; then
     mkdir -p ${backup_dir} && /usr/bin/cp -a ${config_dir}/* ${backup_dir}
@@ -88,6 +89,12 @@ cri_upgarde_containerd() {
   cri_install_containerd
   if [ "${criUpgradeReconfig}" -ne 0 ]; then
     cri_config_containerd
+    if [ -e ${save_dir} ]; then
+      rm -rf ${save_dir}
+      result_msg "删除 上次保留 config"
+    fi
+    mkdir -p ${save_dir} && /usr/bin/cp -a ${backup_dir}/* ${save_dir}
+    result_msg "复制 备份 config 到保留 config"
   else
     /usr/bin/cp -a ${backup_dir}/* ${config_dir}
     result_msg "还原 config"
