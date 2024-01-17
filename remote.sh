@@ -28,7 +28,7 @@ remote_free_login() {
   fi
 
   # copy public key 到各个节点
-  for i in ${NODES_ALL}
+  for i in ${remote_LOGIN_NODES}
   do
     sshpass -p "${nodePassword}" ssh-copy-id -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa.pub root@${i}
   done
@@ -285,6 +285,9 @@ main() {
   set +e
   variables_settings_remote
   set -e
+  if [ "${remote_LOGIN_NODES}" = 'all' ]; then
+    remote_LOGIN_NODES="${NODES_ALL}"
+  fi
 
   case $1 in
     "freelogin") remote_free_login;;  # 配置本机免密登录到所有节点
@@ -299,7 +302,9 @@ main() {
     "backup") remote_backup_etcd;;  # update script,kube.yaml --> backup etcd
     "restore") remote_restore_etcd;;  # update script,kube.yaml --> resotre etcd
     "auto")
-      remote_free_login
+      if [ ${remote_LOGIN_SWITCH} -eq 1 ]; then
+        remote_free_login
+      fi
       remote_front_operator
       remote_install_basic
       if [ ${remote_CERTS_SWITCH} -eq 1 ]; then
@@ -351,6 +356,7 @@ main() {
     printf "%-16s %-s\n" 'clean' '删除整个集群'
     result_blue_font "选项:"
     printf "%-16s %-s\n" '-c' '全自动安装集群时, 签发自定义 k8s 证书, 默认 50 年'
+    printf "%-16s %-s\n" '-l string' '自动创建 ssh 密钥, 并分发到节点, 实现免密登录(all or ip)'
     printf "%-16s %-s\n" '-f' '安装或升级集群后, 自动部署或更新 flannel 网络'
     exit 1
     ;;
@@ -361,10 +367,11 @@ main() {
 # 默认变量
 remote_CERTS_SWITCH=0
 remote_FLANNEL_SWITCH=0
-
+remote_LOGIN_SWITCH=0
+remote_LOGIN_NODES=all
 
 # 开头 ':' 表示不打印错误信息, 字符后面 ':' 表示需要参数
-while getopts ":a:cf" opt; do
+while getopts ":a:cl:f" opt; do
   case $opt in
     a)
       # OPTIND 指的下一个选项的 index
@@ -372,6 +379,17 @@ while getopts ":a:cf" opt; do
       ;;
     c)
       remote_CERTS_SWITCH=1
+      ;;
+    l)
+      remote_LOGIN_SWITCH=1
+      if echo "$OPTARG" | grep -Eqi '^(([0-9]{1,3}\.){3}[0-9]{1,3}[[:space:]])*([0-9]{1,3}\.){3}[0-9]{1,3}$'; then
+        remote_LOGIN_NODES="$OPTARG"
+      elif [ "$OPTARG" = 'all' ] || [ "$OPTARG" = 'a' ]; then
+        remote_LOGIN_NODES=all
+      else
+        result_blue_font "Invalid argument: $OPTARG"
+        exit 1
+      fi
       ;;
     f)
       remote_FLANNEL_SWITCH=1

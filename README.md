@@ -55,8 +55,8 @@ cd k8s-install
 # 配置 kube.yaml
 vi config/kube.yaml
 
-# 自动安装(-c 安装自签证书, -f 部署 flannel)
-bash remote.sh -cf auto
+# 自动安装(-c 安装自签证书, -f 部署 flannel, -la 配置免密登录)
+bash remote.sh -cfla auto
 ```
 
 
