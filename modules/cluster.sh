@@ -73,13 +73,13 @@ cluster_upgrade_version_kubeadm() {
   if [ "${HOST_ROLE}" = "master1" ]; then
     kubeadm upgrade plan v${upgradeVersion}
     result_msg "检查 集群是否可被升级"
-    kubeadm upgrade apply v${upgradeVersion} -y --certificate-renewal=${certificateRenewal}
+    kubeadm upgrade apply v${upgradeVersion} -y --certificate-renewal=${kubeadmSignCertificate}
     result_msg "升级 master1 上各个容器组件"
   elif [ "${HOST_ROLE}" = "master" ]; then
-    kubeadm upgrade node --certificate-renewal=${certificateRenewal}
+    kubeadm upgrade node --certificate-renewal=${kubeadmSignCertificate}
     result_msg "升级 master 上各个容器组件"
   elif [ "${HOST_ROLE}" = "work" ]; then
-    kubeadm upgrade node --certificate-renewal=${certificateRenewal}
+    kubeadm upgrade node --certificate-renewal=${kubeadmSignCertificate}
     result_msg "升级 work 上 kubelet 配置"
   fi
 }

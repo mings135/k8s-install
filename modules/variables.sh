@@ -180,23 +180,26 @@ variables_read_config() {
   local kube_conf=${script_dir}/config/kube.yaml
   remoteScriptDir="$(yq -M '.remoteScriptDir' ${kube_conf} | grep -v '^null$')"
   localMirror="$(yq -M '.localMirror' ${kube_conf} | grep -v '^null$')"
+  # cluster
   kubernetesVersion="$(yq -M '.cluster.kubernetesVersion' ${kube_conf} | grep -v '^null$')"
   crictlVersion="$(yq -M '.cluster.crictlVersion' ${kube_conf} | grep -v '^null$')"
   controlPlaneAddress="$(yq -M '.cluster.controlPlaneAddress' ${kube_conf} | grep -v '^null$')"
   controlPlanePort="$(yq -M '.cluster.controlPlanePort' ${kube_conf} | grep -v '^null$')"
   imageRepository="$(yq -M '.cluster.imageRepository' ${kube_conf} | grep -v '^null$')"
-  criName="$(yq -M '.container.criName' ${kube_conf} | grep -v '^null$')"
-  criVersion="$(yq -M '.container.criVersion' ${kube_conf} | grep -v '^null$')"
-  criUpgradeReconfig="$(yq -M '.container.criUpgradeReconfig' ${kube_conf} | grep -v '^null$')"
-  privateRepository="$(yq -M '.container.privateRepository' ${kube_conf} | grep -v '^null$')"
+  kubeadmSignCertificate="$(yq -M '.cluster.kubeadmSignCertificate' ${kube_conf} | grep -v '^null$')"
   certificatesVaild="$(yq -M '.cluster.certificatesVaild' ${kube_conf} | grep -v '^null$')"
   certificatesSize="$(yq -M '.cluster.certificatesSize' ${kube_conf} | grep -v '^null$')"
   serviceSubnet="$(yq -M '.cluster.serviceSubnet' ${kube_conf} | grep -v '^null$')"
   apiServerClusterIP="$(yq -M '.cluster.apiServerClusterIP' ${kube_conf} | grep -v '^null$')"
   podSubnet="$(yq -M '.cluster.podSubnet' ${kube_conf} | grep -v '^null$')"
+  # container
+  criName="$(yq -M '.container.criName' ${kube_conf} | grep -v '^null$')"
+  criVersion="$(yq -M '.container.criVersion' ${kube_conf} | grep -v '^null$')"
+  criUpgradeReconfig="$(yq -M '.container.criUpgradeReconfig' ${kube_conf} | grep -v '^null$')"
+  privateRepository="$(yq -M '.container.privateRepository' ${kube_conf} | grep -v '^null$')"
+  # nodes
   nodePassword="$(yq -M '.nodes.nodePassword' ${kube_conf} | grep -v '^null$')"
   etcdctlVersion="$(yq -M '.nodes.etcdctlVersion' ${kube_conf} | grep -v '^null$')"
-  certificateRenewal="$(yq -M '.cluster.certificateRenewal' ${kube_conf} | grep -v '^null$')"
 }
 
 
@@ -206,6 +209,7 @@ variables_default_config() {
   remoteScriptDir=${remoteScriptDir:-'/opt/k8sRemoteScript'}
   # kubernetes >= 1.28 时, 该配置对 kubernetes source 无效
   localMirror=${localMirror:-'0'}
+
   # k8s version(支持 1.20+, 不支持 latest)
   kubernetesVersion=${kubernetesVersion:-'1.28.0'}
   crictlVersion=${crictlVersion:-'latest'} # 1.26.0 开始 containerd 必须大于 1.26
@@ -214,13 +218,9 @@ variables_default_config() {
   controlPlanePort=${controlPlanePort:-'6443'}
   # k8s 各个组件的镜像仓库地址: pause(Include containerd)、etcd、api-server 等
   imageRepository=${imageRepository:-''}  # 国内 registry.cn-hangzhou.aliyuncs.com/google_containers
-  # 容器运行时: containerd(最新版本: latest, 具体版本: 1.6.9)
-  criName=${criName:-'containerd'}
-  criVersion=${criVersion:-'latest'}
-  criUpgradeReconfig=${criUpgradeReconfig:-'0'}
-  # 容器运行时: 配置 harbor 私库地址(http://192.168.13.13)
-  privateRepository=${privateRepository:-''}
-  # 证书有效期和密钥大小(50年)
+  # k8s 集群安装或升级时, 是否使用 kubeadm 签发证书
+  kubeadmSignCertificate=${kubeadmSignCertificate:-'false'}
+  # 自签证书有效期和密钥大小(50年)
   certificatesVaild=${certificatesVaild:-'18250'}
   certificatesSize=${certificatesSize:-'2048'}
   # Services 子网和 API Server 集群内部地址 (即 Service 网络的第一个 IP)
@@ -228,13 +228,18 @@ variables_default_config() {
   apiServerClusterIP=${apiServerClusterIP:-'10.96.0.1'}
   # Pod 网络, flannel 默认使用 10.244.0.0/16, 除非想修改 flannel 配置, 否则不要修改
   podSubnet=${podSubnet:-'10.244.0.0/16'}
+
+  # 容器运行时: containerd(最新版本: latest, 具体版本: 1.6.9)
+  criName=${criName:-'containerd'}
+  criVersion=${criVersion:-'latest'}
+  criUpgradeReconfig=${criUpgradeReconfig:-'0'}
+  # 容器运行时: 配置 harbor 私库地址(http://192.168.13.13)
+  privateRepository=${privateRepository:-''}
+
   # 节点密码, 默认为空(也就是手动输入)
   nodePassword=${nodePassword:-''}
   # 节点安装 etcdctl 的 version
   etcdctlVersion=${etcdctlVersion:-'3.5.10'}
-  # upgrade 时, 是否更新证书
-  certificateRenewal=${certificateRenewal:-'false'}
-  
 
   # 设置常量
   KUBEADM_PKI='/etc/kubernetes/pki'
@@ -313,7 +318,7 @@ variables_display_test() {
   echo "NODES_WORK=${NODES_WORK}"
   # upgrade cluster
   echo "upgradeVersion=${upgradeVersion}"
-  echo "certificateRenewal=${certificateRenewal}"
+  echo "kubeadmSignCertificate=${kubeadmSignCertificate}"
 }
 
 

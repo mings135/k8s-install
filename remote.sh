@@ -307,13 +307,13 @@ main() {
       fi
       remote_front_operator
       remote_install_basic
-      if [ ${remote_CERTS_SWITCH} -eq 1 ]; then
+      if [ "${kubeadmSignCertificate}" = 'false' ]; then
         remote_issue_ca
         remote_issue_certs
       fi
       remote_images_pull
       remote_install_cluster
-      if [ ${remote_CERTS_SWITCH} -eq 1 ]; then
+      if [ "${kubeadmSignCertificate}" = 'false' ]; then
         remote_kubelet_certs
       fi
       if [ ${remote_FLANNEL_SWITCH} -eq 1 ]; then
@@ -355,7 +355,6 @@ main() {
     printf "%-16s %-s\n" 'restore' '恢复 etcd 数据库'
     printf "%-16s %-s\n" 'clean' '删除整个集群'
     result_blue_font "选项:"
-    printf "%-16s %-s\n" '-c' '全自动安装集群时, 签发自定义 k8s 证书, 默认 50 年'
     printf "%-16s %-s\n" '-l string' '自动创建 ssh 密钥, 并分发到节点, 实现免密登录(all or ip)'
     printf "%-16s %-s\n" '-f' '安装或升级集群后, 自动部署或更新 flannel 网络'
     exit 1
@@ -365,20 +364,16 @@ main() {
 
 
 # 默认变量
-remote_CERTS_SWITCH=0
 remote_FLANNEL_SWITCH=0
 remote_LOGIN_SWITCH=0
 remote_LOGIN_NODES=all
 
 # 开头 ':' 表示不打印错误信息, 字符后面 ':' 表示需要参数
-while getopts ":a:cl:f" opt; do
+while getopts ":a:l:f" opt; do
   case $opt in
     a)
       # OPTIND 指的下一个选项的 index
       result_blue_font "test: -a arg:$OPTARG index:$OPTIND"
-      ;;
-    c)
-      remote_CERTS_SWITCH=1
       ;;
     l)
       remote_LOGIN_SWITCH=1

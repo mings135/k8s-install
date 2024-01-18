@@ -1,3 +1,4 @@
+# 集群初始化后请勿随意修改配置, 否则可能导致无法正常运行!!!
 # 远程节点保存脚本的目录, 请确保其父目录一定存在(默认 /opt/k8sRemoteScript)
 remoteScriptDir: ""
 cluster:
@@ -7,6 +8,8 @@ cluster:
   controlPlanePort:
   # 镜像仓库地址
   imageRepository: ""
+  # 使用 kubeadm 签发证书(默认 flase, 使用自签证书(50y), 同时升级不会更新证书)
+  kubeadmSignCertificate: ""
 container:
   criName: "containerd"
   # 私有仓库地址, 比如 http://192.168.10.38
