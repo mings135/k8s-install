@@ -19,7 +19,7 @@ cluster_images_pull() {
 cluster_master1_init() {
   systemctl daemon-reload && systemctl restart kubelet
   result_msg "重启 重载 kubelet"
-  kubeadm init --config ${script_dir}/config/kubeadm-config.yaml --upload-certs | tee ${script_dir}/kubeadm-init.log
+  kubeadm init --config ${script_dir}/config/kubeadm-config.yaml --upload-certs
   result_msg "创建 cluster"
   cluster_config_kubectl_command
 }
