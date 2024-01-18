@@ -8,7 +8,7 @@ cluster:
   controlPlanePort:
   # 镜像仓库地址
   imageRepository: ""
-  # 使用 kubeadm 签发证书(默认 flase, 使用自签证书(50y), 同时升级不会更新证书)
+  # kubeadm 签发证书(默认 true), false --> 自签证书(default 50Y), 升级集群不更新组件证书
   kubeadmSignCertificate: ""
 container:
   criName: "containerd"

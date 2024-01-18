@@ -219,7 +219,7 @@ variables_default_config() {
   # k8s 各个组件的镜像仓库地址: pause(Include containerd)、etcd、api-server 等
   imageRepository=${imageRepository:-''}  # 国内 registry.cn-hangzhou.aliyuncs.com/google_containers
   # k8s 集群安装或升级时, 是否使用 kubeadm 签发证书
-  kubeadmSignCertificate=${kubeadmSignCertificate:-'false'}
+  kubeadmSignCertificate=${kubeadmSignCertificate:-'true'}
   # 自签证书有效期和密钥大小(50年)
   certificatesVaild=${certificatesVaild:-'18250'}
   certificatesSize=${certificatesSize:-'2048'}
