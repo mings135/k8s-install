@@ -123,11 +123,9 @@ cluster_backup_etcd() {
     --endpoints=https://127.0.0.1:2379 \
     --cacert=${KUBEADM_PKI}/etcd/ca.crt \
     --cert=${KUBEADM_PKI}/etcd/server.crt \
-    --key=${KUBEADM_PKI}/etcd/server.key
+    --key=${KUBEADM_PKI}/etcd/server.key \
+    && chmod 644 ${script_dir}/config/etcd-snap.db
   result_msg "备份 etcd 数据库快照"
-
-  chmod 644 ${script_dir}/config/etcd-snap.db
-  result_msg "修改 etcd-snap.db 权限"
 }
 
 
