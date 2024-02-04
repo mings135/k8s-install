@@ -307,14 +307,14 @@ main() {
 
   case $1 in
     "freelogin") remote_free_login;;  # 配置本机免密登录到所有节点
-    "front") remote_front_operator;;  # scp front.sh --> install rsync
-    "install") remote_install_basic;;  # update script,kube.yaml --> update hosts -> basic -> cri --> k8s
-    "imglist") remote_images_list;;  # 查看 images 信息
-    "imgpull") remote_images_pull;;  # 并发拉取 images
-    "cluster") remote_install_cluster;;  # init first node --> create or update join.sh --> update join.sh --> join cluster
-    "ca") remote_issue_ca;;  # 创建 CA 证书(pki 目录，不会覆盖)
-    "certs") remote_issue_certs;;  # 分发 CA, 并签发 k8s 证书(master node), 此操作会清空 ${KUBEADM_PKI}
-    "kubelet") remote_kubelet_certs;;  # 分发 CA, 签发 kubelet 证书，此操作会覆盖原有证书!!!
+    # "front") remote_front_operator;;  # scp front.sh --> install rsync
+    # "install") remote_install_basic;;  # update script,kube.yaml --> update hosts -> basic -> cri --> k8s
+    # "imglist") remote_images_list;;  # 查看 images 信息
+    # "imgpull") remote_images_pull;;  # 并发拉取 images
+    # "cluster") remote_install_cluster;;  # init first node --> create or update join.sh --> update join.sh --> join cluster
+    # "ca") remote_issue_ca;;  # 创建 CA 证书(pki 目录，不会覆盖)
+    # "certs") remote_issue_certs;;  # 分发 CA, 并签发 k8s 证书(master node), 此操作会清空 ${KUBEADM_PKI}
+    # "kubelet") remote_kubelet_certs;;  # 分发 CA, 签发 kubelet 证书，此操作会覆盖原有证书!!!
     "backup") remote_backup_etcd;;  # update script,kube.yaml --> backup etcd
     "restore") remote_restore_etcd;;  # update script,kube.yaml --> resotre etcd
     "auto")
