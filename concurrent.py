@@ -32,12 +32,13 @@ class RunCommandThread(threading.Thread):
 
 def main():
     lock = threading.Lock()
-    run_command = sys.argv[1]
-    remote_ips = sys.argv[2:]
+    run_user = sys.argv[1]
+    run_command = sys.argv[2]
+    remote_ips = sys.argv[3:]
     remote_runs = []
     results_code = 0
     for ip in remote_ips:
-        cmd = 'ssh root@%s %s' % (ip, run_command)
+        cmd = 'ssh %s@%s %s' % (run_user, ip, run_command)
         rct = RunCommandThread(cmd, lock)
         rct.start()
         remote_runs.append(rct)

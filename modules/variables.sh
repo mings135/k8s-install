@@ -198,6 +198,7 @@ variables_read_config() {
   criUpgradeReconfig="$(yq -M '.container.criUpgradeReconfig' ${kube_conf} | grep -v '^null$')"
   privateRepository="$(yq -M '.container.privateRepository' ${kube_conf} | grep -v '^null$')"
   # nodes
+  nodeUser="$(yq -M '.nodes.nodeUser' ${kube_conf} | grep -v '^null$')"
   nodePassword="$(yq -M '.nodes.nodePassword' ${kube_conf} | grep -v '^null$')"
   etcdctlVersion="$(yq -M '.nodes.etcdctlVersion' ${kube_conf} | grep -v '^null$')"
 }
@@ -237,6 +238,7 @@ variables_default_config() {
   privateRepository=${privateRepository:-''}
 
   # 节点密码, 默认为空(也就是手动输入)
+  nodeUser=${nodeUser:-'root'}
   nodePassword=${nodePassword:-''}
   # 节点安装 etcdctl 的 version
   etcdctlVersion=${etcdctlVersion:-'3.5.10'}
@@ -290,35 +292,37 @@ variables_display_test() {
   echo "HOST_IP=${HOST_IP}"
   echo "HOST_NAME=${HOST_NAME}"
   echo "HOST_ROLE=${HOST_ROLE}"
-  # kubernetes variables
+  # kube.yaml config
   echo "remoteScriptDir=${remoteScriptDir}"
   echo "localMirror=${localMirror}"
+  # kube.yaml cluster
   echo "kubernetesVersion=${kubernetesVersion}"
   echo "crictlVersion=${crictlVersion}"
   echo "controlPlaneAddress=${controlPlaneAddress}"
   echo "controlPlanePort=${controlPlanePort}"
   echo "imageRepository=${imageRepository}"
-  echo "criName=${criName}"
-  echo "criVersion=${criVersion}"
-  echo "privateRepository=${privateRepository}"
+  echo "kubeadmSignCertificate=${kubeadmSignCertificate}"
   echo "certificatesVaild=${certificatesVaild}"
   echo "certificatesSize=${certificatesSize}"
   echo "serviceSubnet=${serviceSubnet}"
   echo "apiServerClusterIP=${apiServerClusterIP}"
   echo "podSubnet=${podSubnet}"
+  # kube.yaml container
+  echo "criName=${criName}"
+  echo "criVersion=${criVersion}"
+  echo "privateRepository=${privateRepository}"
+  # kube.yaml nodes
   echo "nodePassword=${nodePassword}"
   # auto make
   echo "controlPlaneEndpoint=${controlPlaneEndpoint}"
   echo "criSocket=${criSocket}"
-  # nodes class
+  echo "upgradeVersion=${upgradeVersion}"
+  # nodes variables
   echo "NODES_ALL=${NODES_ALL}"
   echo "NODES_NOT_MASTER1=${NODES_NOT_MASTER1}"
   echo "NODES_MASTER1_MASTER=${NODES_MASTER1_MASTER}"
   echo "NODES_MASTER=${NODES_MASTER}"
   echo "NODES_WORK=${NODES_WORK}"
-  # upgrade cluster
-  echo "upgradeVersion=${upgradeVersion}"
-  echo "kubeadmSignCertificate=${kubeadmSignCertificate}"
 }
 
 

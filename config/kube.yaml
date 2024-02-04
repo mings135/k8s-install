@@ -15,7 +15,8 @@ container:
   # 私有仓库地址, 比如 http://192.168.10.38
   privateRepository: ""
 nodes:
-  # k8s 节点 root 账号统一密码(默认为空, 控制台输入)
+  # 所有节点统一账号、密码(默认 user=root pwd="", 控制台输入)
+  nodeUser: ""
   nodePassword: ""
   # 第一个初始化集群的 master 节点(必须)
   master1:

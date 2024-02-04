@@ -12,13 +12,20 @@ script_dir=$(dirname $(readlink -f $0))
 source ${script_dir}/modules/result.sh
 source ${script_dir}/modules/variables.sh
 
+# 默认变量
+remote_BASH='bash'
+remote_RM='rm'
+remote_FLANNEL_SWITCH=0
+remote_LOGIN_SWITCH=0
+remote_LOGIN_NODES=all
+
 
 # 免密登录节点
 remote_free_login() {
   # 密码为空时，继续手动输入
   while [ ! ${nodePassword} ]
   do
-    result_blue_font "请输入所有节点的统一密码 (root):"
+    result_blue_font "请输入所有节点的统一密码 (${nodeUser}):"
     read -s nodePassword
   done
 
@@ -30,7 +37,7 @@ remote_free_login() {
   # copy public key 到各个节点
   for i in ${remote_LOGIN_NODES}
   do
-    sshpass -p "${nodePassword}" ssh-copy-id -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa.pub root@${i}
+    sshpass -p "${nodePassword}" ssh-copy-id -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa.pub ${nodeUser}@${i}
   done
 }
 
@@ -39,16 +46,16 @@ remote_free_login() {
 remote_front_operator() {
   for i in ${NODES_ALL}
   do
-    scp -r ${script_dir}/front.sh root@${i}:/tmp/front.sh
+    scp -r ${script_dir}/front.sh ${nodeUser}@${i}:/tmp/front.sh
   done
-  python3 ${script_dir}/concurrent.py "bash /tmp/front.sh" ${NODES_ALL}
+  python3 ${script_dir}/concurrent.py "${nodeUser}" "${remote_BASH} /tmp/front.sh" ${NODES_ALL}
 }
 
 
 # 安装和配置所需的基础
 remote_install_basic() {
   remote_rsync_script
-  python3 ${script_dir}/concurrent.py "bash ${remoteScriptDir}/local.sh install" ${NODES_ALL}
+  python3 ${script_dir}/concurrent.py "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh install" ${NODES_ALL}
 }
 
 
@@ -72,32 +79,32 @@ remote_issue_certs() {
   sleep 1
   for i in ${NODES_MASTER1_MASTER}
   do
-    ssh root@${i} bash ${remoteScriptDir}/local.sh certs
+    ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh certs
   done
 }
 
 
 # 查看所需 images
 remote_images_list() {
-  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh imglist
+  ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh imglist
 }
 
 
 # 拉取所需 images
 remote_images_pull() {
-  python3 ${script_dir}/concurrent.py "bash ${remoteScriptDir}/local.sh imgpull" ${NODES_MASTER1_MASTER}
+  python3 ${script_dir}/concurrent.py "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh imgpull" ${NODES_MASTER1_MASTER}
 }
 
 
 # 安装集群
 remote_install_cluster() {
-  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh initcluster
+  ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh initcluster
   sleep 1
   remote_rsync_join
   sleep 1
   for i in ${NODES_NOT_MASTER1}
   do
-    ssh root@${i} bash ${remoteScriptDir}/local.sh joincluster
+    ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh joincluster
   done
 }
 
@@ -107,9 +114,9 @@ remote_kubelet_certs() {
   remote_rsync_kubelet_ca
   for i in ${NODES_ALL}
   do
-    ssh root@${i} bash ${remoteScriptDir}/local.sh kubelet
-    ssh root@${i} rm -f ${KUBELET_PKI}/ca.crt
-    ssh root@${i} rm -f ${KUBELET_PKI}/ca.key
+    ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh kubelet
+    ssh ${nodeUser}@${i} ${remote_RM} -f ${KUBELET_PKI}/ca.crt
+    ssh ${nodeUser}@${i} ${remote_RM} -f ${KUBELET_PKI}/ca.key
   done
 }
 
@@ -117,7 +124,7 @@ remote_kubelet_certs() {
 # 部署 flannel
 remote_deploy_flannel() {
   sleep 3
-  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh flannel
+  ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh flannel
 }
 
 
@@ -125,18 +132,18 @@ remote_deploy_flannel() {
 remote_upgrade_version() {
   remote_rsync_script
   
-  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh upgrade
+  ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh upgrade
 
   for i in ${NODES_MASTER}
   do
-    ssh root@${i} bash ${remoteScriptDir}/local.sh upgrade
+    ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh upgrade
   done
 
-  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh tmpkubeconfig
+  ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh tmpkubeconfig
   remote_rsync_kubeconfig_tmp
   for i in ${NODES_WORK}
   do
-    ssh root@${i} bash ${remoteScriptDir}/local.sh tmpkubectl upgrade
+    ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh tmpkubectl upgrade
   done
 }
 
@@ -145,23 +152,23 @@ remote_upgrade_version() {
 remote_cri_upgrade_version() {
   remote_rsync_script
 
-  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh criupgrade
+  ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh criupgrade
 
   for i in ${NODES_MASTER}
   do
-    ssh root@${i} bash ${remoteScriptDir}/local.sh criupgrade
+    ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh criupgrade
   done
 
-  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh tmpkubeconfig
+  ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh tmpkubeconfig
   remote_rsync_kubeconfig_tmp
   for i in ${NODES_WORK}
   do
-    ssh root@${i} bash ${remoteScriptDir}/local.sh tmpkubectl criupgrade
+    ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh tmpkubectl criupgrade
   done
 
   for i in ${NODES_ALL}
   do
-    ssh root@${i} bash ${remoteScriptDir}/local.sh criupgradeopt
+    ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh criupgradeopt
   done
 }
 
@@ -170,7 +177,7 @@ remote_cri_upgrade_version() {
 remote_backup_etcd() {
   remote_rsync_script
 
-  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh backup
+  ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh backup
 }
 
 
@@ -178,15 +185,15 @@ remote_backup_etcd() {
 remote_restore_etcd() {
   remote_rsync_script
 
-  ssh root@${MASTER1_IP} bash ${remoteScriptDir}/local.sh restore
+  ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh restore
   
   remote_rsync_etcd_snap
   for i in ${NODES_MASTER}
   do
-    ssh root@${i} bash ${remoteScriptDir}/local.sh restore
+    ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh restore
   done
 
-  python3 ${script_dir}/concurrent.py "bash ${remoteScriptDir}/local.sh startetcd" ${NODES_MASTER1_MASTER}
+  python3 ${script_dir}/concurrent.py "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh startetcd" ${NODES_MASTER1_MASTER}
 }
 
 
@@ -195,10 +202,10 @@ remote_clean_cluster() {
   remote_rsync_script
   for i in ${NODES_ALL}
   do
-    if ssh root@${i} test -e ${remoteScriptDir}/local.sh; then
+    if ssh ${nodeUser}@${i} test -e ${remoteScriptDir}/local.sh; then
       result_blue_font "清理节点: ${i}"
-      ssh root@${i} bash ${remoteScriptDir}/local.sh clean
-      ssh root@${i} rm -rf ${remoteScriptDir}
+      ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh clean
+      ssh ${nodeUser}@${i} ${remote_RM} -rf ${remoteScriptDir}
     fi
   done
 }
@@ -245,7 +252,7 @@ remote_rsync_update() {
   for i in $2
   do
     result_blue_font "$1: ${i}"
-    rsync_destination="root@${i}:${remoteScriptDir}/"
+    rsync_destination="${nodeUser}@${i}:${remoteScriptDir}/"
     rsync ${rsync_parm} ${rsync_exclude} ${rsync_source} ${rsync_destination}
   done
 }
@@ -260,7 +267,7 @@ remote_rsync_passive_update() {
   local i="$2"
 
   result_blue_font "$1: ${i}"
-  rsync_destination="root@${i}:${remoteScriptDir}/"
+  rsync_destination="${nodeUser}@${i}:${remoteScriptDir}/"
   rsync ${rsync_parm} ${rsync_exclude} ${rsync_destination} ${rsync_source}
 }
 
@@ -275,7 +282,7 @@ remote_rsync_kubelet_ca() {
   for i in ${NODES_ALL}
   do
     result_blue_font "同步 kubelet CA: ${i}"
-    rsync_destination="root@${i}:${KUBELET_PKI}/"
+    rsync_destination="${nodeUser}@${i}:${KUBELET_PKI}/"
     rsync ${rsync_parm} ${rsync_exclude} ${rsync_source} ${rsync_destination}
   done
 }
@@ -285,8 +292,13 @@ main() {
   set +e
   variables_settings_remote
   set -e
+
   if [ "${remote_LOGIN_NODES}" = 'all' ]; then
     remote_LOGIN_NODES="${NODES_ALL}"
+  fi
+  if [ "${nodeUser}" != 'root' ]; then
+    remote_BASH='sudo bash'
+    remote_RM='sudo rm'
   fi
 
   case $1 in
@@ -362,11 +374,6 @@ main() {
   esac
 }
 
-
-# 默认变量
-remote_FLANNEL_SWITCH=0
-remote_LOGIN_SWITCH=0
-remote_LOGIN_NODES=all
 
 # 开头 ':' 表示不打印错误信息, 字符后面 ':' 表示需要参数
 while getopts ":a:l:f" opt; do
