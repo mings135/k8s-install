@@ -31,7 +31,11 @@ remote_free_login() {
 
   # 创建 ssh 密钥
   if [ ! -f ~/.ssh/id_rsa.pub ]; then
-    ssh-keygen -t rsa -b 2048 -f ~/.ssh/id_rsa -N ''
+    if [ ! -f ~/.ssh/id_rsa ]; then
+      ssh-keygen -t rsa -b 2048 -f ~/.ssh/id_rsa -N ''
+    else
+      ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
+    fi
   fi
 
   # copy public key 到各个节点
