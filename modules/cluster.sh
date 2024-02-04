@@ -125,6 +125,9 @@ cluster_backup_etcd() {
     --cert=${KUBEADM_PKI}/etcd/server.crt \
     --key=${KUBEADM_PKI}/etcd/server.key
   result_msg "备份 etcd 数据库快照"
+
+  chmod 644 ${script_dir}/config/etcd-snap.db
+  result_msg "修改 etcd-snap.db 权限"
 }
 
 
