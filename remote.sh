@@ -46,7 +46,7 @@ remote_free_login() {
 remote_front_operator() {
   for i in ${NODES_ALL}
   do
-    scp -r ${script_dir}/front.sh ${nodeUser}@${i}:/tmp/front.sh
+    scp -o StrictHostKeyChecking=no -r ${script_dir}/front.sh ${nodeUser}@${i}:/tmp/front.sh
   done
   python3 ${script_dir}/concurrent.py "${nodeUser}" "${remote_BASH} /tmp/front.sh" ${NODES_ALL}
 }
