@@ -87,7 +87,7 @@ cri_upgarde_containerd() {
   # 删除重装
   remove_apps 'containerd.io'
   cri_install_containerd
-  if [ "${criUpgradeReconfig}" -ne 0 ]; then
+  if [ "${criUpgradeReconfig}" = 'true' ]; then
     cri_config_containerd
     if [ -e ${save_dir} ]; then
       rm -rf ${save_dir}

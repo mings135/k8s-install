@@ -233,7 +233,7 @@ variables_default_config() {
   # 容器运行时: containerd(最新版本: latest, 具体版本: 1.6.9)
   criName=${criName:-'containerd'}
   criVersion=${criVersion:-'latest'}
-  criUpgradeReconfig=${criUpgradeReconfig:-'0'}
+  criUpgradeReconfig=${criUpgradeReconfig:-'false'}
   # 容器运行时: 配置 harbor 私库地址(http://192.168.13.13)
   privateRepository=${privateRepository:-''}
 

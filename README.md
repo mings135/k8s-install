@@ -94,8 +94,8 @@ bash remote.sh upgrade
 container:
   # 更新到哪个版本(默认 latest)
   criVersion: "1.6.9"
-  # 是否重新配置 cri config(默认 0, 关闭)
-  criUpgradeReconfig: 0
+  # 是否重新配置 cri config(默认 false)
+  criUpgradeReconfig: ""
 ```
 
 
