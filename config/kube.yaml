@@ -15,8 +15,9 @@ container:
   # 私有仓库地址, 比如 http://192.168.10.38
   privateRepository: ""
 nodes:
-  # 所有节点统一账号、密码(默认 user=root pwd="", 控制台输入)
+  # 所有节点统一账号(默认 root), 非 root 用户必须能运行 sudo 以及注意 remoteScriptDir 权限问题
   nodeUser: ""
+  # 所有节点统一密码(默认为空, 控制台输入)
   nodePassword: ""
   # 第一个初始化集群的 master 节点(必须)
   master1:
