@@ -209,7 +209,7 @@ variables_default_config() {
   # 远程集群主机存放 k8s 安装脚本的目录 (目录会在复制之前清空，请注意!!!)
   remoteScriptDir=${remoteScriptDir:-'/opt/k8sRemoteScript'}
   # kubernetes >= 1.28 时, 该配置对 kubernetes source 无效
-  localMirror=${localMirror:-'0'}
+  localMirror=${localMirror:-'false'}
 
   # k8s version(支持 1.20+, 不支持 latest)
   kubernetesVersion=${kubernetesVersion:-'1.28.0'}

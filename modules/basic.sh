@@ -7,7 +7,7 @@ basic_set_repos_cri() {
   if [ ${criName} = 'containerd' ] && [ ${SYSTEM_RELEASE} = 'centos' ]; then
     yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo > /dev/null
     result_msg "添加 docker repo"
-    if [ ${localMirror} -ne 0 ]; then
+    if [ "${localMirror}" = 'true' ]; then
       sed -e 's+download.docker.com+mirrors.tuna.tsinghua.edu.cn/docker-ce+' \
         -e '/^gpgcheck=1/s/gpgcheck=1/gpgcheck=0/' \
         -i /etc/yum.repos.d/docker-ce.repo
@@ -23,7 +23,7 @@ basic_set_repos_cri() {
     result_msg "添加 docker gpg"
     echo "deb [arch=$(dpkg --print-architecture) signed-by=${gpg_file}] https://download.docker.com/linux/debian $(lsb_release -cs) stable" > ${list_file}
     result_msg "添加 docker repo"
-    if [ ${localMirror} -ne 0 ];then
+    if [ "${localMirror}" = 'true' ];then
       sed -i 's+download.docker.com+mirrors.tuna.tsinghua.edu.cn/docker-ce+' ${list_file}
       result_msg "修改 repo source"
     fi
@@ -59,7 +59,7 @@ gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 exclude=kubelet kubeadm kubectl
 EOF
     result_msg "添加 k8s repo"
-    if [ ${localMirror} -ne 0 ];then
+    if [ "${localMirror}" = 'true' ];then
       sed -e 's+packages.cloud.google.com+mirrors.tuna.tsinghua.edu.cn/kubernetes+' \
         -e '/^gpgcheck=1/s/gpgcheck=1/gpgcheck=0/' \
         -i /etc/yum.repos.d/kubernetes.repo
@@ -73,7 +73,7 @@ EOF
   
   # debian 设置 kubernetes 源(>= 1.28)
   if [ $(echo "${kubernetesMajorMinor} >= 1.28" | bc) -eq 1 ] && [ ${SYSTEM_RELEASE} = 'debian' ]; then
-    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --yes --dearmor -o ${gpg_file}
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v${kubernetesMajorMinor}/deb/Release.key | gpg --yes --dearmor -o ${gpg_file}
     result_msg "添加 k8s pgp"
     echo "deb [signed-by=${gpg_file}] https://pkgs.k8s.io/core:/stable:/v${kubernetesMajorMinor}/deb/ /" > ${list_file}
     result_msg "添加 k8s repo"
@@ -81,7 +81,7 @@ EOF
 
   # debian 设置 kubernetes 源(< 1.28)
   if [ $(echo "${kubernetesMajorMinor} < 1.28" | bc) -eq 1 ] && [ ${SYSTEM_RELEASE} = 'debian' ]; then
-    if [ ${localMirror} -ne 0 ];then
+    if [ "${localMirror}" = 'true' ];then
       # open local mirror
       curl -fsSL https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | gpg --yes --dearmor -o ${gpg_file}
       result_msg "添加 k8s pgp"
@@ -124,7 +124,7 @@ basic_install_request_centos() {
   # 安装 EPEL 源
   if [ ! -f /etc/yum.repos.d/epel.repo ]; then
     install_apps "epel-release"
-    if [ ${localMirror} -ne 0 ]; then
+    if [ "${localMirror}" = 'true' ]; then
       sed -e 's!^metalink=!#metalink=!g' \
         -e 's!^#baseurl=!baseurl=!g' \
         -e 's!//download\.fedoraproject\.org/pub!//mirrors.tuna.tsinghua.edu.cn!g' \

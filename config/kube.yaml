@@ -2,7 +2,7 @@
 # 远程节点保存脚本的目录, 请确保其父目录一定存在(默认 /opt/k8sRemoteScript)
 remoteScriptDir: ""
 cluster:
-  kubernetesVersion: "1.28.4"
+  kubernetesVersion: "1.28.6"
   # 对应 kubeadm 中 controlPlaneEndpoint(默认 master1 address, port 6443)
   controlPlaneAddress: ""
   controlPlanePort:
