@@ -311,9 +311,8 @@ basic_system_configs() {
 basic_etc_hosts() {
   local kube_conf=${script_dir}/config/kube.yaml
   local node_name node_ip node_length
-  # 删除自定义内容
-  sed -i '/^\([0-9]\{1,3\}\.\)\{3\}[0-9]\{1,3\} [^ ].*/d' /etc/hosts
   # 添加 master1 hosts 配置
+  sed -i "/[[:space:]]${MASTER1_NAME}$/d" /etc/hosts
   echo "${MASTER1_IP} ${MASTER1_NAME}" >> /etc/hosts
   result_msg "添加 hosts: ${MASTER1_IP}"
   # 添加 master hosts 配置
@@ -322,6 +321,7 @@ basic_etc_hosts() {
   do
     node_name=$(tmp_var=${i} yq -M '.nodes.master[env(tmp_var)].domain' ${kube_conf})
     node_ip=$(tmp_var=${i} yq -M '.nodes.master[env(tmp_var)].address' ${kube_conf})
+    sed -i "/[[:space:]]${node_name}$/d" /etc/hosts
     echo "${node_ip} ${node_name}" >> /etc/hosts
     result_msg "添加 hosts: ${node_ip}"
   done
@@ -331,6 +331,7 @@ basic_etc_hosts() {
   do
     node_name=$(tmp_var=${i} yq -M '.nodes.work[env(tmp_var)].domain' ${kube_conf})
     node_ip=$(tmp_var=${i} yq -M '.nodes.work[env(tmp_var)].address' ${kube_conf})
+    sed -i "/[[:space:]]${node_name}$/d" /etc/hosts
     echo "${node_ip} ${node_name}" >> /etc/hosts
     result_msg "添加 hosts: ${node_ip}"
   done
