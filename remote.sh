@@ -6,6 +6,7 @@ if ! ps -ocmd $$ | grep -q "^bash"; then
   exit 1
 fi
 
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 set -e
 script_dir=$(dirname $(readlink -f $0))
 
