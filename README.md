@@ -13,14 +13,12 @@
   - 1.22 ~ 1.24 官方镜像仓库地址：`k8s.gcr.io`
   - 1.25+ 官方镜像仓库地址：`registry.k8s.io`
   - 国内镜像仓库地址：`registry.cn-hangzhou.aliyuncs.com/google_containers`
-  - debian 中，当 k8s 版本 >= 1.25 时，cri-tools  版本须 >= 1.25
-  - 1.28+ kubernetes 官方 apt 和 yum 源有调整，这里将固定使用官方资源
+  - 1.28+ kubernetes 官方 apt 和 yum 源有调整，所以固定使用官方资源
 - `Containerd：` 
   - 支持 1.5+
-  - 当 cri-tools  版本 >= 1.26 时，containerd 版本须 >= 1.6
-- `other:`
-  - 目前所有资源默认将使用对应的官方资源，请检查自己的网络是否支持
-  - cri-tools 和 containerd 默认将安装当前最新版本，如果自定义，请注意版本兼容性
+- `Other:`
+  - 默认所有资源将使用官方地址，请检查自己的网络是否支持
+  - 默认安装最新版本的依赖软件，如自定义，请注意版本兼容性
 
 
 
@@ -68,7 +66,7 @@ bash remote.sh -fla auto
 ```yaml
 cluster:
   # 更新到哪个版本
-  kubernetesVersion: "1.29.0"
+  kubernetesVersion: "1.29.2"
 ```
 
 
@@ -95,7 +93,7 @@ container:
   # 更新到哪个版本(默认 latest)
   criVersion: "1.6.9"
   # 是否重新配置 cri config(默认 false)
-  criUpgradeReconfig: ""
+  criUpgradeReconfig: "true"
 ```
 
 
