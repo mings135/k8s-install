@@ -207,7 +207,12 @@ variables_read_config() {
 # 设置默认值(未配置的)
 variables_default_config() {
   # 远程集群主机存放 k8s 安装脚本的目录 (目录会在复制之前清空，请注意!!!)
-  remoteScriptDir=${remoteScriptDir:-'/opt/k8sRemoteScript'}
+  if [ ${nodeUser} ] && [ ${nodeUser} != "root" ]; then
+    remoteScriptDir=${remoteScriptDir:-"/home/${nodeUser}/k8sRemoteScript"}
+  else
+    remoteScriptDir=${remoteScriptDir:-'/opt/k8sRemoteScript'}
+  fi
+  
   # kubernetes >= 1.28 时, 该配置对 kubernetes source 无效
   localMirror=${localMirror:-'false'}
 
