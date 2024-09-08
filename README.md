@@ -1,6 +1,10 @@
 # K8S Install
 
-基于 kubeadm 自动部署 k8s 集群。所有操作均在运维主机上完成。所有 k8s 节点只需统一 root 密码，开启 ssh 即可，一般情况下无需其他操作。
+基于 kubeadm 自动部署 k8s 集群。
+
+一般情况所有操作均在运维主机上完成即可。
+
+所有 k8s 节点须统一账号密码（非 root 账号须支持 sudo 命令），并开启 ssh。
 
 
 
@@ -9,11 +13,10 @@
 - `Linux:` 
   - 支持 AlmaLinux 8、AlmaLinux 9、Debian 11、Debian 12
 - `Kubernetes:` 
-  - 支持 1.22+
-  - 1.22 ~ 1.24 官方镜像仓库地址：`k8s.gcr.io`
-  - 1.25+ 官方镜像仓库地址：`registry.k8s.io`
+  - 支持 1.24+
+  - 1.24 官方镜像仓库地址：`k8s.gcr.io`
+  - 1.25 官方镜像仓库地址：`registry.k8s.io`
   - 国内镜像仓库地址：`registry.cn-hangzhou.aliyuncs.com/google_containers`
-  - 1.28+ kubernetes 官方 apt 和 yum 源有调整，所以固定使用官方资源
 - `Containerd：` 
   - 支持 1.5+
 - `Other:`
@@ -66,7 +69,7 @@ bash remote.sh -fla auto
 ```yaml
 cluster:
   # 更新到哪个版本
-  kubernetesVersion: "1.29.2"
+  kubernetesVersion: "1.31.0"
 ```
 
 

@@ -33,8 +33,8 @@ basic_set_repos_cri() {
 
 # 设置 kubernetes 源
 basic_set_repos_kubernetes() {
-  # centos 设置 kubernetes 源(>= 1.28)
-  if [ $(echo "${kubernetesMajorMinor} >= 1.28" | bc) -eq 1 ] && [ ${SYSTEM_RELEASE} = 'centos' ]; then
+  # centos 设置 kubernetes 源(1.28 官方修改了源格式, 使得 1.24 开始均使用以下格式)
+  if [ ${SYSTEM_RELEASE} = 'centos' ]; then
     cat > /etc/yum.repos.d/kubernetes.repo << EOF
 [kubernetes]
 name=Kubernetes
@@ -45,54 +45,25 @@ gpgkey=https://pkgs.k8s.io/core:/stable:/v${kubernetesMajorMinor}/rpm/repodata/r
 exclude=kubelet kubeadm kubectl cri-tools kubernetes-cni
 EOF
     result_msg "添加 k8s repo"
-  fi
-
-  # centos 设置 kubernetes 源(< 1.28)
-  if [ $(echo "${kubernetesMajorMinor} < 1.28" | bc) -eq 1 ] && [ ${SYSTEM_RELEASE} = 'centos' ]; then
-    cat > /etc/yum.repos.d/kubernetes.repo << EOF
-[kubernetes]
-name=Kubernetes
-baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
-enabled=1
-gpgcheck=1
-gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-exclude=kubelet kubeadm kubectl
-EOF
-    result_msg "添加 k8s repo"
-    if [ "${localMirror}" = 'true' ];then
-      sed -e 's+packages.cloud.google.com+mirrors.tuna.tsinghua.edu.cn/kubernetes+' \
-        -e '/^gpgcheck=1/s/gpgcheck=1/gpgcheck=0/' \
-        -i /etc/yum.repos.d/kubernetes.repo
+    if [ "${localMirror}" = 'true' ]; then
+      sed -i '/baseurl/s+pkgs.k8s.io+mirrors.tuna.tsinghua.edu.cn/kubernetes+' /etc/yum.repos.d/kubernetes.repo
       result_msg "修改 k8s repo"
     fi
   fi
   
-  # debian 所需变量(/etc/apt/keyrings 在 request 中创建)
+  # debian 所需变量(/etc/apt/keyrings 在 basic_install_request_debian 中创建)
   local list_file='/etc/apt/sources.list.d/kubernetes.list'
   local gpg_file='/etc/apt/keyrings/kubernetes-archive-keyring.gpg'
   
-  # debian 设置 kubernetes 源(>= 1.28)
-  if [ $(echo "${kubernetesMajorMinor} >= 1.28" | bc) -eq 1 ] && [ ${SYSTEM_RELEASE} = 'debian' ]; then
+  # debian 设置 kubernetes 源(1.28 官方修改了源格式, 使得 1.24 开始均使用以下格式)
+  if [ ${SYSTEM_RELEASE} = 'debian' ]; then
     curl -fsSL https://pkgs.k8s.io/core:/stable:/v${kubernetesMajorMinor}/deb/Release.key | gpg --yes --dearmor -o ${gpg_file}
     result_msg "添加 k8s pgp"
     echo "deb [signed-by=${gpg_file}] https://pkgs.k8s.io/core:/stable:/v${kubernetesMajorMinor}/deb/ /" > ${list_file}
     result_msg "添加 k8s repo"
-  fi
-
-  # debian 设置 kubernetes 源(< 1.28)
-  if [ $(echo "${kubernetesMajorMinor} < 1.28" | bc) -eq 1 ] && [ ${SYSTEM_RELEASE} = 'debian' ]; then
-    if [ "${localMirror}" = 'true' ];then
-      # open local mirror
-      curl -fsSL https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | gpg --yes --dearmor -o ${gpg_file}
-      result_msg "添加 k8s pgp"
-      echo "deb [signed-by=${gpg_file}] https://mirrors.tuna.tsinghua.edu.cn/kubernetes/apt/ kubernetes-xenial main" > ${list_file}
-      result_msg "添加 k8s repo"
-    else
-      # official mirror
-      curl -fsSL https://dl.k8s.io/apt/doc/apt-key.gpg | gpg --yes --dearmor -o ${gpg_file}
-      result_msg "添加 k8s pgp"
-      echo "deb [signed-by=${gpg_file}] https://apt.kubernetes.io/ kubernetes-xenial main" > ${list_file}
-      result_msg "添加 k8s repo"
+    if [ "${localMirror}" = 'true' ]; then
+      sed -i 's+pkgs.k8s.io+mirrors.tuna.tsinghua.edu.cn/kubernetes+' ${list_file}
+      result_msg "修改 k8s repo"
     fi
   fi
 }

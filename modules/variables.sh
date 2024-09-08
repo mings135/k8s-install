@@ -269,8 +269,8 @@ variables_default_config() {
   RES_LEVEL=1 && test $(echo "${kubernetesVersion}" | awk -F '.' '{print NF}') -eq 3 \
     && echo "${kubernetesVersion}" | awk -F '.' '{print $1$2$3}' | grep -Eqi '^[[:digit:]]*$'
   result_msg "检查 kubernetesVersion 格式" && RES_LEVEL=0
-  RES_LEVEL=1 && test $(echo "${kubernetesMajorMinor} >= 1.22" | bc) -eq 1
-  result_msg "检查 kubernetesVersion >= 1.22" && RES_LEVEL=0
+  RES_LEVEL=1 && test $(echo "${kubernetesMajorMinor} >= 1.24" | bc) -eq 1
+  result_msg "检查 kubernetesVersion >= 1.24" && RES_LEVEL=0
 
   # 检查 cri
   RES_LEVEL=1 && test ${criSocket}

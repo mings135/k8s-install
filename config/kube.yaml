@@ -1,6 +1,9 @@
 # 集群初始化后请勿随意修改配置, 否则可能导致无法正常运行!!!
+
 # 远程节点保存脚本的目录, 请确保其父目录一定存在(默认 /opt/k8sRemoteScript or /${HOME}/k8sRemoteScript)
 remoteScriptDir: ""
+# 是否使用国内镜像源(默认 false)
+localMirror: ""
 cluster:
   kubernetesVersion: "1.31.0"
   # 对应 kubeadm 中 controlPlaneEndpoint(默认 master1 address, port 6443)
