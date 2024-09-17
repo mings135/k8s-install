@@ -180,6 +180,9 @@ variables_read_config() {
   local kube_conf=${script_dir}/config/kube.yaml
   remoteScriptDir="$(yq -M '.remoteScriptDir' ${kube_conf} | grep -v '^null$')"
   localMirror="$(yq -M '.localMirror' ${kube_conf} | grep -v '^null$')"
+  nodeUser="$(yq -M '.nodeUser' ${kube_conf} | grep -v '^null$')"
+  nodePassword="$(yq -M '.nodePassword' ${kube_conf} | grep -v '^null$')"
+  etcdctlVersion="$(yq -M '.etcdctlVersion' ${kube_conf} | grep -v '^null$')"
   # cluster
   kubernetesVersion="$(yq -M '.cluster.kubernetesVersion' ${kube_conf} | grep -v '^null$')"
   crictlVersion="$(yq -M '.cluster.crictlVersion' ${kube_conf} | grep -v '^null$')"
@@ -198,9 +201,6 @@ variables_read_config() {
   criUpgradeReconfig="$(yq -M '.container.criUpgradeReconfig' ${kube_conf} | grep -v '^null$')"
   privateRepository="$(yq -M '.container.privateRepository' ${kube_conf} | grep -v '^null$')"
   # nodes
-  nodeUser="$(yq -M '.nodes.nodeUser' ${kube_conf} | grep -v '^null$')"
-  nodePassword="$(yq -M '.nodes.nodePassword' ${kube_conf} | grep -v '^null$')"
-  etcdctlVersion="$(yq -M '.nodes.etcdctlVersion' ${kube_conf} | grep -v '^null$')"
 }
 
 
