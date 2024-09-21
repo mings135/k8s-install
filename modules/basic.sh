@@ -106,7 +106,7 @@ basic_install_request_centos() {
     fi
   fi
   # install tools
-  install_apps 'ipvsadm chrony iproute-tc nfs-utils yum-utils'
+  install_apps 'socat ipvsadm chrony iproute-tc nfs-utils yum-utils'
   # 优化 chrony 配置
   if systemctl list-unit-files | grep -Eqi 'chronyd'; then
     basic_set_chrony_config '/etc/chrony.conf'
@@ -120,7 +120,7 @@ basic_install_request_centos() {
 # 安装必要的工具(2), debian 安装集群所需的前置工具
 basic_install_request_debian() {
   # install tools
-  install_apps 'ipvsadm chrony nfs-common ca-certificates curl gnupg lsb-release'
+  install_apps 'socat ipvsadm chrony nfs-common ca-certificates curl gnupg lsb-release'
   # 创建必要目录
   if [ ! -e /etc/apt/keyrings ]; then
     mkdir -p /etc/apt/keyrings
