@@ -13,10 +13,13 @@ cluster:
   # 对应 kubeadm 中 controlPlaneEndpoint(默认 master1 address, port 6443)
   controlPlaneAddress: ""
   controlPlanePort:
-  # 镜像仓库地址(例如：registry.k8s.io)
+  # kubeadm 镜像仓库地址(例如：registry.k8s.io)
   imageRepository: ""
-  # kubeadm 签发证书(默认 true), false --> 自签证书(default 50Y), 升级集群不更新组件证书
+  # kubeadm 签发证书(默认 true), false --> 自签证书(默认 50 年), 升级集群不更新组件证书
   kubeadmSignCertificate: ""
+  # kubeadm 设置证书期限, 仅 kubernetes >= 1.31 时生效(格式：8760h0m0s)
+  caCertificateValidityPeriod: "438000h0m0s"
+  certificateValidityPeriod: "438000h0m0s"
 container:
   criName: "containerd"
   # 私有仓库地址(例如：http://192.168.10.10)
