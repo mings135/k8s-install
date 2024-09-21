@@ -66,9 +66,14 @@ EOF
   if [ "${imageRepository}" ]; then
     tmp_var=${imageRepository} yq -i '.imageRepository = strenv(tmp_var)' clusterConfiguration.yaml
   fi
-  if [ ${kubernetesVersion} != 'latest' ]; then
-    tmp_var=${kubernetesVersion} yq -i '.kubernetesVersion = strenv(tmp_var)' clusterConfiguration.yaml
+  if [ "${caCertificateValidityPeriod}" ] && [ $(echo "${kubernetesMajorMinor} >= 1.31" | bc) -eq 1 ]; then
+    tmp_var=${caCertificateValidityPeriod} yq -i '.caCertificateValidityPeriod = strenv(tmp_var)' clusterConfiguration.yaml
   fi
+  if [ "${certificateValidityPeriod}" ] && [ $(echo "${kubernetesMajorMinor} >= 1.31" | bc) -eq 1 ]; then
+    tmp_var=${certificateValidityPeriod} yq -i '.certificateValidityPeriod = strenv(tmp_var)' clusterConfiguration.yaml
+  fi
+
+  tmp_var=${kubernetesVersion} yq -i '.kubernetesVersion = strenv(tmp_var)' clusterConfiguration.yaml
   tmp_var=${serviceSubnet} yq -i '.networking.serviceSubnet = strenv(tmp_var)' clusterConfiguration.yaml
   tmp_var=${podSubnet} yq -i '.networking.podSubnet = strenv(tmp_var)' clusterConfiguration.yaml
   yq -M initConfiguration.yaml clusterConfiguration.yaml otherConfiguration.yaml > kubeadm-config.yaml

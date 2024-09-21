@@ -122,7 +122,7 @@ variables_install_dependencies() {
 }
 
 
-# 设置 master1 节点变量
+# 读取配置文件 nodes 来获取 master1 节点变量
 variables_set_master1() {
   local kube_conf=${script_dir}/config/kube.yaml
   # 获取 master1 变量
@@ -134,7 +134,7 @@ variables_set_master1() {
 }
 
 
-# 节点分类变量
+# 读取配置文件 nodes 来获取节点分类变量
 variables_nodes_class() {
   local kube_conf=${script_dir}/config/kube.yaml
   NODES_MASTER="$(yq -M '.nodes.master[].address' ${kube_conf} | tr '\n' ' ' | sed 's/ *$//')"
@@ -145,7 +145,7 @@ variables_nodes_class() {
 }
 
 
-# 设置当前节点变量
+# 读取配置文件 nodes 来获取当前节点变量
 variables_set_host() {
   local kube_conf=${script_dir}/config/kube.yaml
   local host_ip=$(ip a | grep global | awk -F '/' '{print $1}' | awk 'NR==1{print $2}')
@@ -192,6 +192,8 @@ variables_read_config() {
   kubeadmSignCertificate="$(yq -M '.cluster.kubeadmSignCertificate' ${kube_conf} | grep -v '^null$')"
   certificatesVaild="$(yq -M '.cluster.certificatesVaild' ${kube_conf} | grep -v '^null$')"
   certificatesSize="$(yq -M '.cluster.certificatesSize' ${kube_conf} | grep -v '^null$')"
+  caCertificateValidityPeriod="$(yq -M '.cluster.caCertificateValidityPeriod' ${kube_conf} | grep -v '^null$')"
+  certificateValidityPeriod="$(yq -M '.cluster.certificateValidityPeriod' ${kube_conf} | grep -v '^null$')"
   serviceSubnet="$(yq -M '.cluster.serviceSubnet' ${kube_conf} | grep -v '^null$')"
   apiServerClusterIP="$(yq -M '.cluster.apiServerClusterIP' ${kube_conf} | grep -v '^null$')"
   podSubnet="$(yq -M '.cluster.podSubnet' ${kube_conf} | grep -v '^null$')"
@@ -200,25 +202,28 @@ variables_read_config() {
   criVersion="$(yq -M '.container.criVersion' ${kube_conf} | grep -v '^null$')"
   criUpgradeReconfig="$(yq -M '.container.criUpgradeReconfig' ${kube_conf} | grep -v '^null$')"
   privateRepository="$(yq -M '.container.privateRepository' ${kube_conf} | grep -v '^null$')"
-  # nodes
 }
 
 
 # 设置默认值(未配置的)
-variables_default_config() {
+variables_default_config() {  
+  # 是否使用国内 yum/apt 镜像源
+  localMirror=${localMirror:-'false'}
+  # 节点密码, 默认为空(也就是手动输入)
+  nodeUser=${nodeUser:-'root'}
+  nodePassword=${nodePassword:-''}
+  # 节点安装 etcdctl 的 version
+  etcdctlVersion=${etcdctlVersion:-'3.5.10'}
   # 远程集群主机存放 k8s 安装脚本的目录 (目录会在复制之前清空，请注意!!!)
   if [ ${nodeUser} ] && [ ${nodeUser} != "root" ]; then
     remoteScriptDir=${remoteScriptDir:-"/home/${nodeUser}/k8sRemoteScript"}
   else
     remoteScriptDir=${remoteScriptDir:-'/opt/k8sRemoteScript'}
   fi
-  
-  # kubernetes >= 1.28 时, 该配置对 kubernetes source 无效
-  localMirror=${localMirror:-'false'}
 
-  # k8s version(支持 1.20+, 不支持 latest)
-  kubernetesVersion=${kubernetesVersion:-'1.28.0'}
-  crictlVersion=${crictlVersion:-'latest'} # 1.26.0 开始 containerd 必须大于 1.26
+  # k8s version(支持 1.24+, 不支持 latest)
+  kubernetesVersion=${kubernetesVersion:-'1.31.0'}
+  crictlVersion=${crictlVersion:-'latest'}
   # k8s controlPlaneEndpoint 地址和端口, 没有该参数无法添加 master 节点
   controlPlaneAddress=${controlPlaneAddress:-"${MASTER1_IP}"}
   controlPlanePort=${controlPlanePort:-'6443'}
@@ -226,9 +231,12 @@ variables_default_config() {
   imageRepository=${imageRepository:-''}  # 国内 registry.cn-hangzhou.aliyuncs.com/google_containers
   # k8s 集群安装或升级时, 是否使用 kubeadm 签发证书
   kubeadmSignCertificate=${kubeadmSignCertificate:-'true'}
-  # 自签证书有效期和密钥大小(50年)
+  # 自签证书有效期和密钥大小(单位：天, 默认：50年)
   certificatesVaild=${certificatesVaild:-'18250'}
   certificatesSize=${certificatesSize:-'2048'}
+  # kubeadm 新增证书期限配置, 仅 kubernetes >= 1.31 时生效(格式：8760h0m0s)
+  caCertificateValidityPeriod=${caCertificateValidityPeriod:-''}
+  certificateValidityPeriod=${certificateValidityPeriod:-''}
   # Services 子网和 API Server 集群内部地址 (即 Service 网络的第一个 IP)
   serviceSubnet=${serviceSubnet:-'10.96.0.0/16'}
   apiServerClusterIP=${apiServerClusterIP:-'10.96.0.1'}
@@ -242,11 +250,6 @@ variables_default_config() {
   # 容器运行时: 配置 harbor 私库地址(http://192.168.13.13)
   privateRepository=${privateRepository:-''}
 
-  # 节点密码, 默认为空(也就是手动输入)
-  nodeUser=${nodeUser:-'root'}
-  nodePassword=${nodePassword:-''}
-  # 节点安装 etcdctl 的 version
-  etcdctlVersion=${etcdctlVersion:-'3.5.10'}
 
   # 设置常量
   KUBEADM_PKI='/etc/kubernetes/pki'
@@ -254,6 +257,8 @@ variables_default_config() {
   KUBELET_PKI='/var/lib/kubelet/pki'
   JOIN_TOKEN_INTERVAL=7200
   etcdDataDir="/var/lib/etcd" # 目前仅用于 etcd 备份恢复
+
+  # 设置动态常量
   upgradeVersion="${kubernetesVersion}"
   kubernetesMajorMinor=${kubernetesVersion%.*}
 
