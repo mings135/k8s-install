@@ -172,19 +172,12 @@ EOF
 
 # 加载 ipvs 模块
 basic_load_ipvs_modules() {
-  local ver=$(uname -r | awk -F '-' '{print $1}')
-  # 内核版本 >=4.0, 模块名称: nf_conntrack
-  if [ $(echo "${ver%.*} >= 4.0" | bc) -eq 1 ]; then
-    local nf_conn='nf_conntrack'
-  else
-    local nf_conn='nf_conntrack_ipv4'
-  fi
   # 开机自加载 ipvs 模块
   cat > /etc/modules-load.d/ipvs.conf << EOF
 ip_vs
 ip_vs_rr
 ip_vs_wrr
-${nf_conn}
+nf_conntrack
 overlay
 br_netfilter
 EOF
@@ -249,16 +242,6 @@ net.netfilter.nf_conntrack_tcp_timeout_time_wait = 30
 net.netfilter.nf_conntrack_tcp_timeout_close_wait = 15
 net.netfilter.nf_conntrack_tcp_timeout_established = 900
 EOF
-  # nf_conntrack_buckets 无法在 CentOS7 中直接 sysctl，必须配置模块加载 options
-  if [ "${SYSTEM_RELEASE}${SYSTEM_PACKAGE}" = 'centosyum' ]; then
-    echo 262144 > /sys/module/nf_conntrack/parameters/hashsize
-    result_msg "优化 nf_conntrack_buckets"
-    sed -i '/net.netfilter.nf_conntrack_buckets/d' /etc/sysctl.d/k8s.conf
-    cat > /etc/modprobe.d/buckets.conf << EOF
-options nf_conntrack hashsize=262144
-EOF
-    result_msg "添加 buckets 开机加载"
-  fi
   # 即刻加载优化的参数
   sysctl -p /etc/sysctl.d/k8s.conf > /dev/null
   result_msg '优化 kernel parameters'

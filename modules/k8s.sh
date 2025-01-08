@@ -66,10 +66,10 @@ EOF
   if [ "${imageRepository}" ]; then
     tmp_var=${imageRepository} yq -i '.imageRepository = strenv(tmp_var)' clusterConfiguration.yaml
   fi
-  if [ "${caCertificateValidityPeriod}" ] && [ $(echo "${kubernetesMajorMinor} >= 1.31" | bc) -eq 1 ]; then
+  if [ "${caCertificateValidityPeriod}" ] && compare_version_ge "${kubernetesMajorMinor}" "1.31"; then
     tmp_var=${caCertificateValidityPeriod} yq -i '.caCertificateValidityPeriod = strenv(tmp_var)' clusterConfiguration.yaml
   fi
-  if [ "${certificateValidityPeriod}" ] && [ $(echo "${kubernetesMajorMinor} >= 1.31" | bc) -eq 1 ]; then
+  if [ "${certificateValidityPeriod}" ] && compare_version_ge "${kubernetesMajorMinor}" "1.31"; then
     tmp_var=${certificateValidityPeriod} yq -i '.certificateValidityPeriod = strenv(tmp_var)' clusterConfiguration.yaml
   fi
 

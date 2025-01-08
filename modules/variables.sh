@@ -61,6 +61,26 @@ remove_apps() {
 }
 
 
+# 版本比较
+compare_version_ge() {
+    local ver1_major=$(echo $1 | awk -F '.' '{print $1}')
+    local ver1_minor=$(echo $1 | awk -F '.' '{print $2}')
+    local ver2_major=$(echo $2 | awk -F '.' '{print $1}')
+    local ver2_minor=$(echo $2 | awk -F '.' '{print $2}')
+    if [ ${ver1_major} -gt ${ver2_major} ]; then
+        return 0
+    elif [ ${ver1_major} -eq ${ver2_major} ]; then
+        if [ ${ver1_minor} -ge ${ver2_minor} ]; then
+            return 0
+        else
+            return 1
+        fi
+    else
+        return 1
+    fi
+}
+
+
 # 检查是否存在配置文件
 variables_check_config() {
   RES_LEVEL=1 && test -e ${script_dir}/config/kube.yaml
@@ -74,10 +94,7 @@ variables_set_system() {
     SYSTEM_RELEASE="centos"
     SYSTEM_PACKAGE="dnf"
     # 判断版本
-    if cat /etc/redhat-release | grep -Eqi 'release 7'; then
-      SYSTEM_PACKAGE="yum"
-      SYSTEM_VERSION=7
-    elif cat /etc/redhat-release | grep -Eqi 'release 8'; then
+    if cat /etc/redhat-release | grep -Eqi 'release 8'; then
       SYSTEM_VERSION=8
     elif cat /etc/redhat-release | grep -Eqi 'release 9'; then
       SYSTEM_VERSION=9
@@ -86,9 +103,7 @@ variables_set_system() {
     SYSTEM_RELEASE="debian"
     SYSTEM_PACKAGE="apt-get"
     # 判断版本
-    if cat /etc/issue | grep -Eqi 'linux 10'; then
-      SYSTEM_VERSION=10
-    elif cat /etc/issue | grep -Eqi 'linux 11'; then
+    if cat /etc/issue | grep -Eqi 'linux 11'; then
       SYSTEM_VERSION=11
     elif cat /etc/issue | grep -Eqi 'linux 12'; then
       SYSTEM_VERSION=12
@@ -103,7 +118,7 @@ variables_set_system() {
 # 安装必要的工具(1), 脚本所需的前置工具
 variables_install_dependencies() {
   local apps=''
-  for i in bc curl tar
+  for i in curl tar
   do
     if ! which $i &> /dev/null; then
       apps="${apps} $i"
@@ -259,8 +274,8 @@ variables_default_config() {
   etcdDataDir="/var/lib/etcd" # 目前仅用于 etcd 备份恢复
 
   # 设置动态常量
-  upgradeVersion="${kubernetesVersion}"
-  kubernetesMajorMinor=${kubernetesVersion%.*}
+  upgradeVersion=${kubernetesVersion}
+  kubernetesMajorMinor=$(echo ${kubernetesVersion} | awk -F '.' '{print $1"."$2}')
 
   # 生成变量
   if [ "${controlPlaneAddress}" ] && [ "${controlPlanePort}" ]; then
@@ -274,7 +289,7 @@ variables_default_config() {
   RES_LEVEL=1 && test $(echo "${kubernetesVersion}" | awk -F '.' '{print NF}') -eq 3 \
     && echo "${kubernetesVersion}" | awk -F '.' '{print $1$2$3}' | grep -Eqi '^[[:digit:]]*$'
   result_msg "检查 kubernetesVersion 格式" && RES_LEVEL=0
-  RES_LEVEL=1 && test $(echo "${kubernetesMajorMinor} >= 1.24" | bc) -eq 1
+  RES_LEVEL=1 && compare_version_ge "${kubernetesMajorMinor}" "1.24"
   result_msg "检查 kubernetesVersion >= 1.24" && RES_LEVEL=0
 
   # 检查 cri
@@ -282,7 +297,7 @@ variables_default_config() {
   result_msg "检查 criSocket variable" && RES_LEVEL=0
   if [ ${criVersion} != 'latest' ]; then
     if [ ${criName} = 'containerd' ]; then
-      RES_LEVEL=1 && test $(echo "${criVersion%.*} >= 1.5" | bc) -eq 1
+      RES_LEVEL=1 && compare_version_ge "$(echo ${criVersion} | awk -F '.' '{print $1"."$2}')" "1.5"
       result_msg "检查 criVersion >= 1.5" && RES_LEVEL=0
     fi
   fi
