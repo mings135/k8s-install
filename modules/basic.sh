@@ -120,7 +120,7 @@ basic_install_request_centos() {
 # 安装必要的工具(2), debian 安装集群所需的前置工具
 basic_install_request_debian() {
   # install tools
-  install_apps 'socat ipvsadm chrony nfs-common ca-certificates curl gnupg lsb-release'
+  install_apps 'socat ipvsadm chrony nfs-common ca-certificates gnupg lsb-release'
   # 创建必要目录
   if [ ! -e /etc/apt/keyrings ]; then
     mkdir -p /etc/apt/keyrings

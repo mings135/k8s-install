@@ -118,6 +118,21 @@ varialbes_by_auto() {
     fi
 }
 
+varialbes_install_dependencies() {
+    if [ ! -e ${KUBE_BIN}/etcdctl ] || [ $(etcdctl version | grep 'etcdctl version' | awk '{print $3}') != "${etcdctlVersion}" ]; then
+        curl -fsSL -o /tmp/etcd-linux-amd64.tar.gz https://github.com/etcd-io/etcd/releases/download/v${etcdctlVersion}/etcd-v${etcdctlVersion}-linux-amd64.tar.gz &&
+            rm -rf /tmp/etcd-download-test && mkdir -p /tmp/etcd-download-test &&
+            tar xzf /tmp/etcd-linux-amd64.tar.gz -C /tmp/etcd-download-test --strip-components=1 &&
+            rm -f /tmp/etcd-linux-amd64.tar.gz &&
+            mv /tmp/etcd-download-test/etcdctl ${KUBE_BIN}/etcdctl
+        result_msg "安装 etcdctl"
+        if [ -e /tmp/etcd-download-test/etcdutl ]; then
+            mv /tmp/etcd-download-test/etcdutl ${KUBE_BIN}/etcdutl
+            result_msg "安装 etcdutl"
+        fi
+    fi
+}
+
 # 查看所有变量
 variables_display() {
     # const
@@ -154,7 +169,7 @@ variables_display() {
     # config .container
     echo "criName=${criName}"
     echo "criVersion=${criVersion}"
-    echo "privateRepository=${privateRepository}"    
+    echo "privateRepository=${privateRepository}"
     # auto
     echo "upgradeVersion=${upgradeVersion}"
     echo "kubernetesMajorMinor=${kubernetesMajorMinor}"
@@ -186,4 +201,5 @@ variables_remote() {
     variables_by_config
     variables_by_default
     varialbes_by_auto
+    varialbes_install_dependencies
 }

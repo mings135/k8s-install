@@ -166,7 +166,7 @@ const_install_dependencies() {
         install_apps "${apps}"
     fi
 
-    if ! which yq &>/dev/null; then
+    if [ ! -e ${KUBE_BIN}/yq ]; then
         curl -fsSL -o ${KUBE_BIN}/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 &&
             chmod +x ${KUBE_BIN}/yq
         result_msg "安装 yq"
