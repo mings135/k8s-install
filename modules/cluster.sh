@@ -47,7 +47,7 @@ cluster_join_cluster() {
   systemctl daemon-reload && systemctl restart kubelet
   result_msg "重启 重载 kubelet"
   if [ ${HOST_ROLE} = "master" ]; then
-    result_blue_font "${join_command_basic} ${join_command_control}"
+    blue_font "${join_command_basic} ${join_command_control}"
     ${join_command_basic} ${join_command_control}
     result_msg "加入 cluster 成为 master"
     cluster_config_kubectl_command
@@ -146,17 +146,17 @@ cluster_restore_etcd() {
     sleep 3
   fi
 
-  if [ -e ${etcdDataDir}.bak ] && [ -e ${etcdDataDir} ]; then
-    rm -rf ${etcdDataDir}.bak
+  if [ -e ${ETCD_DATA_DIR}.bak ] && [ -e ${ETCD_DATA_DIR} ]; then
+    rm -rf ${ETCD_DATA_DIR}.bak
     result_msg "清理 旧的备份 etcd 数据文件夹"
   fi
-  if [ -e ${etcdDataDir} ]; then
-    mv ${etcdDataDir} ${etcdDataDir}.bak
+  if [ -e ${ETCD_DATA_DIR} ]; then
+    mv ${ETCD_DATA_DIR} ${ETCD_DATA_DIR}.bak
     result_msg "备份 etcd 数据文件夹"
   fi
 
   cluster_install_etcdctl
-  ETCDCTL_API=3 ${tmp_command} snapshot restore ${script_dir}/config/etcd-snap.db --data-dir=${etcdDataDir}
+  ETCDCTL_API=3 ${tmp_command} snapshot restore ${script_dir}/config/etcd-snap.db --data-dir=${ETCD_DATA_DIR}
   result_msg "恢复 etcd 数据库快照到数据文件夹"
 }
 

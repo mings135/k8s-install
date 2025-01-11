@@ -9,7 +9,7 @@ nodeUser: ""
 # 所有节点统一密码(默认为空, 控制台输入)
 nodePassword: ""
 cluster:
-  kubernetesVersion: "1.31.0"
+  kubernetesVersion: ""
   # 对应 kubeadm 中 controlPlaneEndpoint(默认 master1 address, port 6443)
   controlPlaneAddress: ""
   controlPlanePort:
