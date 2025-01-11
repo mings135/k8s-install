@@ -1,5 +1,6 @@
 # 常量
 
+SCRIPT_OWN=$(stat -c %U ${script_dir})
 KUBEADM_CONFIG='/etc/kubernetes'
 KUBEADM_PKI="${KUBEADM_CONFIG}/pki"
 KUBEADM_MANIFESTS="${KUBEADM_CONFIG}/manifests"
@@ -168,7 +169,8 @@ const_install_dependencies() {
 
     if [ ! -e ${KUBE_BIN}/yq ]; then
         curl -fsSL -o ${KUBE_BIN}/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 &&
-            chmod +x ${KUBE_BIN}/yq
+            chmod +x ${KUBE_BIN}/yq &&
+            chown ${SCRIPT_OWN}:${SCRIPT_OWN} ${KUBE_BIN}/yq
         result_msg "安装 yq"
     fi
 }

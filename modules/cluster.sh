@@ -30,7 +30,8 @@ cluster_generate_join_command() {
             token_timestamp="$(date '+%s')" &&
             echo "join_command_basic='${command_basic}'" >${script_dir}/config/join.sh &&
             echo "join_command_control='${command_control}'" >>${script_dir}/config/join.sh &&
-            echo "join_token_timestamp='${token_timestamp}'" >>${script_dir}/config/join.sh
+            echo "join_token_timestamp='${token_timestamp}'" >>${script_dir}/config/join.sh &&
+            chown ${SCRIPT_OWN}:${SCRIPT_OWN} ${script_dir}/config/join.sh
         result_msg "生成 new join.sh"
     fi
 }
@@ -115,7 +116,8 @@ cluster_backup_etcd() {
         --cacert=${KUBEADM_PKI}/etcd/ca.crt \
         --cert=${KUBEADM_PKI}/etcd/server.crt \
         --key=${KUBEADM_PKI}/etcd/server.key &&
-        chmod 644 ${script_dir}/config/etcd-snap.db
+        chmod 644 ${script_dir}/config/etcd-snap.db &&
+        chown ${SCRIPT_OWN}:${SCRIPT_OWN} ${script_dir}/config/etcd-snap.db
     result_msg "备份 etcd 数据库快照"
 }
 
@@ -162,7 +164,8 @@ cluster_start_etcd() {
 cluster_generate_kubeconfig_tmp() {
     cd ${script_dir}/config &&
         kubectl get cm kubeadm-config -n kube-system -o jsonpath='{.data.ClusterConfiguration}' >tmp-kubeadm-config.yaml &&
-        kubeadm kubeconfig user --client-name=kubernetes-admin --org=system:masters --config=tmp-kubeadm-config.yaml --validity-period=12h >tmp-admin.conf
+        kubeadm kubeconfig user --client-name=kubernetes-admin --org=system:masters --config=tmp-kubeadm-config.yaml --validity-period=12h >tmp-admin.conf &&
+        chown ${SCRIPT_OWN}:${SCRIPT_OWN} tmp-admin.conf
     result_msg "生成 tmp-admim.conf(12h)"
 }
 
