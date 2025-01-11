@@ -38,25 +38,27 @@
 
 ## Install
 
-- 由于网络/镜像源等问题可能会报错，此时脚本会自动退出（部分流程是并发的，可能存在延迟）
-- 如果出错，手动解决问题后继续运行 `auto` 即可
-- 如果 debian 安装软件失败，尝试：`apt-get update --allow-releaseinfo-change`
+- 配置文件：`config/kube.yaml`
+
+- 安装报错：由于网络等原因导致，此时脚本会自动退出（部分流程是并发的，可能存在延迟）
+- 处理问题：手动解决问题，继续运行 `auto` 原命令
+- 常见问题：
+  - debian 安装软件失败，尝试：`apt-get update --allow-releaseinfo-change`
+  - 网络问题，导致无法下载软件或镜像，尝试：参考 config/example.yaml 修改配置
+
 
 ```shell
 # 安装必要工具
-dnf install -y git python3 sshpass rsync
 apt-get update && apt-get install -y git python3 sshpass rsync
+dnf install -y git python3 sshpass rsync
 
 # 克隆 project
 git clone https://github.com/mings135/k8s-install.git
 
-# 进入 k8s-install
+# 进入 k8s-install(可选：cp config/example.yaml config/kube.yaml 进行修改)
 cd k8s-install
 
-# 配置 kube.yaml
-vi config/kube.yaml
-
-# 自动安装(-f 部署 flannel, -la 配置免密登录)
+# 自动安装(-f 部署 flannel, -la 配置免密登录, 如无配置文件, 将自动生成极简配置)
 bash remote.sh -fla auto
 ```
 
@@ -69,7 +71,7 @@ bash remote.sh -fla auto
 ```yaml
 cluster:
   # 更新到哪个版本
-  kubernetesVersion: "1.31.0"
+  kubernetesVersion: "1.32.0"
 ```
 
 

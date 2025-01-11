@@ -170,6 +170,7 @@ variables_display() {
 
 # 设置所有变量(local.sh)
 variables_local() {
+    SERVER_TYPE="node"
     variables_by_master1
     variables_by_localhost
     variables_by_config
@@ -179,6 +180,7 @@ variables_local() {
 
 # 设置所有变量(remote.sh)
 variables_remote() {
+    SERVER_TYPE="devops"
     variables_by_master1
     variables_by_nodes
     variables_by_config

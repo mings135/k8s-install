@@ -7,14 +7,25 @@ check_by_const() {
     result_msg "检查 HOST_IP"
 }
 
-check_by_variables() {
+check_by_nodes() {
     test ${MASTER1_IP} && test ${MASTER1_NAME}
     result_msg "检查 master1 var"
-    test ${HOST_NAME} && test ${HOST_ROLE}
-    result_msg "检查 localhost var"
 
-    test ${criSocket}
-    result_msg "检查 criSocket var"
+    if [ ${SERVER_TYPE} = 'node' ]; then
+        test ${HOST_NAME} && test ${HOST_ROLE}
+        result_msg "检查 localhost var"
+    fi
+
+    if [ ${SERVER_TYPE} = 'devops' ]; then
+        test ${NODES_MASTER} && test ${NODES_WORK} && test ${NODES_ALL} && test ${NODES_NOT_MASTER1} && test ${NODES_MASTER1_MASTER}
+        result_msg "检查 nodes var"
+    fi
+}
+
+check_by_config() {
+    test $(echo "${kubernetesVersion}" | awk -F '.' '{print NF}') -eq 3 && echo "${kubernetesVersion}" | awk -F '.' '{print $1$2$3}' | grep -Eqi '^[[:digit:]]*$'
+    result_msg "检查 kubernetesVersion 格式"
+
     if [ ${criVersion} != 'latest' ]; then
         if [ ${criName} = 'containerd' ]; then
             compare_version_ge "$(echo ${criVersion} | awk -F '.' '{print $1"."$2}')" "1.5"
@@ -22,16 +33,17 @@ check_by_variables() {
         fi
     fi
 
-    test $(echo "${kubernetesVersion}" | awk -F '.' '{print NF}') -eq 3 && echo "${kubernetesVersion}" | awk -F '.' '{print $1$2$3}' | grep -Eqi '^[[:digit:]]*$'
-    result_msg "检查 kubernetesVersion 格式"
     compare_version_ge "${kubernetesMajorMinor}" "1.24"
     result_msg "检查 kubernetesVersion >= 1.24"
+    test ${criSocket}
+    result_msg "检查 criSocket var"
 }
 
 check_variables() {
     # 检查变量，异常才显示
     RES_LEVEL=1
     check_by_const
-    check_by_variables
+    check_by_nodes
+    check_by_config
     RES_LEVEL=0
 }
