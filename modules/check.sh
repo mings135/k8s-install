@@ -15,11 +15,6 @@ check_by_nodes() {
         test ${HOST_NAME} && test ${HOST_ROLE}
         result_msg "检查 localhost var"
     fi
-
-    if [ ${SERVER_TYPE} = 'devops' ]; then
-        test "${NODES_MASTER}" && test "${NODES_WORK}" && test "${NODES_ALL}" && test "${NODES_NOT_MASTER1}" && test "${NODES_MASTER1_MASTER}"
-        result_msg "检查 nodes var"
-    fi
 }
 
 check_by_config() {
