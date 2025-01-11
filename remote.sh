@@ -196,7 +196,7 @@ remote_clean_cluster() {
 
 # 同步脚本文件和配置文件
 remote_rsync_script() {
-    local rsync_exclude='--include=/modules/ --include=/modules/* --include=/config/ --include=/config/kube.yaml --include=/local.sh --exclude=*'
+    local rsync_exclude='--include=/modules/ --include=/modules/* --include=/bin/ --include=/bin/* --include=/config/ --include=/config/kube.yaml --include=/local.sh --exclude=*'
     remote_rsync_update "同步脚本" "${NODES_ALL}" "${rsync_exclude}"
 }
 
