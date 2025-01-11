@@ -1,7 +1,8 @@
 # 常量
 
-KUBEADM_PKI='/etc/kubernetes/pki'
 KUBEADM_CONFIG='/etc/kubernetes'
+KUBEADM_PKI="${KUBEADM_CONFIG}/pki"
+KUBEADM_MANIFESTS="${KUBEADM_CONFIG}/manifests"
 KUBELET_PKI='/var/lib/kubelet/pki'
 JOIN_TOKEN_INTERVAL=7200
 ETCD_DATA_DIR="/var/lib/etcd" # 目前仅用于 etcd 备份恢复

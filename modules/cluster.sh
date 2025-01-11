@@ -139,9 +139,9 @@ cluster_restore_etcd() {
   RES_LEVEL=1 && test -e ${script_dir}/config/etcd-snap.db
   result_msg "检查 是否存在备份快照文件" && RES_LEVEL=0
 
-  if [ -e ${KUBEADM_CONFIG}/manifests/etcd.yaml ]; then
-    mv ${KUBEADM_CONFIG}/manifests/kube-apiserver.yaml ${script_dir}/config/kube-apiserver.yaml \
-      && mv ${KUBEADM_CONFIG}/manifests/etcd.yaml ${script_dir}/config/etcd.yaml
+  if [ -e ${KUBEADM_MANIFESTS}/etcd.yaml ]; then
+    mv ${KUBEADM_MANIFESTS}/kube-apiserver.yaml ${script_dir}/config/kube-apiserver.yaml \
+      && mv ${KUBEADM_MANIFESTS}/etcd.yaml ${script_dir}/config/etcd.yaml
     result_msg "停止 etcd 和 apiserver 服务"
     sleep 3
   fi
@@ -164,8 +164,8 @@ cluster_restore_etcd() {
 # 启动 etcd
 cluster_start_etcd() {
   if [ -e ${script_dir}/config/etcd.yaml ]; then
-    mv ${script_dir}/config/kube-apiserver.yaml ${KUBEADM_CONFIG}/manifests/kube-apiserver.yaml \
-      && mv ${script_dir}/config/etcd.yaml ${KUBEADM_CONFIG}/manifests/etcd.yaml
+    mv ${script_dir}/config/kube-apiserver.yaml ${KUBEADM_MANIFESTS}/kube-apiserver.yaml \
+      && mv ${script_dir}/config/etcd.yaml ${KUBEADM_MANIFESTS}/etcd.yaml
     result_msg "启动 etcd 和 apiserver 服务"
   fi
 }
@@ -178,10 +178,10 @@ cluster_install_etcdctl() {
       && rm -rf /tmp/etcd-download-test && mkdir -p /tmp/etcd-download-test \
       && tar xzf /tmp/etcd-linux-amd64.tar.gz -C /tmp/etcd-download-test --strip-components=1 \
       && rm -f /tmp/etcd-linux-amd64.tar.gz \
-      && mv /tmp/etcd-download-test/etcdctl /usr/local/bin/etcdctl
+      && mv /tmp/etcd-download-test/etcdctl ${KUBE_BIN}/etcdctl
     result_msg "安装 etcdctl"
     if [ -e /tmp/etcd-download-test/etcdutl ]; then
-      mv /tmp/etcd-download-test/etcdutl /usr/local/bin/etcdutl
+      mv /tmp/etcd-download-test/etcdutl ${KUBE_BIN}/etcdutl
       result_msg "安装 etcdutl"
     fi
   fi
