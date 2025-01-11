@@ -17,7 +17,7 @@ check_by_nodes() {
     fi
 
     if [ ${SERVER_TYPE} = 'devops' ]; then
-        test ${NODES_MASTER} && test ${NODES_WORK} && test ${NODES_ALL} && test ${NODES_NOT_MASTER1} && test ${NODES_MASTER1_MASTER}
+        test "${NODES_MASTER}" && test "${NODES_WORK}" && test "${NODES_ALL}" && test "${NODES_NOT_MASTER1}" && test "${NODES_MASTER1_MASTER}"
         result_msg "检查 nodes var"
     fi
 }
