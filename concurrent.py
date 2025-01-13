@@ -4,6 +4,7 @@
 '''
 Author: MingQ
 用途: 同时在多个远程主机上执行命令, 并实时输出stdout(必须先做免密)
+已弃用，使用 rrcmd 命令替代其作用
 '''
 
 import threading, sys
