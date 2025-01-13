@@ -173,6 +173,13 @@ const_install_dependencies() {
             chown ${SCRIPT_OWN}:${SCRIPT_OWN} ${KUBE_BIN}/yq
         result_msg "安装 yq"
     fi
+
+    if [ ! -e ${KUBE_BIN}/rrcmd ]; then
+        curl -fsSL -o ${KUBE_BIN}/rrcmd https://github.com/mings135/rrcmd/releases/latest/download/rrcmd &&
+            chmod +x ${KUBE_BIN}/rrcmd &&
+            chown ${SCRIPT_OWN}:${SCRIPT_OWN} ${KUBE_BIN}/rrcmd
+        result_msg "安装 rrcmd"
+    fi
 }
 
 # 生成极简配置 kube.yaml

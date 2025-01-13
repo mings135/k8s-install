@@ -54,13 +54,13 @@ remote_front_operator() {
     for i in ${NODES_ALL}; do
         scp -o StrictHostKeyChecking=no -r ${script_dir}/front.sh ${nodeUser}@${i}:/tmp/front.sh
     done
-    python3 ${script_dir}/concurrent.py "${nodeUser}" "${remote_BASH} /tmp/front.sh" ${NODES_ALL}
+    rrcmd "${nodeUser}" "${remote_BASH} /tmp/front.sh" ${NODES_ALL}
 }
 
 # 安装和配置所需的基础
 remote_install_basic() {
     remote_rsync_script
-    python3 ${script_dir}/concurrent.py "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh install" ${NODES_ALL}
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh install" ${NODES_ALL}
 }
 
 # 签发 CA 证书(创建 pki 目录)
@@ -92,7 +92,7 @@ remote_images_list() {
 
 # 拉取所需 images
 remote_images_pull() {
-    python3 ${script_dir}/concurrent.py "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh imgpull" ${NODES_MASTER1_MASTER}
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh imgpull" ${NODES_MASTER1_MASTER}
 }
 
 # 安装集群
@@ -178,7 +178,7 @@ remote_restore_etcd() {
         ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh restore
     done
 
-    python3 ${script_dir}/concurrent.py "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh startetcd" ${NODES_MASTER1_MASTER}
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh startetcd" ${NODES_MASTER1_MASTER}
 }
 
 # 删除整个集群
