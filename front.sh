@@ -12,7 +12,7 @@ if which rsync &>/dev/null; then
 fi
 
 RES_LEVEL=0
-RES_COLUM=60
+RES_COLUM=50
 
 const_action() {
     local tmp_result tmp_rc tmp_color
