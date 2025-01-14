@@ -112,11 +112,6 @@ blue_font() {
     echo -e "\033[34m\033[01m$1\033[0m"
 }
 
-const_auto_font() {
-    # $1 range 0 ~ 7
-    echo -e "\033[3$1m\033[01m$2\033[0m"
-}
-
 const_action() {
     local tmp_result tmp_rc tmp_color
     local tmp_msg=$1
@@ -139,17 +134,12 @@ const_action() {
 
 result_msg() {
     local tmp_rc=$?
-    local tmp_num tmp_color
     if [ ${tmp_rc} -eq 0 ]; then
         if [ ${RES_LEVEL} -eq 0 ]; then
-            tmp_num="$(echo ${HOST_IP} | awk -F '.' '{print $NF}')"
-            tmp_color=$((${tmp_num} % 7))
-            const_action "$(const_auto_font ${tmp_color} ${HOST_IP}): $*" "/bin/true"
+            const_action "$*" "/bin/true"
         fi
     else
-        tmp_num="$(echo ${HOST_IP} | awk -F '.' '{print $NF}')"
-        tmp_color=$((${tmp_num} % 7))
-        const_action "$(const_auto_font ${tmp_color} ${HOST_IP}): $*" "/bin/false"
+        const_action "$*" "/bin/false"
         exit 1
     fi
 }
@@ -175,7 +165,7 @@ const_install_dependencies() {
     fi
 
     if [ ! -e ${KUBE_BIN}/rrcmd ]; then
-        curl -fsSL -o ${KUBE_BIN}/rrcmd https://github.com/mings135/rrcmd/releases/latest/download/rrcmd &&
+        curl -fsSL -o ${KUBE_BIN}/rrcmd https://github.com/mings135/rrcmd/releases/latest/download/rrcmd_linux_amd64 &&
             chmod +x ${KUBE_BIN}/rrcmd &&
             chown ${SCRIPT_OWN}:${SCRIPT_OWN} ${KUBE_BIN}/rrcmd
         result_msg "安装 rrcmd"

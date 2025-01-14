@@ -81,13 +81,13 @@ remote_issue_certs() {
     remote_rsync_update "同步 CA 证书" "${NODES_MASTER1_MASTER}" "${rsync_exclude}"
     sleep 1
     for i in ${NODES_MASTER1_MASTER}; do
-        ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh certs
+        rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh certs" ${i}
     done
 }
 
 # 查看所需 images
 remote_images_list() {
-    ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh imglist
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh imglist" ${MASTER1_IP}
 }
 
 # 拉取所需 images
@@ -97,12 +97,12 @@ remote_images_pull() {
 
 # 安装集群
 remote_install_cluster() {
-    ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh initcluster
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh initcluster" ${MASTER1_IP}
     sleep 1
     remote_rsync_join
     sleep 1
     for i in ${NODES_NOT_MASTER1}; do
-        ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh joincluster
+        rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh joincluster" ${i}
     done
 }
 
@@ -110,32 +110,32 @@ remote_install_cluster() {
 remote_kubelet_certs() {
     remote_rsync_kubelet_ca
     for i in ${NODES_ALL}; do
-        ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh kubelet
-        ssh ${nodeUser}@${i} ${remote_RM} -f ${KUBELET_PKI}/ca.crt
-        ssh ${nodeUser}@${i} ${remote_RM} -f ${KUBELET_PKI}/ca.key
+        rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh kubelet" ${i}
+        rrcmd "${nodeUser}" "${remote_RM} -f ${KUBELET_PKI}/ca.crt" ${i}
+        rrcmd "${nodeUser}" "${remote_RM} -f ${KUBELET_PKI}/ca.key" ${i}
     done
 }
 
 # 部署 flannel
 remote_deploy_flannel() {
     sleep 3
-    ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh flannel
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh flannel" ${MASTER1_IP}
 }
 
 # 更新集群版本
 remote_upgrade_version() {
     remote_rsync_script
 
-    ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh upgrade
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh upgrade" ${MASTER1_IP}
 
     for i in ${NODES_MASTER}; do
-        ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh upgrade
+        rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh upgrade" ${i}
     done
 
-    ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh tmpkubeconfig
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh tmpkubeconfig" ${MASTER1_IP}
     remote_rsync_kubeconfig_tmp
     for i in ${NODES_WORK}; do
-        ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh tmpkubectl upgrade
+        rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh tmpkubectl upgrade" ${i}
     done
 }
 
@@ -143,20 +143,20 @@ remote_upgrade_version() {
 remote_cri_upgrade_version() {
     remote_rsync_script
 
-    ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh criupgrade
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh criupgrade" ${MASTER1_IP}
 
     for i in ${NODES_MASTER}; do
-        ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh criupgrade
+        rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh criupgrade" ${i}
     done
 
-    ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh tmpkubeconfig
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh tmpkubeconfig" ${MASTER1_IP}
     remote_rsync_kubeconfig_tmp
     for i in ${NODES_WORK}; do
-        ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh tmpkubectl criupgrade
+        rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh tmpkubectl criupgrade" ${i}
     done
 
     for i in ${NODES_ALL}; do
-        ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh criupgradeopt
+        rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh criupgradeopt" ${i}
     done
 }
 
@@ -164,18 +164,18 @@ remote_cri_upgrade_version() {
 remote_backup_etcd() {
     remote_rsync_script
 
-    ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh backup
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${MASTER1_IP}
 }
 
 # 恢复 etcd
 remote_restore_etcd() {
     remote_rsync_script
 
-    ssh ${nodeUser}@${MASTER1_IP} ${remote_BASH} ${remoteScriptDir}/local.sh restore
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh restore" ${MASTER1_IP}
 
     remote_rsync_etcd_snap
     for i in ${NODES_MASTER}; do
-        ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh restore
+        rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh restore" ${i}
     done
 
     rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh startetcd" ${NODES_MASTER1_MASTER}
@@ -185,10 +185,10 @@ remote_restore_etcd() {
 remote_clean_cluster() {
     remote_rsync_script
     for i in ${NODES_ALL}; do
-        if ssh ${nodeUser}@${i} test -e ${remoteScriptDir}/local.sh; then
+        if rrcmd "${nodeUser}" "test -e ${remoteScriptDir}/local.sh" ${i}; then
             blue_font "清理节点: ${i}"
-            ssh ${nodeUser}@${i} ${remote_BASH} ${remoteScriptDir}/local.sh clean
-            ssh ${nodeUser}@${i} ${remote_RM} -rf ${remoteScriptDir}
+            rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${i}
+            rrcmd "${nodeUser}" "${remote_RM} -rf ${remoteScriptDir}" ${i}
         fi
     done
 }
