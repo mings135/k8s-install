@@ -162,27 +162,18 @@ remote_backup_etcd() {
 # 恢复 etcd
 remote_restore_etcd() {
     remote_rsync_script
-
-    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh restore" ${MASTER1_IP}
-
     remote_rsync_etcd_snap
-    for i in ${NODES_MASTER}; do
-        rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh restore" ${i}
-    done
-
+    
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh restore" ${NODES_MASTER1_MASTER}
     rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh startetcd" ${NODES_MASTER1_MASTER}
 }
 
 # 删除整个集群
 remote_clean_cluster() {
     remote_rsync_script
-    for i in ${NODES_ALL}; do
-        if rrcmd "${nodeUser}" "test -e ${remoteScriptDir}/local.sh" ${i}; then
-            blue_font "清理节点: ${i}"
-            rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${i}
-            rrcmd "${nodeUser}" "${remote_RM} -rf ${remoteScriptDir}" ${i}
-        fi
-    done
+    blue_font "清理节点: ${i}"
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${NODES_ALL}
+    rrcmd "${nodeUser}" "${remote_RM} -rf ${remoteScriptDir}" ${NODES_ALL}
 }
 ###
 
