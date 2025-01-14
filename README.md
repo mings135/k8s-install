@@ -49,8 +49,8 @@
 
 ```shell
 # 安装必要工具
-apt-get update && apt-get install -y git sshpass rsync
-dnf install -y git sshpass rsync
+apt-get update && apt-get install -y git sshpass rsync curl tar
+dnf install -y git sshpass rsync curl tar
 
 # 克隆 project
 git clone https://github.com/mings135/k8s-install.git

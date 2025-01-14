@@ -11,18 +11,17 @@ script_dir=$(dirname $(readlink -f $0))
 
 source ${script_dir}/modules/const.sh
 source ${script_dir}/modules/variables.sh
-source ${script_dir}/modules/check.sh
+variables_local
 
+source ${script_dir}/modules/check.sh
 source ${script_dir}/modules/basic.sh
 source ${script_dir}/modules/cri.sh
 source ${script_dir}/modules/k8s.sh
 
 source ${script_dir}/modules/certs.sh
 source ${script_dir}/modules/cluster.sh
-set +e
 
-const_init
-variables_local
+set +e
 check_variables
 
 # 检查、创建 record.txt

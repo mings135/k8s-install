@@ -13,12 +13,6 @@ fi
 
 RES_LEVEL=0
 RES_COLUM=60
-HOST_IP=$(ip a | grep global | awk -F '/' '{print $1}' | awk 'NR==1{print $2}')
-
-const_auto_font() {
-    # $1 range 0 ~ 7
-    echo -e "\033[3$1m\033[01m$2\033[0m"
-}
 
 const_action() {
     local tmp_result tmp_rc tmp_color
@@ -42,17 +36,12 @@ const_action() {
 
 result_msg() {
     local tmp_rc=$?
-    local tmp_num tmp_color
     if [ ${tmp_rc} -eq 0 ]; then
         if [ ${RES_LEVEL} -eq 0 ]; then
-            tmp_num="$(echo ${HOST_IP} | awk -F '.' '{print $NF}')"
-            tmp_color=$((${tmp_num} % 7))
-            const_action "$(const_auto_font ${tmp_color} ${HOST_IP}): $*" "/bin/true"
+            const_action "$*" "/bin/true"
         fi
     else
-        tmp_num="$(echo ${HOST_IP} | awk -F '.' '{print $NF}')"
-        tmp_color=$((${tmp_num} % 7))
-        const_action "$(const_auto_font ${tmp_color} ${HOST_IP}): $*" "/bin/false"
+        const_action "$*" "/bin/false"
         exit 1
     fi
 }
@@ -66,7 +55,7 @@ elif cat /etc/issue | grep -Eqi "debian"; then
 fi
 
 # 检查变量，异常显示
-RES_LEVEL=1 && test ${SYSTEM_RELEASE} && test ${SYSTEM_PACKAGE} && test ${HOST_IP}
+RES_LEVEL=1 && test ${SYSTEM_RELEASE} && test ${SYSTEM_PACKAGE}
 result_msg "检查 system var" && RES_LEVEL=0
 
 # 解决 debian 系统 debconf: unable to initialize frontend: Dialog 问题

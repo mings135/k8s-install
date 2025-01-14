@@ -146,29 +146,18 @@ result_msg() {
 
 # 安装必要的前置工具(1)
 const_install_dependencies() {
-    local apps=''
-    for i in curl tar; do
-        if ! which $i &>/dev/null; then
-            apps="${apps} $i"
-        fi
-    done
-    if [ "$apps" ]; then
-        update_mirror_source_cache
-        install_apps "${apps}"
-    fi
-
     if [ ! -e ${KUBE_BIN}/yq ]; then
+        blue_font "检测到缺少前置工具, 将下载安装 yq 到 ${KUBE_BIN} 目录"
         curl -fsSL -o ${KUBE_BIN}/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 &&
             chmod +x ${KUBE_BIN}/yq &&
             chown ${SCRIPT_OWN}:${SCRIPT_OWN} ${KUBE_BIN}/yq
-        result_msg "安装 yq"
     fi
 
     if [ ! -e ${KUBE_BIN}/rrcmd ]; then
+        blue_font "检测到缺少前置工具, 将下载安装 rrcmd 到 ${KUBE_BIN} 目录"
         curl -fsSL -o ${KUBE_BIN}/rrcmd https://github.com/mings135/rrcmd/releases/latest/download/rrcmd_linux_amd64 &&
             chmod +x ${KUBE_BIN}/rrcmd &&
             chown ${SCRIPT_OWN}:${SCRIPT_OWN} ${KUBE_BIN}/rrcmd
-        result_msg "安装 rrcmd"
     fi
 }
 
@@ -180,14 +169,11 @@ const_kube_conf() {
         yq -i '.nodes.master1.domain = "m1.k8s"' ${KUBE_CONF}
         tmp_var=${HOST_IP} yq -i '.nodes.master1.address = strenv(tmp_var)' ${KUBE_CONF}
         yq -i '. head_comment="集群初始化后请勿随意修改配置, 否则可能导致无法正常运行!!!"' ${KUBE_CONF}
-        blue_font "已生成极简配置, 修改请 vi ${KUBE_CONF}, 继续请重新运行"
+        blue_font "已自动生成极简配置, 修改请 vi ${KUBE_CONF}, 继续请重新运行"
         yq ${KUBE_CONF}
-        exit 1
     fi
 }
 
-# 预处理
-const_init() {
-    const_install_dependencies
-    const_kube_conf
-}
+
+const_install_dependencies
+const_kube_conf

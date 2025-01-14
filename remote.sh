@@ -11,13 +11,7 @@ script_dir=$(dirname $(readlink -f $0))
 
 source ${script_dir}/modules/const.sh
 source ${script_dir}/modules/variables.sh
-source ${script_dir}/modules/check.sh
-set +e
-
-const_init
 variables_remote
-check_variables
-set -e
 
 # 默认变量
 remote_BASH='bash'
@@ -155,9 +149,7 @@ remote_cri_upgrade_version() {
         rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh tmpkubectl criupgrade" ${i}
     done
 
-    for i in ${NODES_ALL}; do
-        rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh criupgradeopt" ${i}
-    done
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh criupgradeopt" ${NODES_ALL}
 }
 
 # 备份 etcd 快照
