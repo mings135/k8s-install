@@ -2,8 +2,8 @@
 
 variables_by_master1() {
     # 配置文件中获取 master1 变量
-    MASTER1_IP="$(yq -M '.nodes.master1.address' ${KUBE_CONF} | grep -v '^null$')"
-    MASTER1_NAME="$(yq -M '.nodes.master1.domain' ${KUBE_CONF} | grep -v '^null$')"
+    MASTER1_IP="$(yq -M '.nodes.master1.address' ${KUBE_CONF} | sed 's/^null$//')"
+    MASTER1_NAME="$(yq -M '.nodes.master1.domain' ${KUBE_CONF} | sed 's/^null$//')"
 }
 
 variables_by_nodes() {
@@ -34,30 +34,30 @@ variables_by_localhost() {
 
 variables_by_config() {
     # 从配置文件中获取 config 信息
-    remoteScriptDir="$(yq -M '.remoteScriptDir' ${KUBE_CONF} | grep -v '^null$')"
-    localMirror="$(yq -M '.localMirror' ${KUBE_CONF} | grep -v '^null$')"
-    nodeUser="$(yq -M '.nodeUser' ${KUBE_CONF} | grep -v '^null$')"
-    nodePassword="$(yq -M '.nodePassword' ${KUBE_CONF} | grep -v '^null$')"
-    etcdctlVersion="$(yq -M '.etcdctlVersion' ${KUBE_CONF} | grep -v '^null$')"
+    remoteScriptDir="$(yq -M '.remoteScriptDir' ${KUBE_CONF} | sed 's/^null$//')"
+    localMirror="$(yq -M '.localMirror' ${KUBE_CONF} | sed 's/^null$//')"
+    nodeUser="$(yq -M '.nodeUser' ${KUBE_CONF} | sed 's/^null$//')"
+    nodePassword="$(yq -M '.nodePassword' ${KUBE_CONF} | sed 's/^null$//')"
+    etcdctlVersion="$(yq -M '.etcdctlVersion' ${KUBE_CONF} | sed 's/^null$//')"
     # cluster
-    kubernetesVersion="$(yq -M '.cluster.kubernetesVersion' ${KUBE_CONF} | grep -v '^null$')"
-    crictlVersion="$(yq -M '.cluster.crictlVersion' ${KUBE_CONF} | grep -v '^null$')"
-    controlPlaneAddress="$(yq -M '.cluster.controlPlaneAddress' ${KUBE_CONF} | grep -v '^null$')"
-    controlPlanePort="$(yq -M '.cluster.controlPlanePort' ${KUBE_CONF} | grep -v '^null$')"
-    imageRepository="$(yq -M '.cluster.imageRepository' ${KUBE_CONF} | grep -v '^null$')"
-    kubeadmSignCertificate="$(yq -M '.cluster.kubeadmSignCertificate' ${KUBE_CONF} | grep -v '^null$')"
-    certificatesVaild="$(yq -M '.cluster.certificatesVaild' ${KUBE_CONF} | grep -v '^null$')"
-    certificatesSize="$(yq -M '.cluster.certificatesSize' ${KUBE_CONF} | grep -v '^null$')"
-    caCertificateValidityPeriod="$(yq -M '.cluster.caCertificateValidityPeriod' ${KUBE_CONF} | grep -v '^null$')"
-    certificateValidityPeriod="$(yq -M '.cluster.certificateValidityPeriod' ${KUBE_CONF} | grep -v '^null$')"
-    serviceSubnet="$(yq -M '.cluster.serviceSubnet' ${KUBE_CONF} | grep -v '^null$')"
-    apiServerClusterIP="$(yq -M '.cluster.apiServerClusterIP' ${KUBE_CONF} | grep -v '^null$')"
-    podSubnet="$(yq -M '.cluster.podSubnet' ${KUBE_CONF} | grep -v '^null$')"
+    kubernetesVersion="$(yq -M '.cluster.kubernetesVersion' ${KUBE_CONF} | sed 's/^null$//')"
+    crictlVersion="$(yq -M '.cluster.crictlVersion' ${KUBE_CONF} | sed 's/^null$//')"
+    controlPlaneAddress="$(yq -M '.cluster.controlPlaneAddress' ${KUBE_CONF} | sed 's/^null$//')"
+    controlPlanePort="$(yq -M '.cluster.controlPlanePort' ${KUBE_CONF} | sed 's/^null$//')"
+    imageRepository="$(yq -M '.cluster.imageRepository' ${KUBE_CONF} | sed 's/^null$//')"
+    kubeadmSignCertificate="$(yq -M '.cluster.kubeadmSignCertificate' ${KUBE_CONF} | sed 's/^null$//')"
+    certificatesVaild="$(yq -M '.cluster.certificatesVaild' ${KUBE_CONF} | sed 's/^null$//')"
+    certificatesSize="$(yq -M '.cluster.certificatesSize' ${KUBE_CONF} | sed 's/^null$//')"
+    caCertificateValidityPeriod="$(yq -M '.cluster.caCertificateValidityPeriod' ${KUBE_CONF} | sed 's/^null$//')"
+    certificateValidityPeriod="$(yq -M '.cluster.certificateValidityPeriod' ${KUBE_CONF} | sed 's/^null$//')"
+    serviceSubnet="$(yq -M '.cluster.serviceSubnet' ${KUBE_CONF} | sed 's/^null$//')"
+    apiServerClusterIP="$(yq -M '.cluster.apiServerClusterIP' ${KUBE_CONF} | sed 's/^null$//')"
+    podSubnet="$(yq -M '.cluster.podSubnet' ${KUBE_CONF} | sed 's/^null$//')"
     # container
-    criName="$(yq -M '.container.criName' ${KUBE_CONF} | grep -v '^null$')"
-    criVersion="$(yq -M '.container.criVersion' ${KUBE_CONF} | grep -v '^null$')"
-    criUpgradeReconfig="$(yq -M '.container.criUpgradeReconfig' ${KUBE_CONF} | grep -v '^null$')"
-    privateRepository="$(yq -M '.container.privateRepository' ${KUBE_CONF} | grep -v '^null$')"
+    criName="$(yq -M '.container.criName' ${KUBE_CONF} | sed 's/^null$//')"
+    criVersion="$(yq -M '.container.criVersion' ${KUBE_CONF} | sed 's/^null$//')"
+    criUpgradeReconfig="$(yq -M '.container.criUpgradeReconfig' ${KUBE_CONF} | sed 's/^null$//')"
+    privateRepository="$(yq -M '.container.privateRepository' ${KUBE_CONF} | sed 's/^null$//')"
 }
 
 variables_by_default() {
