@@ -1,41 +1,39 @@
 # 系统基础设置
 
-
 # 设置 cri yum 源
 basic_set_repos_cri() {
-  # centos 设置 docker 源
-  if [ ${criName} = 'containerd' ] && [ ${SYSTEM_RELEASE} = 'centos' ]; then
-    yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo > /dev/null
-    result_msg "添加 docker repo"
-    if [ "${localMirror}" = 'true' ]; then
-      sed -e 's+download.docker.com+mirrors.tuna.tsinghua.edu.cn/docker-ce+' \
-        -e '/^gpgcheck=1/s/gpgcheck=1/gpgcheck=0/' \
-        -i /etc/yum.repos.d/docker-ce.repo
-      result_msg "修改 docker repo"
+    # centos 设置 docker 源
+    if [ ${criName} = 'containerd' ] && [ ${SYSTEM_RELEASE} = 'centos' ]; then
+        yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo >/dev/null
+        result_msg "添加 docker repo"
+        if [ "${localMirror}" = 'true' ]; then
+            sed -e 's+download.docker.com+mirrors.tuna.tsinghua.edu.cn/docker-ce+' \
+                -e '/^gpgcheck=1/s/gpgcheck=1/gpgcheck=0/' \
+                -i /etc/yum.repos.d/docker-ce.repo
+            result_msg "修改 docker repo"
+        fi
     fi
-  fi
 
-  # debian 设置 docker 源
-  if [ ${criName} = 'containerd' ] && [ ${SYSTEM_RELEASE} = 'debian' ]; then
-    local list_file='/etc/apt/sources.list.d/docker.list'
-    local gpg_file='/etc/apt/keyrings/docker-archive-keyring.gpg'
-    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --yes --dearmor -o ${gpg_file}
-    result_msg "添加 docker gpg"
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=${gpg_file}] https://download.docker.com/linux/debian $(lsb_release -cs) stable" > ${list_file}
-    result_msg "添加 docker repo"
-    if [ "${localMirror}" = 'true' ];then
-      sed -i 's+download.docker.com+mirrors.tuna.tsinghua.edu.cn/docker-ce+' ${list_file}
-      result_msg "修改 repo source"
+    # debian 设置 docker 源
+    if [ ${criName} = 'containerd' ] && [ ${SYSTEM_RELEASE} = 'debian' ]; then
+        local list_file='/etc/apt/sources.list.d/docker.list'
+        local gpg_file='/etc/apt/keyrings/docker-archive-keyring.gpg'
+        curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --yes --dearmor -o ${gpg_file}
+        result_msg "添加 docker gpg"
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=${gpg_file}] https://download.docker.com/linux/debian $(lsb_release -cs) stable" >${list_file}
+        result_msg "添加 docker repo"
+        if [ "${localMirror}" = 'true' ]; then
+            sed -i 's+download.docker.com+mirrors.tuna.tsinghua.edu.cn/docker-ce+' ${list_file}
+            result_msg "修改 repo source"
+        fi
     fi
-  fi
 }
-
 
 # 设置 kubernetes 源
 basic_set_repos_kubernetes() {
-  # centos 设置 kubernetes 源(1.28 官方修改了源格式, 使得 1.24 开始均使用以下格式)
-  if [ ${SYSTEM_RELEASE} = 'centos' ]; then
-    cat > /etc/yum.repos.d/kubernetes.repo << EOF
+    # centos 设置 kubernetes 源(1.28 官方修改了源格式, 使得 1.24 开始均使用以下格式)
+    if [ ${SYSTEM_RELEASE} = 'centos' ]; then
+        cat >/etc/yum.repos.d/kubernetes.repo <<EOF
 [kubernetes]
 name=Kubernetes
 baseurl=https://pkgs.k8s.io/core:/stable:/v${kubernetesMajorMinor}/rpm/
@@ -44,34 +42,33 @@ gpgcheck=1
 gpgkey=https://pkgs.k8s.io/core:/stable:/v${kubernetesMajorMinor}/rpm/repodata/repomd.xml.key
 exclude=kubelet kubeadm kubectl cri-tools kubernetes-cni
 EOF
-    result_msg "添加 k8s repo"
-    if [ "${localMirror}" = 'true' ]; then
-      sed -i '/baseurl/s+pkgs.k8s.io+mirrors.tuna.tsinghua.edu.cn/kubernetes+' /etc/yum.repos.d/kubernetes.repo
-      result_msg "修改 k8s repo"
+        result_msg "添加 k8s repo"
+        if [ "${localMirror}" = 'true' ]; then
+            sed -i '/baseurl/s+pkgs.k8s.io+mirrors.tuna.tsinghua.edu.cn/kubernetes+' /etc/yum.repos.d/kubernetes.repo
+            result_msg "修改 k8s repo"
+        fi
     fi
-  fi
-  
-  # debian 所需变量(/etc/apt/keyrings 在 basic_install_request_debian 中创建)
-  local list_file='/etc/apt/sources.list.d/kubernetes.list'
-  local gpg_file='/etc/apt/keyrings/kubernetes-archive-keyring.gpg'
-  
-  # debian 设置 kubernetes 源(1.28 官方修改了源格式, 使得 1.24 开始均使用以下格式)
-  if [ ${SYSTEM_RELEASE} = 'debian' ]; then
-    curl -fsSL https://pkgs.k8s.io/core:/stable:/v${kubernetesMajorMinor}/deb/Release.key | gpg --yes --dearmor -o ${gpg_file}
-    result_msg "添加 k8s pgp"
-    echo "deb [signed-by=${gpg_file}] https://pkgs.k8s.io/core:/stable:/v${kubernetesMajorMinor}/deb/ /" > ${list_file}
-    result_msg "添加 k8s repo"
-    if [ "${localMirror}" = 'true' ]; then
-      sed -i 's+pkgs.k8s.io+mirrors.tuna.tsinghua.edu.cn/kubernetes+' ${list_file}
-      result_msg "修改 k8s repo"
-    fi
-  fi
-}
 
+    # debian 所需变量(/etc/apt/keyrings 在 basic_install_request_debian 中创建)
+    local list_file='/etc/apt/sources.list.d/kubernetes.list'
+    local gpg_file='/etc/apt/keyrings/kubernetes-archive-keyring.gpg'
+
+    # debian 设置 kubernetes 源(1.28 官方修改了源格式, 使得 1.24 开始均使用以下格式)
+    if [ ${SYSTEM_RELEASE} = 'debian' ]; then
+        curl -fsSL https://pkgs.k8s.io/core:/stable:/v${kubernetesMajorMinor}/deb/Release.key | gpg --yes --dearmor -o ${gpg_file}
+        result_msg "添加 k8s pgp"
+        echo "deb [signed-by=${gpg_file}] https://pkgs.k8s.io/core:/stable:/v${kubernetesMajorMinor}/deb/ /" >${list_file}
+        result_msg "添加 k8s repo"
+        if [ "${localMirror}" = 'true' ]; then
+            sed -i 's+pkgs.k8s.io+mirrors.tuna.tsinghua.edu.cn/kubernetes+' ${list_file}
+            result_msg "修改 k8s repo"
+        fi
+    fi
+}
 
 # 设置 chrony 配置
 basic_set_chrony_config() {
-  cat > $1 << EOF
+    cat >$1 <<EOF
 # 阿里官方配置
 server ntp.aliyun.com iburst
 stratumweight 0
@@ -86,94 +83,90 @@ generatecommandkey
 logchange 0.5
 logdir /var/log/chrony
 EOF
-  result_msg "配置 chronyd"
+    result_msg "配置 chronyd"
 }
-
 
 # 安装必要的工具(2), centos 安装集群所需的前置工具
 basic_install_request_centos() {
-  # 安装 EPEL 源
-  if [ ! -f /etc/yum.repos.d/epel.repo ]; then
-    install_apps "epel-release"
-    if [ "${localMirror}" = 'true' ]; then
-      sed -e 's!^metalink=!#metalink=!g' \
-        -e 's!^#baseurl=!baseurl=!g' \
-        -e 's!//download\.fedoraproject\.org/pub!//mirrors.tuna.tsinghua.edu.cn!g' \
-        -e 's!//download\.example/pub!//mirrors.tuna.tsinghua.edu.cn!g' \
-        -e 's!http://mirrors!https://mirrors!g' \
-        -i /etc/yum.repos.d/epel*.repo
-      result_msg "修改 epel repo"
+    # 安装 EPEL 源
+    if [ ! -f /etc/yum.repos.d/epel.repo ]; then
+        install_apps "epel-release"
+        if [ "${localMirror}" = 'true' ]; then
+            sed -e 's!^metalink=!#metalink=!g' \
+                -e 's!^#baseurl=!baseurl=!g' \
+                -e 's!//download\.fedoraproject\.org/pub!//mirrors.tuna.tsinghua.edu.cn!g' \
+                -e 's!//download\.example/pub!//mirrors.tuna.tsinghua.edu.cn!g' \
+                -e 's!http://mirrors!https://mirrors!g' \
+                -i /etc/yum.repos.d/epel*.repo
+            result_msg "修改 epel repo"
+        fi
     fi
-  fi
-  # install tools
-  install_apps 'socat ipvsadm chrony iproute-tc nfs-utils yum-utils'
-  # 优化 chrony 配置
-  if systemctl list-unit-files | grep -Eqi 'chronyd'; then
-    basic_set_chrony_config '/etc/chrony.conf'
-    systemctl enable chronyd &> /dev/null \
-      && systemctl restart chronyd
-    result_msg '启动 chronyd'
-  fi
+    # install tools
+    install_apps 'socat ipvsadm chrony iproute-tc nfs-utils yum-utils'
+    # 优化 chrony 配置
+    if systemctl list-unit-files | grep -Eqi 'chronyd'; then
+        basic_set_chrony_config '/etc/chrony.conf'
+        systemctl enable chronyd &>/dev/null &&
+            systemctl restart chronyd
+        result_msg '启动 chronyd'
+    fi
 }
-
 
 # 安装必要的工具(2), debian 安装集群所需的前置工具
 basic_install_request_debian() {
-  # install tools
-  install_apps 'socat ipvsadm chrony nfs-common ca-certificates curl gnupg lsb-release'
-  # 创建必要目录
-  if [ ! -e /etc/apt/keyrings ]; then
-    mkdir -p /etc/apt/keyrings
-  fi
-  # 优化 chrony 配置
-  if systemctl list-unit-files | grep -Eqi 'chronyd'; then
-    basic_set_chrony_config '/etc/chrony/chrony.conf'
-    systemctl restart chronyd &> /dev/null
-    result_msg '重启 chronyd'
-  fi
+    # install tools
+    install_apps 'socat ipvsadm chrony nfs-common ca-certificates curl gnupg lsb-release'
+    # 创建必要目录
+    if [ ! -e /etc/apt/keyrings ]; then
+        mkdir -p /etc/apt/keyrings
+    fi
+    # 优化 chrony 配置
+    if systemctl list-unit-files | grep -Eqi 'chronyd'; then
+        basic_set_chrony_config '/etc/chrony/chrony.conf'
+        systemctl restart chronyd &>/dev/null
+        result_msg '重启 chronyd'
+    fi
 }
-
 
 # 优化系统设置
 basic_optimization_system() {
-  local limits_val=65536
-  # 设置 hostname (必须)
-  if [ ${HOST_NAME} != $(hostname) ]; then
-    hostnamectl set-hostname "${HOST_NAME}"
-    result_msg "设置 name:${HOST_NAME}"
-  fi
-  # 关闭 swap (必须)
-  if grep -Eqi '^[^#].*swap.*' /etc/fstab; then
-    sed -i 's/.*swap.*/#&/' /etc/fstab && swapoff -a
-    result_msg "关闭 swap"
-  fi
-  # 停用 firewalld(必须)
-  if systemctl list-unit-files | grep -Eqi 'firewalld'; then
-    systemctl disable --now firewalld &> /dev/null
-    result_msg "停止 firewalld"
-  fi
-  # 关闭 selinux (必须)
-  if [ -f /etc/selinux/config ] && cat /etc/selinux/config | grep -Eqi 'SELINUX=enforcing'; then
-    sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config && setenforce 0
-    result_msg "关闭 selinux"
-  fi
-  # 设置系统 limits
-  if ! cat /etc/security/limits.conf |  grep -Eqi '^root|^\*'; then
-    cat >> /etc/security/limits.conf << EOF
+    local limits_val=65536
+    # 设置 hostname (必须)
+    if [ ${HOST_NAME} != $(hostname) ]; then
+        hostnamectl set-hostname "${HOST_NAME}"
+        result_msg "设置 name:${HOST_NAME}"
+    fi
+    # 关闭 swap (必须)
+    if grep -Eqi '^[^#].*swap.*' /etc/fstab; then
+        sed -i 's/.*swap.*/#&/' /etc/fstab && swapoff -a
+        result_msg "关闭 swap"
+    fi
+    # 停用 firewalld(必须)
+    if systemctl list-unit-files | grep -Eqi 'firewalld'; then
+        systemctl disable --now firewalld &>/dev/null
+        result_msg "停止 firewalld"
+    fi
+    # 关闭 selinux (必须)
+    if [ -f /etc/selinux/config ] && cat /etc/selinux/config | grep -Eqi 'SELINUX=enforcing'; then
+        sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config && setenforce 0
+        result_msg "关闭 selinux"
+    fi
+    # 设置系统 limits
+    if ! cat /etc/security/limits.conf | grep -Eqi '^root|^\*'; then
+        cat >>/etc/security/limits.conf <<EOF
 root - nofile ${limits_val}
 root - nproc ${limits_val}
 * - nofile ${limits_val}
 * - nproc ${limits_val}
 EOF
-    result_msg '修改 limits'
-  fi
+        result_msg '修改 limits'
+    fi
 }
-
 
 # 加载 ipvs 模块
 basic_load_ipvs_modules() {
-  # 开机自加载 ipvs 模块
-  cat > /etc/modules-load.d/ipvs.conf << EOF
+    # 开机自加载 ipvs 模块
+    cat >/etc/modules-load.d/ipvs.conf <<EOF
 ip_vs
 ip_vs_rr
 ip_vs_wrr
@@ -181,18 +174,16 @@ nf_conntrack
 overlay
 br_netfilter
 EOF
-  # 即刻加载 ipvs 模块
-  while read line
-  do
-    modinfo -F filename $line > /dev/null && modprobe $line
-    result_msg "加载 module $line"
-  done < /etc/modules-load.d/ipvs.conf
+    # 即刻加载 ipvs 模块
+    while read line; do
+        modinfo -F filename $line >/dev/null && modprobe $line
+        result_msg "加载 module $line"
+    done </etc/modules-load.d/ipvs.conf
 }
-
 
 # 优化内核参数
 basic_optimization_kernel_parameters() {
-  cat > /etc/sysctl.d/k8s.conf << EOF
+    cat >/etc/sysctl.d/k8s.conf <<EOF
 # 必要参数
 net.bridge.bridge-nf-call-iptables  = 1
 net.ipv4.ip_forward                 = 1
@@ -242,50 +233,50 @@ net.netfilter.nf_conntrack_tcp_timeout_time_wait = 30
 net.netfilter.nf_conntrack_tcp_timeout_close_wait = 15
 net.netfilter.nf_conntrack_tcp_timeout_established = 900
 EOF
-  # 即刻加载优化的参数
-  sysctl -p /etc/sysctl.d/k8s.conf > /dev/null
-  result_msg '优化 kernel parameters'
+    # 即刻加载优化的参数
+    sysctl -p /etc/sysctl.d/k8s.conf >/dev/null
+    result_msg '优化 kernel parameters'
 }
-
 
 # 基础设置
 basic_system_configs() {
-  update_mirror_source_cache
-  basic_install_request_${SYSTEM_RELEASE}
-  basic_set_repos_cri
-  basic_set_repos_kubernetes
-  update_mirror_source_cache
-  basic_optimization_system
-  basic_load_ipvs_modules
-  basic_optimization_kernel_parameters
+    update_mirror_source_cache
+    basic_install_request_${SYSTEM_RELEASE}
+    basic_set_repos_cri
+    basic_set_repos_kubernetes
+    update_mirror_source_cache
+    basic_optimization_system
+    basic_load_ipvs_modules
+    basic_optimization_kernel_parameters
 }
-
 
 # 配置 /etc/hosts
 basic_etc_hosts() {
-  local node_name node_ip node_length
-  # 添加 master1 hosts 配置
-  sed -i "/[[:space:]]${MASTER1_NAME}$/d" /etc/hosts
-  echo "${MASTER1_IP} ${MASTER1_NAME}" >> /etc/hosts
-  result_msg "添加 hosts: ${MASTER1_IP}"
-  # 添加 master hosts 配置
-  node_length=$(yq -M '.nodes.master | length' ${KUBE_CONF})
-  for i in $(seq 0 $((node_length - 1)))
-  do
-    node_name=$(tmp_var=${i} yq -M '.nodes.master[env(tmp_var)].domain' ${KUBE_CONF})
-    node_ip=$(tmp_var=${i} yq -M '.nodes.master[env(tmp_var)].address' ${KUBE_CONF})
-    sed -i "/[[:space:]]${node_name}$/d" /etc/hosts
-    echo "${node_ip} ${node_name}" >> /etc/hosts
-    result_msg "添加 hosts: ${node_ip}"
-  done
-  # 添加 work hosts 配置
-  node_length=$(yq -M '.nodes.work | length' ${KUBE_CONF})
-  for i in $(seq 0 $((node_length - 1)))
-  do
-    node_name=$(tmp_var=${i} yq -M '.nodes.work[env(tmp_var)].domain' ${KUBE_CONF})
-    node_ip=$(tmp_var=${i} yq -M '.nodes.work[env(tmp_var)].address' ${KUBE_CONF})
-    sed -i "/[[:space:]]${node_name}$/d" /etc/hosts
-    echo "${node_ip} ${node_name}" >> /etc/hosts
-    result_msg "添加 hosts: ${node_ip}"
-  done
+    local node_name node_ip node_length
+    # 添加 master1 hosts 配置
+    sed -i "/[[:space:]]${MASTER1_NAME}$/d" /etc/hosts
+    echo "${MASTER1_IP} ${MASTER1_NAME}" >>/etc/hosts
+    result_msg "添加 hosts: ${MASTER1_IP}"
+    # 添加 master hosts 配置
+    node_length=$(yq -M '.nodes.master | length' ${KUBE_CONF})
+    for i in $(seq 0 $((node_length - 1))); do
+        node_name=$(tmp_var=${i} yq -M '.nodes.master[env(tmp_var)].domain' ${KUBE_CONF})
+        node_ip=$(tmp_var=${i} yq -M '.nodes.master[env(tmp_var)].address' ${KUBE_CONF})
+        if [ ${node_ip} != 'null' ]; then
+            sed -i "/[[:space:]]${node_name}$/d" /etc/hosts
+            echo "${node_ip} ${node_name}" >>/etc/hosts
+            result_msg "添加 hosts: ${node_ip}"
+        fi
+    done
+    # 添加 work hosts 配置
+    node_length=$(yq -M '.nodes.work | length' ${KUBE_CONF})
+    for i in $(seq 0 $((node_length - 1))); do
+        node_name=$(tmp_var=${i} yq -M '.nodes.work[env(tmp_var)].domain' ${KUBE_CONF})
+        node_ip=$(tmp_var=${i} yq -M '.nodes.work[env(tmp_var)].address' ${KUBE_CONF})
+        if [ ${node_ip} != 'null' ]; then
+            sed -i "/[[:space:]]${node_name}$/d" /etc/hosts
+            echo "${node_ip} ${node_name}" >>/etc/hosts
+            result_msg "添加 hosts: ${node_ip}"
+        fi
+    done
 }
