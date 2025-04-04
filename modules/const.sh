@@ -171,6 +171,7 @@ const_kube_conf() {
         yq -i '. head_comment="集群初始化后请勿随意修改配置, 否则可能导致无法正常运行!!!"' ${KUBE_CONF}
         blue_font "已自动生成极简配置, 修改请 vi ${KUBE_CONF}, 继续请重新运行"
         yq ${KUBE_CONF}
+        exit 0
     fi
 }
 
