@@ -76,7 +76,7 @@ variables_by_default() {
     fi
 
     # k8s version(支持 1.24+, 不支持 latest)
-    kubernetesVersion=${kubernetesVersion:-'1.32.0'}
+    kubernetesVersion=${kubernetesVersion:-'1.33.0'}
     crictlVersion=${crictlVersion:-'latest'}
     # k8s controlPlaneEndpoint 地址和端口, 没有该参数无法添加 master 节点
     controlPlaneAddress=${controlPlaneAddress:-"${MASTER1_IP}"}
