@@ -67,7 +67,7 @@ variables_by_default() {
     nodeUser=${nodeUser:-"root"}
     nodePassword=${nodePassword:-""}
     # 节点安装 etcdctl 的 version
-    etcdctlVersion=${etcdctlVersion:-"3.6.9"}
+    etcdctlVersion=${etcdctlVersion:-"3.6.6"}
     # 远程集群主机存放 k8s 安装脚本的目录 (目录会在复制之前清空，请注意!!!)
     if [ ${nodeUser} ] && [ ${nodeUser} != "root" ]; then
         remoteScriptDir=${remoteScriptDir:-"/home/${nodeUser}/k8sRemoteScript"}
@@ -76,7 +76,7 @@ variables_by_default() {
     fi
 
     # k8s version(支持 1.24+, 不支持 latest)
-    kubernetesVersion=${kubernetesVersion:-"1.34.3"}
+    kubernetesVersion=${kubernetesVersion:-"1.35.3"}
     crictlVersion=${crictlVersion:-"latest"}
     # k8s controlPlaneEndpoint 地址和端口, 没有该参数无法添加 master 节点
     controlPlaneAddress=${controlPlaneAddress:-"${MASTER1_IP}"}
@@ -120,7 +120,7 @@ varialbes_by_auto() {
 
 # 安装必要的前置工具(2)
 varialbes_install_dependencies() {
-    if [ ! -e ${KUBE_BIN}/etcdctl ] || [ $(etcdctl version | grep 'etcdctl version' | awk '{print $3}') != "${etcdctlVersion}" ]; then
+    if ! command -v etcdctl &> /dev/null || [ $(etcdctl version | grep 'etcdctl version' | awk '{print $3}') != "${etcdctlVersion}" ]; then
         blue_font "检测到缺少前置工具, 将下载安装 etcdctl 到 ${KUBE_BIN} 目录"
         curl -fsSL -o /tmp/etcd-linux-amd64.tar.gz https://github.com/etcd-io/etcd/releases/download/v${etcdctlVersion}/etcd-v${etcdctlVersion}-linux-amd64.tar.gz &&
             rm -rf /tmp/etcd-download-test && mkdir -p /tmp/etcd-download-test &&
