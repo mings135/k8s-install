@@ -62,47 +62,47 @@ variables_by_config() {
 
 variables_by_default() {
     # 是否使用国内 yum/apt 镜像源
-    localMirror=${localMirror:-'false'}
+    localMirror=${localMirror:-"false"}
     # 节点密码, 默认为空(也就是手动输入)
-    nodeUser=${nodeUser:-'root'}
-    nodePassword=${nodePassword:-''}
+    nodeUser=${nodeUser:-"root"}
+    nodePassword=${nodePassword:-""}
     # 节点安装 etcdctl 的 version
-    etcdctlVersion=${etcdctlVersion:-'3.5.10'}
+    etcdctlVersion=${etcdctlVersion:-"3.6.9"}
     # 远程集群主机存放 k8s 安装脚本的目录 (目录会在复制之前清空，请注意!!!)
     if [ ${nodeUser} ] && [ ${nodeUser} != "root" ]; then
         remoteScriptDir=${remoteScriptDir:-"/home/${nodeUser}/k8sRemoteScript"}
     else
-        remoteScriptDir=${remoteScriptDir:-'/opt/k8sRemoteScript'}
+        remoteScriptDir=${remoteScriptDir:-"/opt/k8sRemoteScript"}
     fi
 
     # k8s version(支持 1.24+, 不支持 latest)
-    kubernetesVersion=${kubernetesVersion:-'1.33.0'}
-    crictlVersion=${crictlVersion:-'latest'}
+    kubernetesVersion=${kubernetesVersion:-"1.34.3"}
+    crictlVersion=${crictlVersion:-"latest"}
     # k8s controlPlaneEndpoint 地址和端口, 没有该参数无法添加 master 节点
     controlPlaneAddress=${controlPlaneAddress:-"${MASTER1_IP}"}
-    controlPlanePort=${controlPlanePort:-'6443'}
+    controlPlanePort=${controlPlanePort:-6443}
     # k8s 各个组件的镜像仓库地址: pause(Include containerd)、etcd、api-server 等
-    imageRepository=${imageRepository:-''} # 国内 registry.cn-hangzhou.aliyuncs.com/google_containers
+    imageRepository=${imageRepository:-""} # 国内 registry.cn-hangzhou.aliyuncs.com/google_containers
     # k8s 集群安装或升级时, 是否使用 kubeadm 签发证书
-    kubeadmSignCertificate=${kubeadmSignCertificate:-'true'}
+    kubeadmSignCertificate=${kubeadmSignCertificate:-"true"}
     # 自签证书有效期和密钥大小(单位：天, 默认：50年)
-    certificatesVaild=${certificatesVaild:-'18250'}
-    certificatesSize=${certificatesSize:-'2048'}
+    certificatesVaild=${certificatesVaild:-18250}
+    certificatesSize=${certificatesSize:-2048}
     # kubeadm 新增证书期限配置, 仅 kubernetes >= 1.31 时生效(格式：8760h0m0s)
-    caCertificateValidityPeriod=${caCertificateValidityPeriod:-''}
-    certificateValidityPeriod=${certificateValidityPeriod:-''}
+    caCertificateValidityPeriod=${caCertificateValidityPeriod:-"438000h0m0s"}
+    certificateValidityPeriod=${certificateValidityPeriod:-"438000h0m0s"}
     # Services 子网和 API Server 集群内部地址 (即 Service 网络的第一个 IP)
-    serviceSubnet=${serviceSubnet:-'10.96.0.0/16'}
-    apiServerClusterIP=${apiServerClusterIP:-'10.96.0.1'}
+    serviceSubnet=${serviceSubnet:-"10.96.0.0/16"}
+    apiServerClusterIP=${apiServerClusterIP:-"10.96.0.1"}
     # Pod 网络, flannel 默认使用 10.244.0.0/16, 除非想修改 flannel 配置, 否则不要修改
-    podSubnet=${podSubnet:-'10.244.0.0/16'}
+    podSubnet=${podSubnet:-"10.244.0.0/16"}
 
     # 容器运行时: containerd(最新版本: latest, 具体版本: 1.6.9)
-    criName=${criName:-'containerd'}
-    criVersion=${criVersion:-'latest'}
-    criUpgradeReconfig=${criUpgradeReconfig:-'false'}
+    criName=${criName:-"containerd"}
+    criVersion=${criVersion:-"latest"}
+    criUpgradeReconfig=${criUpgradeReconfig:-"false"}
     # 容器运行时: 配置 harbor 私库地址(http://192.168.13.13)
-    privateRepository=${privateRepository:-''}
+    privateRepository=${privateRepository:-""}
 }
 
 varialbes_by_auto() {

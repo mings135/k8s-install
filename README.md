@@ -11,7 +11,7 @@
 ## Request
 
 - `Linux:` 
-  - 支持 AlmaLinux 8、AlmaLinux 9、Debian 11、Debian 12
+  - 支持 Debian 12、Debian 13
 - `Kubernetes:` 
   - 支持 1.24+
   - 1.24 官方镜像仓库地址：`k8s.gcr.io`
@@ -27,12 +27,12 @@
 
 **测试环境：**
 
-| Domain | IP             | Role           | System      |
-| ------ | -------------- | -------------- | ----------- |
-| m1.k8s | 192.168.11.101 | master1/devops | AlmaLinux 8 |
-| m2.k8s | 192.168.11.102 | master         | AlmaLinux 9 |
-| m3.k8s | 192.168.11.103 | master         | Debian 11   |
-| w1.k8s | 192.168.11.104 | work           | Debian 12   |
+| Domain | IP             | Role           | System    |
+| ------ | -------------- | -------------- | --------- |
+| m1.k8s | 192.168.11.101 | master1/devops | Debian 13 |
+| m2.k8s | 192.168.11.102 | master         | Debian 13 |
+| m3.k8s | 192.168.11.103 | master         | Debian 13 |
+| w1.k8s | 192.168.11.104 | work           | Debian 13 |
 
 
 
@@ -50,7 +50,6 @@
 ```shell
 # 安装必要工具
 apt-get update && apt-get install -y git sshpass rsync curl tar
-dnf install -y git sshpass rsync curl tar
 
 # 克隆 project
 git clone https://github.com/mings135/k8s-install.git

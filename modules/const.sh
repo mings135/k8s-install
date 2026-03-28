@@ -35,6 +35,8 @@ elif cat /etc/issue | grep -Eqi "debian"; then
         SYSTEM_VERSION=11
     elif cat /etc/issue | grep -Eqi 'linux 12'; then
         SYSTEM_VERSION=12
+    elif cat /etc/issue | grep -Eqi 'linux 13'; then
+        SYSTEM_VERSION=13
     fi
 fi
 
@@ -152,7 +154,7 @@ const_install_dependencies() {
             chmod +x ${KUBE_BIN}/yq &&
             chown ${SCRIPT_OWN}:${SCRIPT_OWN} ${KUBE_BIN}/yq
     fi
-
+    
     if [ ! -e ${KUBE_BIN}/rrcmd ]; then
         blue_font "检测到缺少前置工具, 将下载安装 rrcmd 到 ${KUBE_BIN} 目录"
         curl -fsSL -o ${KUBE_BIN}/rrcmd https://github.com/mings135/rrcmd/releases/latest/download/rrcmd_linux_amd64 &&
