@@ -148,14 +148,14 @@ result_msg() {
 
 # 安装必要的前置工具(1)
 const_install_dependencies() {
-    if [ ! -e ${KUBE_BIN}/yq ]; then
+    if ! command -v yq &> /dev/null; then
         blue_font "检测到缺少前置工具, 将下载安装 yq 到 ${KUBE_BIN} 目录"
         curl -fsSL -o ${KUBE_BIN}/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 &&
             chmod +x ${KUBE_BIN}/yq &&
             chown ${SCRIPT_OWN}:${SCRIPT_OWN} ${KUBE_BIN}/yq
     fi
     
-    if [ ! -e ${KUBE_BIN}/rrcmd ]; then
+    if ! command -v rrcmd &> /dev/null; then
         blue_font "检测到缺少前置工具, 将下载安装 rrcmd 到 ${KUBE_BIN} 目录"
         curl -fsSL -o ${KUBE_BIN}/rrcmd https://github.com/mings135/rrcmd/releases/latest/download/rrcmd_linux_amd64 &&
             chmod +x ${KUBE_BIN}/rrcmd &&
