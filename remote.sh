@@ -160,7 +160,7 @@ remote_upgrade_cluster() {
   done
 }
 
-# 备份 etcd 快照
+# 备份 etcd
 remote_backup_cluster() {
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${NODES_MASTER}
 }
