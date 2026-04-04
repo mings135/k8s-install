@@ -180,6 +180,10 @@ remote_clean_cluster() {
   rrcmd "${nodeUser}" "${remote_RM} -rf ${remoteScriptDir}" ${NODES_ALL}
 }
 
+remote_display_vars() {
+  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${MASTER1_IP}
+}
+
 remote_auto() {
   if [ ${remote_LOGIN_SWITCH} -eq 1 ]; then
     remote_free_login
@@ -195,6 +199,7 @@ remote_auto() {
 
 main() {
   case $1 in
+    "vars") remote_display_vars ;;
     "imglist") remote_images_list ;;   # 查看 images 信息
     "backup") remote_backup_cluster ;; # update script,kube.yaml --> backup etcd
     "auto")
@@ -229,8 +234,8 @@ main() {
       printf "Usage: bash $0 [ option ] [ ? ] \n"
       blue_font "命令："
       printf "%-16s %-s\n" 'auto' '自动安装 k8s 集群(支持增量)'
-      printf "%-16s %-s\n" 'upgrade' '自动升级 k8s 集群'
       printf "%-16s %-s\n" 'cri' '自动升级 CRI'
+      printf "%-16s %-s\n" 'upgrade' '自动升级 k8s 集群'
       printf "%-16s %-s\n" 'backup' '备份 etcd 数据库'
       printf "%-16s %-s\n" 'clean' '删除整个 k8s 集群'
       blue_font "选项:"

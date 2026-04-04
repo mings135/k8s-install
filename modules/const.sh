@@ -213,6 +213,7 @@ const_create_base_config() {
       .nodes.master1.domain = "m1.k8s" |
       .nodes.master1.address = strenv(val1) |
       .join = {} |
+      .kubeconfig = {} |
       (.join | key) head_comment = "以下内容自动生成, 请勿修改!!!" |
       . head_comment = "请勿随意修改配置, 否则可能导致无法正常运行!!!"
     ' >${KUBE_FILE}
