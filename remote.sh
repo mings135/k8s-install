@@ -99,7 +99,6 @@ remote_rsync_kube() {
 
 # 初始化系统
 remote_base_install() {
-  remote_rsync_script
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh install" ${NODES_ALL}
 }
 
@@ -132,8 +131,6 @@ remote_deploy_flannel() {
 
 # 升级 cri
 remote_upgrade_cri() {
-  remote_rsync_script
-
   for i in ${NODES_MASTER1_MASTER}; do
     rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh cri" ${i}
   done
@@ -148,8 +145,6 @@ remote_upgrade_cri() {
 
 # 升级 cluster
 remote_upgrade_cluster() {
-  remote_rsync_script
-
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${NODES_MASTER}
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh upgrade" ${MASTER1_IP}
 
@@ -167,14 +162,11 @@ remote_upgrade_cluster() {
 
 # 备份 etcd 快照
 remote_backup_cluster() {
-  remote_rsync_script
-
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${NODES_MASTER}
 }
 
 # 删除整个集群
 remote_clean_cluster() {
-  remote_rsync_script
   blue_font "清理节点: ${i}"
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${NODES_ALL}
   rrcmd "${nodeUser}" "${remote_RM} -rf ${remoteScriptDir}" ${NODES_ALL}
@@ -198,6 +190,8 @@ remote_auto() {
 }
 
 main() {
+  remote_rsync_script
+
   case $1 in
     "vars") remote_display_vars ;;
     "imglist") remote_images_list ;;   # 查看 images 信息
