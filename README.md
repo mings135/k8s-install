@@ -2,9 +2,9 @@
 
 基于 kubeadm 自动部署 k8s 集群。
 
-一般情况所有操作均在运维主机上完成即可。
+正常情况在运维主机上完成所有操作即可。
 
-所有 k8s 节点须统一账号密码（非 root 账号须支持 sudo 命令），并开启 ssh。
+所有 k8s 节点须统一账号密码（非 root 账号须支持 sudo 命令）。
 
 
 
@@ -13,26 +13,24 @@
 - `Linux:` 
   - 支持 Debian 12、Debian 13
 - `Kubernetes:` 
-  - 支持 1.24+
-  - 1.24 官方镜像仓库地址：`k8s.gcr.io`
-  - 1.25 官方镜像仓库地址：`registry.k8s.io`
+  - 支持 1.31.0+
+  - 官方镜像仓库地址：`registry.k8s.io`
   - 国内镜像仓库地址：`registry.cn-hangzhou.aliyuncs.com/google_containers`
 - `Containerd：` 
-  - 支持 1.5+
+  - 支持 1.7.0+
 - `Other:`
   - 默认所有资源将使用官方地址，请检查自己的网络是否支持
-  - 默认安装最新版本的依赖软件，如自定义，请注意版本兼容性
 
 
 
 **测试环境：**
 
-| Domain | IP             | Role           | System    |
-| ------ | -------------- | -------------- | --------- |
-| m1.k8s | 192.168.11.101 | master1/devops | Debian 13 |
-| m2.k8s | 192.168.11.102 | master         | Debian 13 |
-| m3.k8s | 192.168.11.103 | master         | Debian 13 |
-| w1.k8s | 192.168.11.104 | work           | Debian 13 |
+| Domain | IP            | Role           | System    |
+| ------ | ------------- | -------------- | --------- |
+| m1.k8s | 192.168.11.50 | master1/devops | Debian 13 |
+| m2.k8s | 192.168.11.51 | master         | Debian 13 |
+| m3.k8s | 192.168.11.52 | master         | Debian 13 |
+| w1.k8s | 192.168.11.53 | work           | Debian 13 |
 
 
 
@@ -54,23 +52,47 @@ apt-get update && apt-get install -y git sshpass rsync curl tar
 # 克隆 project
 git clone https://github.com/mings135/k8s-install.git
 
-# 进入 k8s-install(可选：cp config/example.yaml config/kube.yaml 进行修改)
+# 进入 k8s-install
 cd k8s-install
 
-# 自动安装(-f 部署 flannel, -la 配置免密登录, 如无配置文件, 将自动生成极简配置)
+# 自动安装(-f 部署 flannel, -la 免密登录, 如无配置文件, 将自动生成极简配置, 参考 example.yaml)
 bash remote.sh -fla auto
 ```
 
 
 
-## Upgrade
+## Upgrade cri
 
 在 config/kube.yaml 中修改或添加如下配置：
 
 ```yaml
+container:
+  # 更新到哪个版本(默认 latest)
+  criVersion: "2.2.2"
+  # 是否重新配置 cri config(默认 false)
+  criUpgradeReconfig: "true"
+```
+
+
+
+升级容器运行时版本：
+
+- 如果出错，手动解决问题后继续运行 `cri` 即可
+
+```shell
+bash remote.sh cri
+```
+
+
+
+## Upgrade cluster
+
+在 config/kube.yaml 中修改配置：
+
+```yaml
 cluster:
   # 更新到哪个版本
-  kubernetesVersion: "1.32.0"
+  kubernetesVersion: "1.35.3"
 ```
 
 
@@ -80,55 +102,21 @@ cluster:
 - 如果出错，手动解决问题后继续运行 `upgrade` 即可
 
 ```shell
-# 更新前建议备份下 etcd
-bash remote.sh backup
 # 更新版本(必须满足 k8s 更新条件, 请自行查看官网)
 bash remote.sh upgrade
 ```
 
 
 
-## criUpgrade
-
-在 config/kube.yaml 中修改或添加如下配置：
-
-```yaml
-container:
-  # 更新到哪个版本(默认 latest)
-  criVersion: "1.6.9"
-  # 是否重新配置 cri config(默认 false)
-  criUpgradeReconfig: "true"
-```
-
-
-
-升级容器运行时版本：
-
-- 如果出错，手动解决问题后继续运行 `criupgrade` 即可
-
-```shell
-bash remote.sh criupgrade
-```
-
-
-
 ## Other
 
-更改集群镜像仓库地址，须同步更改 kube.yaml 相关配置：
+后续功能
 
-```shell
-# 集群配置修改
-kubectl edit cm -n kube-system kubeadm-config
-```
-
+- 配置后，可以自动删除节点
+- 尝试增加 cilium
+- 节点并发更新
 
 
-添加集群节点，只须更改 kube.yaml，然后运行 `bash remote.sh auto` 即可
 
-删除集群节点，须同步更改 kube.yaml 相关配置：
 
-```shell
-kubectl drain w1.k8s --ignore-daemonsets
-kubectl delete nodes w1.k8s
-```
 

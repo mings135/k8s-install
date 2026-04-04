@@ -2,228 +2,201 @@
 
 # Author: MingQ
 if ! ps -ocmd $$ | grep -q "^bash"; then
-    echo "请使用 bash $0 运行脚本!"
-    exit 1
+  echo "请使用 bash $0 运行脚本!"
+  exit 1
 fi
 
 set -e
-script_dir=$(dirname $(readlink -f $0))
+script_type="local"
+script_dir=$(dirname "$(readlink -f "$0")")
 
 source ${script_dir}/modules/const.sh
-source ${script_dir}/modules/variables.sh
-variables_local
-
+source ${script_dir}/modules/vars.sh
 source ${script_dir}/modules/check.sh
-source ${script_dir}/modules/basic.sh
+
+source ${script_dir}/modules/sys.sh
 source ${script_dir}/modules/cri.sh
 source ${script_dir}/modules/k8s.sh
 
-source ${script_dir}/modules/certs.sh
 source ${script_dir}/modules/cluster.sh
-
 set +e
-check_variables
-
-# 检查、创建 record.txt
-local_check_record() {
-    if [ ! -e ${KUBE_RECORD} ]; then
-        touch ${KUBE_RECORD}
-        result_msg "创建 record.txt"
-    fi
-}
 
 # 安装和配置所需的基础
-local_install_basic() {
-    basic_etc_hosts
-    if ! grep -Eqi '^basic_system_configs$' ${KUBE_RECORD}; then
-        basic_system_configs
-        echo "basic_system_configs" >>${KUBE_RECORD}
-    fi
-    if ! grep -Eqi '^cri_install$' ${KUBE_RECORD}; then
-        cri_install
-        echo "cri_install" >>${KUBE_RECORD}
-    fi
-    if ! grep -Eqi '^kubernetes_install$' ${KUBE_RECORD}; then
-        kubernetes_install
-        echo "kubernetes_install" >>${KUBE_RECORD}
-    fi
-}
+local_base_install() {
 
-# 签发证书
-local_issue_certs() {
-    set -e
-    if ! grep -Eqi '^certs_all_exclude_kubelet$' ${KUBE_RECORD}; then
-        blue_font "签发证书: ${HOST_IP}"
-        mkdir -p ${KUBEADM_PKI} && rm -rf ${KUBEADM_PKI}
-        /usr/bin/cp -a ${script_dir}/pki ${KUBEADM_PKI}
-        certs_etcd
-        certs_apiserver
-        certs_front-proxy
-        certs_admin_conf
-        certs_controller-manager_conf
-        certs_scheduler_conf
-        echo "certs_all_exclude_kubelet" >>${KUBE_RECORD}
-    fi
-    set +e
+  init_etc_hosts
+
+  local value="$(get_record ".sys.init")"
+  if [[ "${value}" != "true" ]]; then
+    init_system
+    set_record ".sys.init" "true"
+  fi
+
+  value="$(get_record ".cri.install")"
+  if [[ "${value}" != "true" ]]; then
+    install_cri
+    set_record ".cri.install" "true"
+
+    local ver=$(containerd --v | awk '{print $3}')
+    set_record ".cri.version" "${ver}"
+  fi
+
+  value="$(get_record ".k8s.install")"
+  if [[ "${value}" != "true" ]]; then
+    install_kubernetes
+
+    val1='true' val2="${kubernetesVersion}" yq -i '
+      .k8s.install = strenv(val1) |
+      .k8s.kubeadmVersion = strenv(val2) |
+      .k8s.kubeletVersion = strenv(val2)
+    ' ${KUBE_RECORD}
+  fi
 }
 
 # 拉取所需 images
 local_images_pull() {
-    if ! grep -Eqi '^cluster_images_pull$' ${KUBE_RECORD}; then
-        cluster_images_pull
-        echo "cluster_images_pull" >>${KUBE_RECORD}
-    fi
+
+  local value="$(get_record ".cluster.imagesPull")"
+  if [[ "${value}" != "true" ]]; then
+    images_pull
+    set_record ".cluster.imagesPull" "true"
+  fi
 }
 
 # 初始化集群
 local_init_cluster() {
-    if ! grep -Eqi '^cluster_join_cluster$' ${KUBE_RECORD}; then
-        cluster_master1_init
-        echo "cluster_join_cluster" >>${KUBE_RECORD}
-    fi
-    cluster_generate_join_command
+
+  local value="$(get_record ".cluster.join")"
+  if [[ "${value}" != "true" ]]; then
+    master1_init
+
+    val1='true' val2="${HOST_ROLE}" val3="${kubernetesVersion}" yq -i '
+      .cluster.join = strenv(val1) |
+      .cluster.role = strenv(val2) |
+      .cluster.version = strenv(val3)
+    ' ${KUBE_RECORD}
+  fi
+
+  create_join_command
 }
 
 # 加入集群
 local_join_cluster() {
-    if ! grep -Eqi '^cluster_join_cluster$' ${KUBE_RECORD}; then
-        cluster_join_cluster
-        echo "cluster_join_cluster" >>${KUBE_RECORD}
-    fi
-}
 
-# 签发 kubelet 证书
-local_kubelet_certs() {
-    set -e
-    if ! grep -Eqi '^certs_kubelet_pem$' ${KUBE_RECORD}; then
-        blue_font "签发 kubelet 证书: ${HOST_IP}"
-        certs_kubelet_pem
-        sleep 1
-        systemctl restart kubelet
-        echo "certs_kubelet_pem" >>${KUBE_RECORD}
-    fi
-    set +e
+  local value="$(get_record ".cluster.join")"
+  if [[ "${value}" != "true" ]]; then
+    join_cluster
+
+    val1='true' val2="${HOST_ROLE}" val3="${kubernetesVersion}" yq -i '
+      .cluster.join = strenv(val1) |
+      .cluster.role = strenv(val2) |
+      .cluster.version = strenv(val3)
+    ' ${KUBE_RECORD}
+  fi
 }
 
 # 部署 flannel
 local_deploy_flannel() {
-    kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+
+  kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
 }
 
-# 更新集群版本
-local_upgrade_version() {
-    if ! grep -Eqi "cluster_upgrade_version_kubeadm-${upgradeVersion}" ${KUBE_RECORD}; then
-        basic_set_repos_kubernetes
-        update_mirror_source_cache
-        cluster_upgrade_version_kubeadm
-        echo "cluster_upgrade_version_kubeadm-${upgradeVersion}" >>${KUBE_RECORD}
-    fi
+# 更新容器运行时
+local_upgrade_cri() {
 
-    if ! grep -Eqi "cluster_upgrade_version_kubelet-${upgradeVersion}" ${KUBE_RECORD}; then
-        cluster_upgrade_version_kubelet
-        echo "cluster_upgrade_version_kubelet-${upgradeVersion}" >>${KUBE_RECORD}
-    fi
+  upgrade_cri_check
+
+  local value="$(get_record ".cri.version")"
+  if [[ "${criVersion}" == "latest" ]] || version_gt "${criVersion}" "${value}"; then
+    drian_node
+    stop_kubelet
+    upgrade_cri
+    start_kubelet
+    uncordon_node
+    local ver=$(containerd --v | awk '{print $3}')
+    set_record ".cri.version" "${ver}"
+  fi
 }
 
-# 更新容器运行时版本
-local_cri_upgrade_version() {
-    if ! grep -Eqi "cri_upgrade_version-${criVersion}" ${KUBE_RECORD}; then
-        basic_set_repos_cri
-        update_mirror_source_cache
-        cri_upgrade_version
-        echo "cri_upgrade_version-${criVersion}" >>${KUBE_RECORD}
-    fi
+# 更新集群版本 up kubeadm --> up cluster --> drian --> up kubelet --> uncordon
+local_upgrade_cluster() {
+
+  upgrade_cluster_check
+
+  local value="$(get_record ".k8s.kubeadmVersion")"
+  if version_gt "${kubernetesVersion}" "${value}"; then
+    upgrade_kubeadm
+    upgrade_cluster
+    set_record ".k8s.kubeadmVersion" "${kubernetesVersion}"
+  fi
+
+  value="$(get_record ".k8s.kubeletVersion")"
+  if version_gt "${kubernetesVersion}" "${value}"; then
+    drian_node
+    upgrade_kubelet
+    uncordon_node
+
+    val1="${kubernetesVersion}" yq -i '
+      .k8s.kubeletVersion = strenv(val1) |
+      .cluster.version = strenv(val1)
+    ' ${KUBE_RECORD}
+  fi
 }
 
-# 更新容器运行时版本时, 优化 latest, 支持每次使用
-local_cri_upgrade_optimize_latest() {
-    if grep -Eqi "cri_upgrade_version-latest" ${KUBE_RECORD}; then
-        sed -i '/cri_upgrade_version-latest/d' ${KUBE_RECORD}
-    fi
-}
+# 清理集群节点
+local_clean_node() {
+  # 集群清理
+  if command -v kubeadm &>/dev/null; then
+    kubeadm reset -f
+  fi
+  if command -v ipvsadm &>/dev/null; then
+    ipvsadm --clear
+  fi
 
-# 删除集群
-local_clean_cluster() {
-    # 集群清理
-    if which kubeadm &>/dev/null; then
-        kubeadm reset -f
-    fi
-    if which ipvsadm &>/dev/null; then
-        ipvsadm --clear
-    fi
-    # debian 中, 如果被锁, 执行解锁
-    if [ ${SYSTEM_RELEASE} = 'debian' ]; then
-        local mark_apps=''
-        for i in kubeadm kubelet kubectl; do
-            if apt-mark showhold | grep -Eqi "$i"; then
-                mark_apps="${mark_apps} $i"
-            fi
-        done
-        if [ "${mark_apps}" ]; then
-            apt-mark unhold ${mark_apps} >/dev/null
-            result_msg "解锁 ${mark_apps}"
-        fi
-    fi
-    # 移除 kubeadm kubelet kubectl cri-tools
-    local remove_apps=''
-    for i in kubeadm kubelet kubectl cri-tools; do
-        if which $i &>/dev/null; then
-            remove_apps="${remove_apps} $i"
-        fi
-    done
-    if [ "$remove_apps" ]; then
-        remove_apps "${remove_apps}"
-    fi
-    # 移除 containerd.io
-    if which containerd &>/dev/null; then
-        remove_apps 'containerd.io'
-    fi
-    # 删除相关目录、文件
-    rm -rf /etc/cni/net.d /root/.kube/config
-    result_msg "移除 目录和文件"
+  # 删除 k8s 组件
+  unhold_pkgs 'kubeadm kubelet kubectl containerd'
+  remove_pkgs 'kubeadm kubelet kubectl cri-tools kubernetes-cni containerd.io' '--purge'
+
+  # 删除相关目录、文件
+  rm -rf /etc/cni/net.d /root/.kube/config
+  result_msg "移除 目录和文件"
 }
 
 main() {
-    local_check_record
-
-    case $1 in
-    "install") local_install_basic ;;
-    "imglist") cluster_images_list ;;
+  case $1 in
+    "vars") display_vars ;;
+    "imglist") images_list ;;
+    "install") local_base_install ;;
     "imgpull") local_images_pull ;;
-    "initcluster") local_init_cluster ;;
-    "joincluster") local_join_cluster ;;
-    "certs") local_issue_certs ;;
-    "kubelet") local_kubelet_certs ;;
+    "init") local_init_cluster ;;
+    "join") local_join_cluster ;;
     "flannel") local_deploy_flannel ;;
-    "upgrade") local_upgrade_version ;;
-    "criupgrade") local_cri_upgrade_version ;;
-    "criupgradeopt") local_cri_upgrade_optimize_latest ;;
-    "tmpkubeconfig") cluster_generate_kubeconfig_tmp ;;
-    "tmpkubectl") cluster_config_kubectl_tmp ;;
-    "backup") cluster_backup_etcd ;;
-    "restore") cluster_restore_etcd ;;
-    "startetcd") cluster_start_etcd ;;
-    "clean") local_clean_cluster ;;
-    "test") variables_display ;;
+    "cri") local_upgrade_cri ;;
+    "upgrade") local_upgrade_cluster ;;
+    "token") create_kubeconfig_token ;;
+    "context") config_user_context ;;
+    "backup")
+      backup_kubernetes
+      backup_etcd
+      ;;
+    "clean") local_clean_node ;;
     *)
-        printf "Usage: bash $0 [ ? ] \n"
-        printf "%-16s %-s\n" 'install' '更新 hosts 文件, 优化系统, 安装 cri 和 kubeadm 等'
-        printf "%-16s %-s\n" 'imglist' '查看 images'
-        printf "%-16s %-s\n" 'imgpull' '拉取 images'
-        printf "%-16s %-s\n" 'initcluster' '初始化 k8s 集群, 同时生成 join 信息'
-        printf "%-16s %-s\n" 'joincluster' '根据自身 Role 信息加入集群'
-        printf "%-16s %-s\n" 'certs' '签发 k8s 证书, 此操作会清空 ${KUBEADM_PKI}!!!'
-        printf "%-16s %-s\n" 'kubelet' '签发 kubelet 证书，此操作会覆盖原有证书!!!'
-        exit 1
-        ;;
-    esac
+      printf "Usage: bash $0 [ ? ] \n"
+      printf "%-16s %-s\n" 'imglist' '查看 images'
+      printf "%-16s %-s\n" 'install' '更新 hosts, 初始化系统 , 安装 cri、kubeadm 等'
+      printf "%-16s %-s\n" 'imgpull' '拉取 images'
+      printf "%-16s %-s\n" 'init' '初始化 k8s 集群, 生成 join 信息'
+      printf "%-16s %-s\n" 'join' '加入集群'
+      exit 1
+      ;;
+  esac
 }
 
 if [ $# -eq 0 ]; then
-    main $1
+  main $1
 fi
 
 while [ $# -gt 0 ]; do
-    main $1
-    shift
+  main $1
+  shift
 done

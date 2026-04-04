@@ -1,182 +1,249 @@
-# 常量
+# 常量模块
 
-SCRIPT_OWN=$(stat -c %U ${script_dir})
+GPG_DIR='/etc/apt/keyrings'
 KUBEADM_CONFIG='/etc/kubernetes'
 KUBEADM_PKI="${KUBEADM_CONFIG}/pki"
 KUBEADM_MANIFESTS="${KUBEADM_CONFIG}/manifests"
 KUBELET_PKI='/var/lib/kubelet/pki'
-JOIN_TOKEN_INTERVAL=7200
-ETCD_DATA_DIR="/var/lib/etcd" # 目前仅用于 etcd 备份恢复
+ETCD_DATA="/var/lib/etcd"
+KUBE_BIN="${script_dir}/bin"
+KUBE_CONF="${script_dir}/config"
+KUBE_BACKUP="${script_dir}/backup"
+KUBE_KUBEADM="${KUBE_CONF}/kubeadm-config.yaml"
+KUBE_FILE="${KUBE_CONF}/kube.yaml"
+KUBE_RECORD="${KUBE_CONF}/record.yaml"
 RES_LEVEL=0
 RES_COLUM=50
-KUBE_CONF="${script_dir}/config/kube.yaml"
-KUBE_RECORD="${script_dir}/config/record.txt"
-KUBE_BIN="${script_dir}/bin"
-HOST_IP=$(ip a | grep global | awk -F '/' '{print $1}' | awk 'NR==1{print $2}')
 
-if [ ! -e ${KUBE_BIN} ]; then
-    mkdir ${KUBE_BIN}
+script_own=$(stat -c %U ${script_dir})
+HOST_IP=$(ip route get 1.1.1.1 | grep -oP 'src \K\S+')
+
+if [[ ! -d "${GPG_DIR}" ]]; then
+  mkdir -p ${GPG_DIR}
+fi
+
+if [[ ! -d "${KUBE_BIN}" ]]; then
+  mkdir -p ${KUBE_BIN}
+fi
+
+if [[ ! -d "${KUBE_CONF}" ]]; then
+  mkdir -p ${KUBE_CONF}
+fi
+
+if [[ ! -d "${KUBE_BACKUP}" ]]; then
+  mkdir -p ${KUBE_BACKUP}
 fi
 
 export PATH=${KUBE_BIN}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-if [ -f /etc/redhat-release ]; then
-    SYSTEM_RELEASE="centos"
-    SYSTEM_PACKAGE="dnf"
-    if cat /etc/redhat-release | grep -Eqi 'release 8'; then
-        SYSTEM_VERSION=8
-    elif cat /etc/redhat-release | grep -Eqi 'release 9'; then
-        SYSTEM_VERSION=9
-    fi
-elif cat /etc/issue | grep -Eqi "debian"; then
-    SYSTEM_RELEASE="debian"
-    SYSTEM_PACKAGE="apt-get"
-    if cat /etc/issue | grep -Eqi 'linux 11'; then
-        SYSTEM_VERSION=11
-    elif cat /etc/issue | grep -Eqi 'linux 12'; then
-        SYSTEM_VERSION=12
-    elif cat /etc/issue | grep -Eqi 'linux 13'; then
-        SYSTEM_VERSION=13
-    fi
+if [[ -f /etc/debian_version ]]; then
+  OS_NAME="debian"
+  OS_VERSION=$(cat /etc/debian_version | cut -d'.' -f1)
+  # 解决 debian 系统 debconf: unable to initialize frontend: Dialog 问题
+  export DEBIAN_FRONTEND=noninteractive
 fi
 
-# --- 函数常量 ---
-install_apps() {
-    local ver_val name_val ver_long
-    # 解决 debian 系统 debconf: unable to initialize frontend: Dialog 问题
-    if [ ${SYSTEM_RELEASE} = 'debian' ]; then
-        export DEBIAN_FRONTEND=noninteractive
-    fi
-    # 安装 app, $1 需要安装的软件, space 分隔, $2 额外的参数
-    for i in $1; do
-        # debian 获取完整的版本信息
-        if [ ${SYSTEM_RELEASE} = 'debian' ] && echo $i | grep -Eqi '='; then
-            name_val=$(echo $i | awk -F '=' '{print$1}')
-            ver_val=$(echo $i | awk -F '=' '{print$2}')
-            ver_long=$(apt-cache madison ${name_val} | grep "${ver_val}" | awk '{print $3}' | head -n 1)
-            if [ "${ver_long}" ]; then
-                i="${name_val}=${ver_long}"
-            fi
-        fi
-        # 执行安装
-        if [ "$2" ]; then
-            ${SYSTEM_PACKAGE} install -y ${i} $2 &>/dev/null
-            result_msg "安装 $i"
-        else
-            ${SYSTEM_PACKAGE} install -y ${i} &>/dev/null
-            result_msg "安装 $i"
-        fi
-    done
+const_action() {
+  local result rc color
+  local msg=$1
+
+  shift
+  if "$@"; then
+    result="success"
+    rc=0
+    color=32
+  else
+    result="failure"
+    rc=1
+    color=31
+  fi
+  printf "%-${RES_COLUM}s [ \033[%sm\033[01m%s\033[0m ]\n" "$msg" "$color" "$result"
+  return $rc
 }
 
-remove_apps() {
-    # 解决 debian 系统 debconf: unable to initialize frontend: Dialog 问题
-    if [ ${SYSTEM_RELEASE} = 'debian' ]; then
-        export DEBIAN_FRONTEND=noninteractive
+# 执行结果捕获
+result_msg() {
+  local rc=$?
+  if [[ ${rc} -eq 0 ]]; then
+    if [[ ${RES_LEVEL} -eq 0 ]]; then
+      const_action "$*" "/bin/true"
     fi
-    for i in $1; do
-        ${SYSTEM_PACKAGE} remove -y ${i} &>/dev/null
-        result_msg "移除 $i"
-    done
+  else
+    const_action "$*" "/bin/false"
+    exit 1
+  fi
 }
 
-update_mirror_source_cache() {
-    # centos
-    if [ ${SYSTEM_RELEASE} = 'centos' ]; then
-        ${SYSTEM_PACKAGE} makecache >/dev/null
-        result_msg "重新 yum makecache"
-    # debian
-    elif [ ${SYSTEM_RELEASE} = 'debian' ]; then
-        ${SYSTEM_PACKAGE} update >/dev/null
-        result_msg "重新 apt update"
-    fi
+const_normalize_version() {
+  # 统一处理：去v、去后缀、补齐三位纯数字
+  echo "${1#v}" | awk -F. '{ printf("%d.%d.%d\n", $1, $2, $3) }'
 }
 
-compare_version_ge() {
-    local ver1_major=$(echo $1 | awk -F '.' '{print $1}')
-    local ver1_minor=$(echo $1 | awk -F '.' '{print $2}')
-    local ver2_major=$(echo $2 | awk -F '.' '{print $1}')
-    local ver2_minor=$(echo $2 | awk -F '.' '{print $2}')
-    if [ ${ver1_major} -gt ${ver2_major} ]; then
-        return 0
-    elif [ ${ver1_major} -eq ${ver2_major} ]; then
-        if [ ${ver1_minor} -ge ${ver2_minor} ]; then
-            return 0
-        else
-            return 1
-        fi
-    else
-        return 1
-    fi
+# 版本号比对 (v1 >= v2)
+version_ge() {
+  local v1=$(const_normalize_version "$1")
+  local v2=$(const_normalize_version "$2")
+
+  if [[ "$v1" == "$v2" ]]; then
+    return 0
+  fi
+
+  local min_ver=$(printf '%s\n%s' "$v1" "$v2" | LC_ALL=C sort -V | head -n1)
+
+  if [[ "$min_ver" == "$v2" ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+# 版本号比对 (v1 > v2)
+version_gt() {
+  local v1="$1" v2="$2"
+
+  if [[ "$v1" == "$v2" ]]; then
+    return 1
+  fi
+
+  version_ge "$v1" "$v2"
 }
 
 blue_font() {
-    echo -e "\033[34m\033[01m$1\033[0m"
+  echo -e "\033[34m\033[01m$1\033[0m"
 }
 
-const_action() {
-    local tmp_result tmp_rc tmp_color
-    local tmp_msg=$1
-    echo -n "$tmp_msg "
-    shift
-    if "$@"; then
-        tmp_result="success"
-        tmp_rc=0
-        tmp_color=32
-    else
-        tmp_result="failure"
-        tmp_rc=1
-        tmp_color=31
-    fi
-    echo -ne "\033[${RES_COLUM}G[ \033[${tmp_color}m\033[01m${tmp_result}\033[0m ]"
-    echo -ne "\r"
-    echo
-    return $tmp_rc
+get_config() {
+  yq -M "$1 // \"\"" "${KUBE_FILE}"
 }
 
-result_msg() {
-    local tmp_rc=$?
-    if [ ${tmp_rc} -eq 0 ]; then
-        if [ ${RES_LEVEL} -eq 0 ]; then
-            const_action "$*" "/bin/true"
-        fi
-    else
-        const_action "$*" "/bin/false"
-        exit 1
+set_config() {
+  val="$2" yq -i "$1 = strenv(val)" "${KUBE_FILE}"
+}
+
+get_record() {
+  yq -M "$1 // \"\"" "${KUBE_RECORD}"
+}
+
+set_record() {
+  val="$2" yq -i "$1 = strenv(val)" "${KUBE_RECORD}"
+}
+
+# 软件包安装逻辑 (支持 Debian 版本自动补全)
+install_pkgs() {
+  local name ver full
+  local list="$1"
+  local args="$2"
+
+  # 遍历安装列表
+  for i in ${list}; do
+    # Debian 系统包含 = 时进行版本补全
+    if [[ "$i" == *"="* ]]; then
+      name=$(echo "$i" | cut -d'=' -f1)
+      ver=$(echo "$i" | cut -d'=' -f2)
+      full=$(apt-cache madison "${name}" 2>/dev/null | awk '{print $3}' | grep -w "^${ver}" | head -n 1)
+      if [[ -n "${full}" ]]; then
+        i="${name}=${full}"
+      fi
     fi
+
+    apt install -y ${i} ${args} &>/dev/null
+    result_msg "安装 $i"
+  done
+}
+
+remove_pkgs() {
+  local list="$1"
+  local args="$2"
+
+  for i in ${list}; do
+    if dpkg -l | grep -q "^ii[[:space:]]\+${i}[[:space:]]"; then
+      apt remove -y ${i} ${args} &>/dev/null
+      result_msg "移除 $i"
+    fi
+  done
+}
+
+update_pkgs() {
+  apt update >/dev/null
+  result_msg "重新 apt update"
+}
+
+hold_pkgs() {
+  local list="$1"
+
+  for i in ${list}; do
+    apt-mark hold ${i} >/dev/null
+    result_msg "锁住 $i"
+  done
+}
+
+unhold_pkgs() {
+  local list="$1"
+
+  for i in ${list}; do
+    if apt-mark showhold | grep -q "^${i}$"; then
+      apt-mark unhold ${i} >/dev/null
+      result_msg "解锁 $i"
+    fi
+  done
 }
 
 # 安装必要的前置工具(1)
 const_install_dependencies() {
-    if ! command -v yq &> /dev/null; then
-        blue_font "检测到缺少前置工具, 将下载安装 yq 到 ${KUBE_BIN} 目录"
-        curl -fsSL -o ${KUBE_BIN}/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 &&
-            chmod +x ${KUBE_BIN}/yq &&
-            chown ${SCRIPT_OWN}:${SCRIPT_OWN} ${KUBE_BIN}/yq
-    fi
-    
-    if ! command -v rrcmd &> /dev/null; then
-        blue_font "检测到缺少前置工具, 将下载安装 rrcmd 到 ${KUBE_BIN} 目录"
-        curl -fsSL -o ${KUBE_BIN}/rrcmd https://github.com/mings135/rrcmd/releases/latest/download/rrcmd_linux_amd64 &&
-            chmod +x ${KUBE_BIN}/rrcmd &&
-            chown ${SCRIPT_OWN}:${SCRIPT_OWN} ${KUBE_BIN}/rrcmd
-    fi
+  if [[ ! -f "${KUBE_BIN}/yq" ]]; then
+    blue_font "下载安装 yq 到 ${KUBE_BIN} 目录"
+    curl -fsSL -o ${KUBE_BIN}/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+      && chmod +x ${KUBE_BIN}/yq
+  fi
+
+  if [[ ! -f "${KUBE_BIN}/rrcmd" ]]; then
+    blue_font "下载安装 rrcmd 到 ${KUBE_BIN} 目录"
+    curl -fsSL -o ${KUBE_BIN}/rrcmd https://github.com/mings135/rrcmd/releases/latest/download/rrcmd_linux_amd64 \
+      && chmod +x ${KUBE_BIN}/rrcmd
+  fi
 }
 
 # 生成极简配置 kube.yaml
-const_kube_conf() {
-    if [ ! -e ${KUBE_CONF} ]; then
-        touch ${KUBE_CONF}
-        yq -i '.nodeUser = ""' ${KUBE_CONF}
-        yq -i '.nodes.master1.domain = "m1.k8s"' ${KUBE_CONF}
-        tmp_var=${HOST_IP} yq -i '.nodes.master1.address = strenv(tmp_var)' ${KUBE_CONF}
-        yq -i '. head_comment="集群初始化后请勿随意修改配置, 否则可能导致无法正常运行!!!"' ${KUBE_CONF}
-        blue_font "已自动生成极简配置, 修改请 vi ${KUBE_CONF}, 继续请重新运行"
-        yq ${KUBE_CONF}
-        exit 0
-    fi
+const_create_base_config() {
+  if [[ ! -f "${KUBE_FILE}" ]]; then
+    val1="${HOST_IP}" yq -n '
+      .nodeUser = "" |
+      .cluster.kubernetesVersion = "" |
+      .container = {} |
+      .nodes.master1.domain = "m1.k8s" |
+      .nodes.master1.address = strenv(val1) |
+      .join = {} |
+      (.join | key) head_comment = "以下内容自动生成, 请勿修改!!!" |
+      . head_comment = "请勿随意修改配置, 否则可能导致无法正常运行!!!"
+    ' >${KUBE_FILE}
+
+    blue_font "已自动生成极简配置, 修改请 vi ${KUBE_FILE}, 继续请重新运行"
+    yq ${KUBE_FILE}
+    exit 0
+  fi
 }
 
+# 生成记录文件 record.yaml
+const_create_record_file() {
+  if [[ ! -f "${KUBE_RECORD}" ]]; then
+    yq -n '
+      .sys = {} |
+      .cri = {} |
+      .k8s = {} |
+      .cluster = {} |
+      .backup = {} |
+      . head_comment = "集群记录文件, 非常重要, 自动生成, 请勿修改!!!"
+    ' >${KUBE_RECORD}
 
-const_install_dependencies
-const_kube_conf
+    blue_font "已自动生成记录文件 ${KUBE_RECORD}, 请勿修改!!!"
+  fi
+}
+
+if [[ "${script_type}" == "local" ]]; then
+  const_create_record_file
+fi
+
+if [[ "${script_type}" == "remote" ]]; then
+  const_install_dependencies
+  const_create_base_config
+fi
