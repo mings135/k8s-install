@@ -197,7 +197,11 @@ remote_auto() {
 }
 
 main() {
-  remote_rsync_script
+  local args="vars imglist backup auto cri upgrade clean"
+
+  if [[ " $args " =~ " $1 " ]]; then
+    remote_rsync_script
+  fi
 
   case $1 in
     "vars") remote_display_vars ;;
@@ -229,12 +233,12 @@ main() {
           blue_font "集群卸载已完成, 请手动重启所有节点!"
         fi
       fi
-
       ;;
     *)
       echo ''
       printf "Usage: bash $0 [ option ] [ ? ] \n"
       blue_font "命令："
+      printf "%-16s %-s\n" 'vars' '查看变量'
       printf "%-16s %-s\n" 'auto' '自动安装 k8s 集群(支持增量)'
       printf "%-16s %-s\n" 'cri' '自动升级 CRI'
       printf "%-16s %-s\n" 'upgrade' '自动升级 k8s 集群'
