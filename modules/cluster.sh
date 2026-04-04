@@ -88,7 +88,7 @@ cluster_config_kubectl() {
   install_pkgs "bash-completion"
   mkdir -p /etc/bash_completion.d \
     && kubectl completion bash >/etc/bash_completion.d/kubectl
-  result_msg "添加 命令自动补全"
+  result_msg "添加 completion bash"
 }
 
 # --- upgrade cluster ---
@@ -96,7 +96,7 @@ cluster_config_kubectl() {
 upgrade_cluster() {
   if [[ "${HOST_ROLE}" == "master1" ]]; then
     kubeadm upgrade plan v${kubernetesVersion}
-    result_msg "检查 集群是否可被升级"
+    result_msg "升级 plan"
     kubeadm upgrade apply v${kubernetesVersion} -y
     result_msg "升级 ${HOST_NAME}(${HOST_ROLE})"
   else
@@ -107,12 +107,12 @@ upgrade_cluster() {
 
 drian_node() {
   kubectl drain ${HOST_NAME} --ignore-daemonsets --delete-emptydir-data
-  result_msg "腾空 当前节点"
+  result_msg "腾空 current node"
 }
 
 uncordon_node() {
   kubectl uncordon ${HOST_NAME}
-  result_msg "解除 当前节点的保护"
+  result_msg "解除 protect current node(uncordon)"
 
   kubectl wait --for=condition=Ready nodes/${HOST_NAME} --timeout=50s
   result_msg "等待 节点 Ready"
@@ -153,7 +153,7 @@ create_kubeconfig_token() {
     .kubeconfig.expireTime = strenv(val1) |
     .kubeconfig.token = strenv(val2)
   ' ${KUBE_FILE}
-  result_msg "创建 kubeconfig token(temp-admin, 6h)"
+  result_msg "创建 kubeconfig token(temp-admin 6h)"
 }
 
 # 配置临时的 .kube/config

@@ -63,20 +63,20 @@ cri_config_containerd() {
     mkdir -p ${path}/${uri}
     # 增加私库配置
     cat >${path}/${uri}/hosts.toml <<EOF
-server = "${privateRepository}"
+server = "${uri}"
 
 [host."${privateRepository}"]
   capabilities = ["pull", "resolve"]
   skip_verify = true
 EOF
-    result_msg "增加 containerd 私有仓库"
+    result_msg "增加 containerd private registry"
   fi
 }
 
 cri_delete_config() {
   rm -rf /etc/containerd/config.toml \
     && rm -rf /etc/containerd/certs.d
-  result_msg "删除 containerd 配置"
+  result_msg "删除 containerd config"
 }
 
 # 重启 containerd

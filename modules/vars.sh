@@ -148,6 +148,7 @@ display_vars() {
   echo "podSubnet=${podSubnet}"
   # config .container
   echo "criVersion=${criVersion}"
+  echo "criUpgradeReconfig=${criUpgradeReconfig}"
   echo "privateRepository=${privateRepository}"
   # auto
   echo "controlPlaneEndpoint=${controlPlaneEndpoint}"

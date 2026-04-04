@@ -170,6 +170,10 @@ remote_clean_cluster() {
   blue_font "清理节点: ${i}"
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${NODES_ALL}
   rrcmd "${nodeUser}" "${remote_RM} -rf ${remoteScriptDir}" ${NODES_ALL}
+  yq -i '
+    .join = {} |
+    .kubeconfig = {}
+  ' ${KUBE_FILE}
 }
 
 remote_display_vars() {
@@ -222,9 +226,10 @@ main() {
         read confirm_yn
         if [ ${confirm_yn} ] && [ ${confirm_yn} = 'y' ]; then
           remote_clean_cluster
+          blue_font "集群卸载已完成, 请手动重启所有节点!"
         fi
       fi
-      blue_font "集群卸载已完成, 请手动重启所有节点!"
+
       ;;
     *)
       echo ''

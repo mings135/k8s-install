@@ -64,11 +64,11 @@ check_by_nodes() {
     result_msg "检查 host var"
 
     [[ -f "${KUBE_RECORD}" ]]
-    result_msg "检查 record 文件"
+    result_msg "检查 record file"
   fi
 
   [[ -f "${KUBE_FILE}" ]]
-  result_msg "检查 config 文件"
+  result_msg "检查 config file"
   [[ -f "${KUBE_BIN}/yq" ]]
   result_msg "检查 yq"
   [[ -f "${KUBE_BIN}/rrcmd" ]]
@@ -79,22 +79,22 @@ check_by_nodes() {
 
 check_by_config() {
   [[ "${kubernetesVersion}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-  result_msg "检查 kubernetesVersion 格式"
+  result_msg "检查 kubernetesVersion"
   version_ge "${kubernetesVersion}" "1.31.0"
   result_msg "检查 kubernetesVersion >= 1.31.0"
 
   if [[ "${criVersion}" != "latest" ]]; then
     [[ "${criVersion}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-    result_msg "检查 criVersion 格式"
+    result_msg "检查 criVersion"
     version_ge "${criVersion}" "1.7.0"
     result_msg "检查 criVersion >= 1.7.0"
   fi
 
   local pattern="^[0-9]+h[0-9]+m[0-9]+s$"
   [[ "${caCertificateValidityPeriod}" =~ ${pattern} ]]
-  result_msg "检查 caCertificateValidityPeriod 格式"
+  result_msg "检查 caCertificateValidityPeriod"
   [[ "${certificateValidityPeriod}" =~ ${pattern} ]]
-  result_msg "检查 certificateValidityPeriod 格式"
+  result_msg "检查 certificateValidityPeriod"
 }
 
 check_variables() {
