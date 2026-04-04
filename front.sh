@@ -54,5 +54,5 @@ result_msg() {
 RES_LEVEL=1 && [[ -n "${OS_NAME}" ]]
 result_msg "检查 system variables" && RES_LEVEL=0
 
-apt install -y rsync &>/dev/null
+apt-get install -y rsync &>/dev/null
 result_msg "安装 rsync"

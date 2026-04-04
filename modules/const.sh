@@ -3,9 +3,9 @@
 GPG_DIR='/etc/apt/keyrings'
 KUBEADM_CONFIG='/etc/kubernetes'
 KUBEADM_PKI="${KUBEADM_CONFIG}/pki"
-KUBEADM_MANIFESTS="${KUBEADM_CONFIG}/manifests"
-KUBELET_PKI='/var/lib/kubelet/pki'
-ETCD_DATA="/var/lib/etcd"
+# KUBEADM_MANIFESTS="${KUBEADM_CONFIG}/manifests"
+# KUBELET_PKI='/var/lib/kubelet/pki'
+# ETCD_DATA="/var/lib/etcd"
 KUBE_BIN="${script_dir}/bin"
 KUBE_CONF="${script_dir}/config"
 KUBE_BACKUP="${script_dir}/backup"
@@ -146,7 +146,7 @@ install_pkgs() {
       fi
     fi
 
-    apt install -y ${i} ${args} &>/dev/null
+    apt-get install -y ${i} ${args} &>/dev/null
     result_msg "安装 $i"
   done
 }
@@ -157,15 +157,15 @@ remove_pkgs() {
 
   for i in ${list}; do
     if dpkg -l | grep -q "^ii[[:space:]]\+${i}[[:space:]]"; then
-      apt remove -y ${i} ${args} &>/dev/null
+      apt-get remove -y ${i} ${args} &>/dev/null
       result_msg "移除 $i"
     fi
   done
 }
 
 update_pkgs() {
-  apt update >/dev/null
-  result_msg "重新 apt update"
+  apt-get update >/dev/null
+  result_msg "重新 apt-get update"
 }
 
 hold_pkgs() {

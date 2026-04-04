@@ -74,7 +74,7 @@ vars_by_default() {
   fi
 
   # k8s version(支持 1.31+, 不支持 latest)
-  kubernetesVersion=${kubernetesVersion:-"1.35.3"}
+  kubernetesVersion=${kubernetesVersion:-"1.33.10"}
   kubernetesVersion="${kubernetesVersion#v}"
   # k8s controlPlaneEndpoint 地址和端口, 没有该参数无法添加 master 节点
   controlPlaneAddress=${controlPlaneAddress:-"${MASTER1_IP}"}
@@ -142,6 +142,8 @@ display_vars() {
   echo "controlPlaneAddress=${controlPlaneAddress}"
   echo "controlPlanePort=${controlPlanePort}"
   echo "imageRepository=${imageRepository}"
+  echo "caCertificateValidityPeriod=${caCertificateValidityPeriod}"
+  echo "certificateValidityPeriod=${certificateValidityPeriod}"
   echo "serviceSubnet=${serviceSubnet}"
   echo "podSubnet=${podSubnet}"
   # config .container

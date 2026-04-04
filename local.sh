@@ -159,7 +159,7 @@ local_clean_node() {
 
   # 删除相关目录、文件
   rm -rf /etc/cni/net.d /root/.kube/config
-  result_msg "移除 目录和文件"
+  result_msg "删除 /etc/cni/net.d"
 }
 
 main() {

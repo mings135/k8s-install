@@ -173,7 +173,10 @@ remote_clean_cluster() {
 }
 
 remote_display_vars() {
+  blue_font "------ local ------"
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${MASTER1_IP}
+  blue_font "------ remote ------"
+  display_vars
 }
 
 remote_auto() {
