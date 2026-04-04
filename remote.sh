@@ -11,7 +11,7 @@ script_type="remote"
 script_dir=$(dirname "$(readlink -f "$0")")
 
 source ${script_dir}/modules/const.sh
-source ${script_dir}/modules/variables.sh
+source ${script_dir}/modules/vars.sh
 source ${script_dir}/modules/check.sh
 
 # remote 变量
