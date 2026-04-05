@@ -140,7 +140,7 @@ remote_upgrade_cri() {
 
 # 升级 cluster
 remote_upgrade_cluster() {
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${NODES_MASTER}
+  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${NODES_MASTER1_MASTER}
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh upgrade" ${MASTER1_IP}
 
   for i in ${NODES_MASTER}; do
@@ -157,17 +157,13 @@ remote_upgrade_cluster() {
 
 # 备份 etcd
 remote_backup_cluster() {
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${NODES_MASTER}
+  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${NODES_MASTER1_MASTER}
 }
 
 # 删除整个集群
 remote_clean_cluster() {
   blue_font "Clean nodes: ${i}"
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${NODES_NOT_MASTER1}
-  rrcmd "${nodeUser}" "${remote_RM} -rf ${remoteScriptDir}" ${NODES_NOT_MASTER1}
-
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${MASTER1_IP}
-  rrcmd "${nodeUser}" "${remote_RM} -rf ${remoteScriptDir}" ${MASTER1_IP}
+  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${NODES_ALL}
 
   yq -i '
     .join = {} |
@@ -259,12 +255,20 @@ main() {
       printf "Usage: bash $0 [ option ] [ ? ] \n"
       blue_font "Command:"
       printf "%-16s %-s\n" 'vars' 'display all variables'
+      printf "%-16s %-s\n" 'imglist' 'display all images'
+      printf "%-16s %-s\n" 'hosts' 'update hosts'
+
       printf "%-16s %-s\n" 'auto' 'Automated K8s Cluster Installer(Incremental Support)'
+
       printf "%-16s %-s\n" 'cri' 'Automated CRI Upgrade'
+
       printf "%-16s %-s\n" 'upgrade' 'Automated Cluster Upgrade'
+
       printf "%-16s %-s\n" 'backup' 'Backup /etc/kubernetes and etcd'
+
       printf "%-16s %-s\n" 'clean' 'Destroy Entire K8s Cluster'
-      blue_font "选项:"
+
+      blue_font "Option:"
       printf "%-16s %-s\n" '-l string' 'Automatic ssh password-free login (all or ip)'
       printf "%-16s %-s\n" '-f' 'After installing or upgrading k8s cluster, automatically deploy(update) flannel'
       exit 1

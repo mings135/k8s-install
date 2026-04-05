@@ -218,10 +218,10 @@ const_create_base_config() {
       .join = {} |
       .kubeconfig = {} |
       (.join | key) head_comment = "以下内容自动生成, 请勿修改!!!" |
-      . head_comment = "请勿随意修改配置, 否则可能导致无法正常运行!!!"
+      . head_comment = "请勿随意修改, 否则可能导致无法正常运行!!!"
     ' >${KUBE_FILE}
 
-    blue_font "已自动生成极简配置, 修改请 vi ${KUBE_FILE}, 继续请重新运行"
+    blue_font "创建初始配置, 修改: vi ${KUBE_FILE}, 继续请重新运行"
     yq ${KUBE_FILE}
     exit 0
   fi
@@ -239,7 +239,7 @@ const_create_record_file() {
       . head_comment = "集群记录文件, 非常重要, 自动生成, 请勿修改!!!"
     ' >${KUBE_RECORD}
 
-    blue_font "已自动生成记录文件 ${KUBE_RECORD}, 请勿修改!!!"
+    blue_font "创建记录 ${KUBE_RECORD}, 请勿修改!!!"
   fi
 }
 
