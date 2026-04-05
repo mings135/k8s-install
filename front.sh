@@ -8,6 +8,7 @@ fi
 
 # 已经安装 rsync 直接退出
 if command -v rsync &>/dev/null; then
+  rm -f $0
   exit 0
 fi
 
@@ -56,3 +57,4 @@ result_msg "检查 system variables" && RES_LEVEL=0
 
 apt-get install -y rsync &>/dev/null
 result_msg "安装 rsync"
+rm -f $0
