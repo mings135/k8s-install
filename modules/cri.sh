@@ -86,15 +86,20 @@ cri_restart_containerd() {
   result_msg "重启 containerd"
 }
 
-cri_backup_config() {
+backup_cri() {
   local dir='containerd'
-  local name="${dir}-$(date +"%Y%m%d").tar.gz"
+  local name="${dir}-$(date +"%Y%m%d-%H%M").tar.gz"
+
+  local value=$(get_record ".backup.${dir}")
+  RES_LEVEL=1 && [[ "${value}" != "${name}" ]]
+  result_msg "[Backup] ${dir}, Minimum interval(1min)"
+  RES_LEVEL=0
 
   tar -zcf ${KUBE_BACKUP}/${name} -C /etc ${dir} \
     && chmod 644 ${KUBE_BACKUP}/${name} \
     && chown ${script_own}:${script_own} ${KUBE_BACKUP}/${name} \
     && set_record ".backup.${dir}" "${name}"
-  result_msg "备份 ${dir}"
+  result_msg "[Backup] ${dir}"
 }
 
 install_cri() {
@@ -106,7 +111,6 @@ install_cri() {
 }
 
 upgrade_cri() {
-  cri_backup_config
   update_pkgs
   cri_install_containerd
   if [[ "${criUpgradeReconfig}" == "true" ]]; then

@@ -168,13 +168,18 @@ start_kubelet() {
 
 backup_kubernetes() {
   local dir='kubernetes'
-  local name="${dir}-$(date +"%Y%m%d").tar.gz"
+  local name="${dir}-$(date +"%Y%m%d-%H%M").tar.gz"
+
+  local value=$(get_record ".backup.${dir}")
+  RES_LEVEL=1 && [[ "${value}" == "${name}" ]]
+  result_msg "[Backup] ${dir}, Minimum interval(1min)"
+  RES_LEVEL=0
 
   tar -zcf ${KUBE_BACKUP}/${name} -C /etc ${dir} \
     && chmod 644 ${KUBE_BACKUP}/${name} \
     && chown ${script_own}:${script_own} ${KUBE_BACKUP}/${name} \
     && set_record ".backup.${dir}" "${name}"
-  result_msg "备份 ${dir}"
+  result_msg "[Backup] ${dir}"
 }
 
 install_kubernetes() {

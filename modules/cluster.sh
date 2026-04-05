@@ -115,17 +115,18 @@ uncordon_node() {
   result_msg "解除 protect current node(uncordon)"
 
   kubectl wait --for=condition=Ready nodes/${HOST_NAME} --timeout=50s
-  result_msg "等待 节点 Ready"
+  result_msg "[Wait] node Ready"
 }
 
 # 备份 etcd 数据库
 backup_etcd() {
   local app="etcd"
-  local name="${app}-$(date +"%Y%m%d").db"
+  local name="${app}-$(date +"%Y%m%d-%H%M").db"
 
-  if [[ "${HOST_ROLE}" == "work" ]]; then
-    return 0
-  fi
+  local value=$(get_record ".backup.${app}")
+  RES_LEVEL=1 && [[ "${value}" != "${name}" ]]
+  result_msg "[Backup] ${app}, Minimum interval(1min)"
+  RES_LEVEL=0
 
   ETCDCTL_API=3 etcdctl snapshot save ${KUBE_BACKUP}/${name} \
     --endpoints=https://127.0.0.1:2379 \
@@ -135,7 +136,7 @@ backup_etcd() {
     && chmod 644 ${KUBE_BACKUP}/${name} \
     && chown ${script_own}:${script_own} ${KUBE_BACKUP}/${name} \
     && set_record ".backup.${app}" "${name}"
-  result_msg "备份 ${app}"
+  result_msg "[Backup] ${app}"
 }
 
 # 创建 kubeconfig token, 有效期 6h
@@ -159,9 +160,9 @@ create_kubeconfig_token() {
 # 配置临时的 .kube/config
 config_user_context() {
   local token=$(get_config ".kubeconfig.token")
-  kubectl config set-cluster kubernetes --server=https://192.168.11.50:6443 --insecure-skip-tls-verify \
+  kubectl config set-cluster ${clusterName} --server=https://192.168.11.50:6443 --insecure-skip-tls-verify \
     && kubectl config set-credentials temp-admin --token="${token}" \
-    && kubectl config set-context temp-admin@kubernetes --cluster=kubernetes --user=temp-admin \
-    && kubectl config use-context temp-admin@kubernetes
+    && kubectl config set-context temp-admin@${clusterName} --cluster=${clusterName} --user=temp-admin \
+    && kubectl config use-context temp-admin@${clusterName}
   result_msg "配置 kubeconfig(temp-admin)"
 }

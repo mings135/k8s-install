@@ -140,7 +140,6 @@ remote_upgrade_cri() {
 
 # 升级 cluster
 remote_upgrade_cluster() {
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${NODES_MASTER1_MASTER}
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh upgrade" ${MASTER1_IP}
 
   for i in ${NODES_MASTER}; do
@@ -157,7 +156,7 @@ remote_upgrade_cluster() {
 
 # 备份 etcd
 remote_backup_cluster() {
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${NODES_MASTER1_MASTER}
+  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${MASTER1_IP}
 }
 
 # 删除整个集群
@@ -213,20 +212,17 @@ remote_clean() {
     read confirm_yn
     if [ ${confirm_yn} ] && [ ${confirm_yn} = 'y' ]; then
       remote_clean_cluster
-      blue_font "✔ Cluster uninstalled. Please manually reboot all nodes!"
+      blue_font "✔ Cluster cleanup completed!"
     fi
   fi
 }
 
 main() {
   local args_all="hosts auto cri upgrade clean"
-  local args_m1m="backup"
-  local args_m1="vars imglist"
+  local args_m1="vars imglist backup"
 
   if [[ " $args_all " =~ " $1 " ]]; then
     remote_rsync_script "${NODES_ALL}"
-  elif [[ " $args_m1m " =~ " $1 " ]]; then
-    remote_rsync_script "${NODES_MASTER1_MASTER}"
   elif [[ " $args_m1 " =~ " $1 " ]]; then
     remote_rsync_script "${MASTER1_IP}"
   fi
@@ -234,7 +230,10 @@ main() {
   case $1 in
     "vars") remote_display_vars ;;
     "imglist") remote_images_list ;;
-    "hosts") remote_etc_hosts ;;
+    "hosts")
+      remote_etc_hosts
+      blue_font "✔ hosts update completed!"
+      ;;
 
     "auto")
       remote_auto
@@ -242,7 +241,7 @@ main() {
 
     "cri")
       remote_upgrade_cri
-      blue_font "✔ Container runtime upgrade completed!"
+      blue_font "✔ CRI upgrade completed!"
       ;;
 
     "upgrade")
@@ -253,16 +252,19 @@ main() {
       blue_font "✔ Cluster upgrade completed!"
       ;;
 
-    "backup") remote_backup_cluster ;; # backup /etc/kubernetes and etcd
+    "backup")
+      remote_backup_cluster # backup /etc/kubernetes and etcd
+      blue_font "✔ Cluster backup completed!"
+      ;;
 
     "clean") remote_clean ;;
     *)
       echo ''
       printf "Usage: bash $0 [ option ] [ ? ] \n"
       blue_font "Command:"
-      printf "%-16s %-s\n" 'vars' 'display all variables'
-      printf "%-16s %-s\n" 'imglist' 'display all images'
-      printf "%-16s %-s\n" 'hosts' 'update hosts'
+      printf "%-16s %-s\n" 'vars' 'Display all variables'
+      printf "%-16s %-s\n" 'imglist' 'Display all images'
+      printf "%-16s %-s\n" 'hosts' 'Update hosts'
 
       printf "%-16s %-s\n" 'auto' 'Automated K8s Cluster Installer(Incremental Support)'
 
@@ -270,7 +272,7 @@ main() {
 
       printf "%-16s %-s\n" 'upgrade' 'Automated Cluster Upgrade'
 
-      printf "%-16s %-s\n" 'backup' 'Backup /etc/kubernetes and etcd'
+      printf "%-16s %-s\n" 'backup' 'Backup containerd kubernetes and etcd'
 
       printf "%-16s %-s\n" 'clean' 'Destroy Entire K8s Cluster'
 

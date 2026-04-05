@@ -184,6 +184,7 @@ main() {
     "upgrade") local_upgrade_cluster ;;
 
     "backup")
+      backup_cri
       backup_kubernetes
       backup_etcd
       ;;
@@ -207,7 +208,7 @@ main() {
 
       printf "%-16s %-s\n" 'upgrade' 'upgrade cluster'
 
-      printf "%-16s %-s\n" 'backup' 'backup /etc/kubernetes 和 etcd'
+      printf "%-16s %-s\n" 'backup' 'backup containerd kubernetes and etcd'
 
       printf "%-16s %-s\n" 'clean' 'clean cluster node'
       exit 1
