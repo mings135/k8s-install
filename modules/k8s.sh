@@ -109,24 +109,30 @@ EOF
   ' ${KUBE_CONF}/initConfiguration.yaml
 
   # clusterConfiguration.yaml
-  if [[ -n "${controlPlaneEndpoint}" ]]; then
-    val1=${controlPlaneEndpoint} yq -i '.controlPlaneEndpoint = strenv(val1)' ${KUBE_CONF}/clusterConfiguration.yaml
-  fi
   if [[ -n "${imageRepository}" ]]; then
     val1=${imageRepository} yq -i '.imageRepository = strenv(val1)' ${KUBE_CONF}/clusterConfiguration.yaml
   fi
-  if [[ -n "${caCertificateValidityPeriod}" && -n "${certificateValidityPeriod}" ]]; then
-    val1=${caCertificateValidityPeriod} val2=${certificateValidityPeriod} yq -i '
-      .caCertificateValidityPeriod = strenv(val1) |
-      .certificateValidityPeriod = strenv(val2)
-    ' ${KUBE_CONF}/clusterConfiguration.yaml
-  fi
 
   # clusterConfiguration.yaml
-  val1=${kubernetesVersion} val2=${serviceSubnet} val3=${podSubnet} yq -i '
-    .kubernetesVersion = strenv(val1) |
-    .networking.serviceSubnet = strenv(val2) |
-    .networking.podSubnet = strenv(val3)
+  val1=${kubernetesVersion} \
+    val2=${controlPlaneEndpoint} \
+    val3=${caCertificateValidityPeriod} \
+    val4=${certificateValidityPeriod} \
+    val5=${serviceSubnet} \
+    val6=${podSubnet} \
+    yq -i '
+      .kubernetesVersion = strenv(val1) |
+      .controlPlaneEndpoint = strenv(val2) |
+      .caCertificateValidityPeriod = strenv(val3) |
+      .certificateValidityPeriod = strenv(val4) |
+      .networking.serviceSubnet = strenv(val5) |
+      .networking.podSubnet = strenv(val6)
+    ' ${KUBE_CONF}/clusterConfiguration.yaml
+
+  # clusterConfiguration.yaml
+  val="${KUBE_FILE}" yq -i '
+    (load(strenv(val)).cluster.certSANs) as $src | 
+    with(select($src | length > 0); .apiServer.certSANs = $src)
   ' ${KUBE_CONF}/clusterConfiguration.yaml
 
   # kubeadm-config.yaml
