@@ -25,14 +25,17 @@ fi
 
 if [[ ! -d "${KUBE_BIN}" ]]; then
   mkdir -p ${KUBE_BIN}
+  chown -R ${script_own}:${script_own} ${KUBE_BIN}
 fi
 
 if [[ ! -d "${KUBE_CONF}" ]]; then
   mkdir -p ${KUBE_CONF}
+  chown -R ${script_own}:${script_own} ${KUBE_CONF}
 fi
 
 if [[ ! -d "${KUBE_BACKUP}" ]]; then
   mkdir -p ${KUBE_BACKUP}
+  chown -R ${script_own}:${script_own} ${KUBE_BACKUP}
 fi
 
 export PATH=${KUBE_BIN}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
