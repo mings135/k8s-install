@@ -38,7 +38,7 @@ local_base_install() {
     set_record ".cri.install" "true"
 
     local ver=$(containerd --v | awk '{print $3}')
-    set_record ".cri.version" "${ver}"
+    set_record ".cri.version" "${ver#v}"
   fi
 
   value="$(get_record ".k8s.install")"
@@ -114,7 +114,7 @@ local_upgrade_cri() {
     start_kubelet
     uncordon_node
     local ver=$(containerd --v | awk '{print $3}')
-    set_record ".cri.version" "${ver}"
+    set_record ".cri.version" "${ver#v}"
   fi
 }
 

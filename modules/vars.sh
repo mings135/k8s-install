@@ -82,7 +82,7 @@ vars_by_default() {
   if [[ -n "${controlPlaneEndpoint}" ]]; then
     controlPlaneTarget=${controlPlaneTarget:-""}
   else
-    controlPlaneEndpoint="control-plane.k8s:6443"
+    controlPlaneEndpoint="master.k8s:6443"
     controlPlaneTarget=${controlPlaneTarget:-"${MASTER1_IP}"}
   fi
 
