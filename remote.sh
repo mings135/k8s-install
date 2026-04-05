@@ -59,42 +59,42 @@ remote_front_operator() {
 
 # rsync 同步脚本内容到多个节点, 参数 $1=message $2=nodes $3=include and exclude parm
 remote_rsync_nodes() {
-  local rsync_destination
-  local rsync_parm='-avc --delete'
-  local rsync_exclude="$3"
-  local rsync_source="${script_dir}/"
+  local dest
+  local parm='-avc --delete'
+  local excl="$3"
+  local src="${script_dir}/"
 
   for i in $2; do
     blue_font "$1: ${i}"
-    rsync_destination="${nodeUser}@${i}:${remoteScriptDir}/"
-    rsync ${rsync_parm} ${rsync_exclude} ${rsync_source} ${rsync_destination}
+    dest="${nodeUser}@${i}:${remoteScriptDir}/"
+    rsync ${parm} ${excl} ${src} ${dest}
   done
 }
 
 # rsync 被某个节点同步, 参数 $1=message $2=node $3=include and exclude parm
 remote_rsync_own() {
-  local rsync_destination
-  local rsync_parm='-avc'
-  local rsync_exclude="$3"
-  local rsync_source="${script_dir}/"
+  local dest
+  local parm='-avc'
+  local excl="$3"
+  local src="${script_dir}/"
   local i="$2"
 
   blue_font "$1: ${i}"
-  rsync_destination="${nodeUser}@${i}:${remoteScriptDir}/"
-  rsync ${rsync_parm} ${rsync_exclude} ${rsync_destination} ${rsync_source}
+  dest="${nodeUser}@${i}:${remoteScriptDir}/"
+  rsync ${parm} ${excl} ${dest} ${src}
 }
 
-# 同步脚本文件和配置文件
+# 同步脚本文件和配置文件 $1=nodes
 remote_rsync_script() {
-  local rsync_exclude='--include=/modules/ --include=/modules/* --include=/bin/ --include=/bin/* --include=/config/ --include=/config/kube.yaml --include=/local.sh --exclude=*'
-  remote_rsync_nodes "Sync script" "${NODES_ALL}" "${rsync_exclude}"
+  local excl='--include=/modules/ --include=/modules/* --include=/bin/ --include=/bin/* --include=/config/ --include=/config/kube.yaml --include=/local.sh --exclude=*'
+  remote_rsync_nodes "Sync script" "${1}" "${excl}"
 }
 
-# 同步 master1 上的 cluster join 信息到非 master1 节点
+# 同步 master1 上的 join, kubeconfig 到非 master1 节点
 remote_rsync_kube() {
-  local rsync_exclude='--include=/config/ --include=/config/kube.yaml --exclude=*'
-  remote_rsync_own "kube.yaml sync by master1" "${MASTER1_IP}" "${rsync_exclude}"
-  remote_rsync_nodes "Sync kube.yaml" "${NODES_NOT_MASTER1}" "${rsync_exclude}"
+  local excl='--include=/config/ --include=/config/kube.yaml --exclude=*'
+  remote_rsync_own "kube.yaml sync by master1" "${MASTER1_IP}" "${excl}"
+  remote_rsync_nodes "Sync kube.yaml" "${NODES_NOT_MASTER1}" "${excl}"
 }
 
 # 初始化系统
@@ -219,10 +219,16 @@ remote_clean() {
 }
 
 main() {
-  local args="vars imglist hosts auto cri upgrade backup clean"
+  local args_all="hosts auto cri upgrade clean"
+  local args_m1m="backup"
+  local args_m1="vars imglist"
 
-  if [[ " $args " =~ " $1 " ]]; then
-    remote_rsync_script
+  if [[ " $args_all " =~ " $1 " ]]; then
+    remote_rsync_script "${NODES_ALL}"
+  elif [[ " $args_m1m " =~ " $1 " ]]; then
+    remote_rsync_script "${NODES_MASTER1_MASTER}"
+  elif [[ " $args_m1 " =~ " $1 " ]]; then
+    remote_rsync_script "${MASTER1_IP}"
   fi
 
   case $1 in
