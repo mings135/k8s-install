@@ -2,7 +2,7 @@
 
 # Author: MingQ
 if ! ps -ocmd $$ | grep -q "^bash"; then
-  echo "请使用 bash $0 运行脚本!"
+  echo "Please use bash $0 to run the script!"
   exit 1
 fi
 
@@ -166,27 +166,47 @@ main() {
   case $1 in
     "vars") display_vars ;;
     "imglist") images_list ;;
+    "hosts") init_etc_hosts ;;
+
     "install") local_base_install ;;
     "imgpull") local_images_pull ;;
     "init") local_init_cluster ;;
     "join") local_join_cluster ;;
     "flannel") local_deploy_flannel ;;
+
     "cri") local_upgrade_cri ;;
-    "upgrade") local_upgrade_cluster ;;
     "token") create_kubeconfig_token ;;
     "context") config_user_context ;;
+
+    "upgrade") local_upgrade_cluster ;;
+
     "backup")
       backup_kubernetes
       backup_etcd
       ;;
+
     "clean") local_clean_node ;;
     *)
       printf "Usage: bash $0 [ ? ] \n"
-      printf "%-16s %-s\n" 'imglist' '查看 images'
-      printf "%-16s %-s\n" 'install' '更新 hosts, 初始化系统 , 安装 cri、kubeadm 等'
-      printf "%-16s %-s\n" 'imgpull' '拉取 images'
-      printf "%-16s %-s\n" 'init' '初始化 k8s 集群, 生成 join 信息'
-      printf "%-16s %-s\n" 'join' '加入集群'
+      printf "%-16s %-s\n" 'vars' 'display vars'
+      printf "%-16s %-s\n" 'imglist' 'display images'
+      printf "%-16s %-s\n" 'hosts' 'update hosts'
+
+      printf "%-16s %-s\n" 'install' 'update hosts, system init, install pkgs'
+      printf "%-16s %-s\n" 'imgpull' 'pull images'
+      printf "%-16s %-s\n" 'init' 'init cluster, create join command'
+      printf "%-16s %-s\n" 'join' 'join cluster'
+      printf "%-16s %-s\n" 'flannel' 'deploy flannel'
+
+      printf "%-16s %-s\n" 'cri' 'upgrade cri'
+      printf "%-16s %-s\n" 'token' 'create kubeconfig.token'
+      printf "%-16s %-s\n" 'context' 'config kubeconfig context'
+
+      printf "%-16s %-s\n" 'upgrade' 'upgrade cluster'
+
+      printf "%-16s %-s\n" 'backup' 'backup /etc/kubernetes 和 etcd'
+
+      printf "%-16s %-s\n" 'clean' 'clean cluster node'
       exit 1
       ;;
   esac

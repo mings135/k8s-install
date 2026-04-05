@@ -176,4 +176,13 @@ init_etc_hosts() {
       result_msg "添加 hosts: ${addr}"
     fi
   done <<<"$data"
+
+  local domain="${controlPlaneEndpoint%:*}"
+  local pattern="^([a-z0-9][-a-z0-9]*\.)+[a-z0-9]+[a-z]$"
+  if [[ -n "${controlPlaneTarget}" ]] && [[ "${domain}" =~ ${pattern} ]]; then
+    # 添加 controlPlaneTarget hosts 配置
+    sed -i "/[[:space:]]${domain}$/d" /etc/hosts
+    echo "${controlPlaneTarget} ${domain}" >>/etc/hosts
+    result_msg "添加 hosts: ${controlPlaneTarget}"
+  fi
 }

@@ -209,6 +209,9 @@ const_create_base_config() {
     val1="${HOST_IP}" yq -n '
       .nodeUser = "" |
       .cluster.kubernetesVersion = "" |
+      .cluster.controlPlaneEndpoint = "" |
+      .cluster.controlPlaneTarget = "" |
+      .cluster.imageRepository = "" |
       .container = {} |
       .nodes.master1.domain = "m1.k8s" |
       .nodes.master1.address = strenv(val1) |

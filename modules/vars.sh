@@ -45,8 +45,8 @@ vars_by_config() {
 
   # cluster
   kubernetesVersion="$(get_config ".cluster.kubernetesVersion")"
-  controlPlaneAddress="$(get_config ".cluster.controlPlaneAddress")"
-  controlPlanePort="$(get_config ".cluster.controlPlanePort")"
+  controlPlaneEndpoint="$(get_config ".cluster.controlPlaneEndpoint")"
+  controlPlaneTarget="$(get_config ".cluster.controlPlaneTarget")"
   imageRepository="$(get_config ".cluster.imageRepository")"
   caCertificateValidityPeriod="$(get_config ".cluster.caCertificateValidityPeriod")"
   certificateValidityPeriod="$(get_config ".cluster.certificateValidityPeriod")"
@@ -66,6 +66,7 @@ vars_by_default() {
   # 节点密码, 默认为空(也就是手动输入)
   nodeUser=${nodeUser:-"root"}
   nodePassword=${nodePassword:-""}
+
   # 远程集群主机存放 k8s 安装脚本的目录, 必须有上层目录 (目录会在复制之前清空，请注意!!!)
   if [[ "${nodeUser}" != "root" ]]; then
     remoteScriptDir=${remoteScriptDir:-"/home/${nodeUser}/k8sRemoteScript"}
@@ -76,14 +77,22 @@ vars_by_default() {
   # k8s version(支持 1.31+, 不支持 latest)
   kubernetesVersion=${kubernetesVersion:-"1.33.10"}
   kubernetesVersion="${kubernetesVersion#v}"
-  # k8s controlPlaneEndpoint 地址和端口, 没有该参数无法添加 master 节点
-  controlPlaneAddress=${controlPlaneAddress:-"${MASTER1_IP}"}
-  controlPlanePort=${controlPlanePort:-6443}
-  # k8s 各个组件的镜像仓库地址: pause(Include containerd)、etcd、api-server 等
-  imageRepository=${imageRepository:-""} # 国内 registry.cn-hangzhou.aliyuncs.com/google_containers
+
+  # k8s controlPlaneEndpoint, 重要参数, 就是 LB IP or Domain
+  if [[ -n "${controlPlaneEndpoint}" ]]; then
+    controlPlaneTarget=${controlPlaneTarget:-""}
+  else
+    controlPlaneEndpoint="control-plane.k8s:6443"
+    controlPlaneTarget=${controlPlaneTarget:-"${MASTER1_IP}"}
+  fi
+
+  # k8s 镜像仓库, include containerd, Recommend: registry.cn-hangzhou.aliyuncs.com/google_containers
+  imageRepository=${imageRepository:-""}
+
   # kubeadm 证书期限, 仅 kubernetes >= 1.31 可用(格式：8760h0m0s)
   caCertificateValidityPeriod=${caCertificateValidityPeriod:-"262800h0m0s"}
   certificateValidityPeriod=${certificateValidityPeriod:-"26280h0m0s"}
+
   # Services 子网和 API Server 集群内部地址 (即 Service 网络的第一个 IP)
   serviceSubnet=${serviceSubnet:-"10.96.0.0/16"}
   # Pod 网络, flannel 默认使用 10.244.0.0/16, 除非想修改 flannel 配置, 否则不要修改
@@ -95,11 +104,7 @@ vars_by_default() {
   criUpgradeReconfig=${criUpgradeReconfig:-"false"}
   # 容器运行时: 配置 harbor 私库地址(http://192.168.13.13)
   privateRepository=${privateRepository:-""}
-}
 
-vars_by_auto() {
-  # 自动生成的变量
-  controlPlaneEndpoint="${controlPlaneAddress}:${controlPlanePort}"
   criSocket='unix:///run/containerd/containerd.sock'
 }
 
@@ -139,8 +144,8 @@ display_vars() {
   echo "remoteScriptDir=${remoteScriptDir}"
   # config .cluster
   echo "kubernetesVersion=${kubernetesVersion}"
-  echo "controlPlaneAddress=${controlPlaneAddress}"
-  echo "controlPlanePort=${controlPlanePort}"
+  echo "controlPlaneEndpoint=${controlPlaneEndpoint}"
+  echo "controlPlaneTarget=${controlPlaneTarget}"
   echo "imageRepository=${imageRepository}"
   echo "caCertificateValidityPeriod=${caCertificateValidityPeriod}"
   echo "certificateValidityPeriod=${certificateValidityPeriod}"
@@ -150,8 +155,6 @@ display_vars() {
   echo "criVersion=${criVersion}"
   echo "criUpgradeReconfig=${criUpgradeReconfig}"
   echo "privateRepository=${privateRepository}"
-  # auto
-  echo "controlPlaneEndpoint=${controlPlaneEndpoint}"
   echo "criSocket=${criSocket}"
   # nodes
   echo "NODES_ALL=${NODES_ALL}"
@@ -167,7 +170,6 @@ vars_local() {
   vars_by_localhost
   vars_by_config
   vars_by_default
-  vars_by_auto
 }
 
 # 设置所有变量(remote.sh)
@@ -176,7 +178,6 @@ vars_remote() {
   vars_by_nodes
   vars_by_config
   vars_by_default
-  vars_by_auto
   vars_install_dependencies
 }
 

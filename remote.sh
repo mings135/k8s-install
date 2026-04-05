@@ -2,7 +2,7 @@
 
 # Author: MingQ
 if ! ps -ocmd $$ | grep -q "^bash"; then
-  echo "请使用 bash $0 运行脚本!"
+  echo "Please use bash $0 to run the script!"
   exit 1
 fi
 
@@ -30,7 +30,7 @@ fi
 remote_free_login() {
   # 密码为空时，继续手动输入
   while [ ! ${nodePassword} ]; do
-    blue_font "请输入所有节点的统一密码 (${nodeUser}):"
+    blue_font "Please enter the unified password for all nodes(${nodeUser}):"
     read -s nodePassword
   done
 
@@ -87,24 +87,19 @@ remote_rsync_own() {
 # 同步脚本文件和配置文件
 remote_rsync_script() {
   local rsync_exclude='--include=/modules/ --include=/modules/* --include=/bin/ --include=/bin/* --include=/config/ --include=/config/kube.yaml --include=/local.sh --exclude=*'
-  remote_rsync_nodes "同步脚本" "${NODES_ALL}" "${rsync_exclude}"
+  remote_rsync_nodes "Sync script" "${NODES_ALL}" "${rsync_exclude}"
 }
 
 # 同步 master1 上的 cluster join 信息到非 master1 节点
 remote_rsync_kube() {
   local rsync_exclude='--include=/config/ --include=/config/kube.yaml --exclude=*'
-  remote_rsync_own "被同步 kube.yaml" "${MASTER1_IP}" "${rsync_exclude}"
-  remote_rsync_nodes "同步 kube.yaml" "${NODES_NOT_MASTER1}" "${rsync_exclude}"
+  remote_rsync_own "kube.yaml sync by master1" "${MASTER1_IP}" "${rsync_exclude}"
+  remote_rsync_nodes "Sync kube.yaml" "${NODES_NOT_MASTER1}" "${rsync_exclude}"
 }
 
 # 初始化系统
 remote_base_install() {
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh install" ${NODES_ALL}
-}
-
-# 查看所需 images
-remote_images_list() {
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh imglist" ${MASTER1_IP}
 }
 
 # 拉取所需 images
@@ -167,15 +162,21 @@ remote_backup_cluster() {
 
 # 删除整个集群
 remote_clean_cluster() {
-  blue_font "清理节点: ${i}"
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${NODES_ALL}
-  rrcmd "${nodeUser}" "${remote_RM} -rf ${remoteScriptDir}" ${NODES_ALL}
+  blue_font "Clean nodes: ${i}"
+  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${NODES_NOT_MASTER1}
+  rrcmd "${nodeUser}" "${remote_RM} -rf ${remoteScriptDir}" ${NODES_NOT_MASTER1}
+
+  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${MASTER1_IP}
+  rrcmd "${nodeUser}" "${remote_RM} -rf ${remoteScriptDir}" ${MASTER1_IP}
+
   yq -i '
     .join = {} |
     .kubeconfig = {}
   ' ${KUBE_FILE}
+  yq ${KUBE_FILE}
 }
 
+# 查看所有变量
 remote_display_vars() {
   blue_font "------ local ------"
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${MASTER1_IP}
@@ -183,21 +184,46 @@ remote_display_vars() {
   display_vars
 }
 
+# 查看所需 images
+remote_images_list() {
+  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh imglist" ${MASTER1_IP}
+}
+
+remote_etc_hosts() {
+  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh hosts" ${NODES_ALL}
+}
+
+# 自动部署
 remote_auto() {
   if [ ${remote_LOGIN_SWITCH} -eq 1 ]; then
     remote_free_login
   fi
   remote_front_operator # scp front.sh --> install rsync
-  remote_base_install   # update script, kube.yaml --> update hosts -> base -> cri --> k8s
-  remote_images_pull    # 并发拉取 images
-  remote_deploy_cluster # init m1 node --> create or update join.sh --> distribution join.sh --> join cluster
+  remote_base_install   # update hosts -> system base -> cri --> k8s
+  remote_images_pull    # pull images
+  remote_deploy_cluster # init m1 --> join command --> sync kube.yaml --> join cluster
   if [ ${remote_FLANNEL_SWITCH} -eq 1 ]; then
     remote_deploy_flannel
+  fi
+  blue_font "✓ Cluster installation completed!"
+}
+
+# 清除整个集群
+remote_clean() {
+  blue_font "Warning: This will destroy the entire cluster. Proceed?(y/n):"
+  read confirm_yn
+  if [ ${confirm_yn} ] && [ ${confirm_yn} = 'y' ]; then
+    blue_font "Warning: This will destroy the entire cluster. Proceed?(y/n):"
+    read confirm_yn
+    if [ ${confirm_yn} ] && [ ${confirm_yn} = 'y' ]; then
+      remote_clean_cluster
+      blue_font "✔ Cluster uninstalled. Please manually reboot all nodes!"
+    fi
   fi
 }
 
 main() {
-  local args="vars imglist backup auto cri upgrade clean"
+  local args="vars imglist hosts auto cri upgrade backup clean"
 
   if [[ " $args " =~ " $1 " ]]; then
     remote_rsync_script
@@ -205,48 +231,42 @@ main() {
 
   case $1 in
     "vars") remote_display_vars ;;
-    "imglist") remote_images_list ;;   # 查看 images 信息
-    "backup") remote_backup_cluster ;; # update script,kube.yaml --> backup etcd
+    "imglist") remote_images_list ;;
+    "hosts") remote_etc_hosts ;;
+
     "auto")
       remote_auto
-      blue_font "集群自动安装已完成!"
       ;;
+
     "cri")
       remote_upgrade_cri
-      blue_font "容器运行时升级已完成!"
+      blue_font "✔ Container runtime upgrade completed!"
       ;;
+
     "upgrade")
       remote_upgrade_cluster
       if [ ${remote_FLANNEL_SWITCH} -eq 1 ]; then
         remote_deploy_flannel
       fi
-      blue_font "集群升级已完成!"
+      blue_font "✔ Cluster upgrade completed!"
       ;;
-    "clean")
-      blue_font "请确认是否要清除整个集群(y/n):"
-      read confirm_yn
-      if [ ${confirm_yn} ] && [ ${confirm_yn} = 'y' ]; then
-        blue_font "请再次确认是否要清除整个集群(y/n):"
-        read confirm_yn
-        if [ ${confirm_yn} ] && [ ${confirm_yn} = 'y' ]; then
-          remote_clean_cluster
-          blue_font "集群卸载已完成, 请手动重启所有节点!"
-        fi
-      fi
-      ;;
+
+    "backup") remote_backup_cluster ;; # backup /etc/kubernetes and etcd
+
+    "clean") remote_clean ;;
     *)
       echo ''
       printf "Usage: bash $0 [ option ] [ ? ] \n"
-      blue_font "命令："
-      printf "%-16s %-s\n" 'vars' '查看变量'
-      printf "%-16s %-s\n" 'auto' '自动安装 k8s 集群(支持增量)'
-      printf "%-16s %-s\n" 'cri' '自动升级 CRI'
-      printf "%-16s %-s\n" 'upgrade' '自动升级 k8s 集群'
-      printf "%-16s %-s\n" 'backup' '备份 etcd 数据库'
-      printf "%-16s %-s\n" 'clean' '删除整个 k8s 集群'
+      blue_font "Command:"
+      printf "%-16s %-s\n" 'vars' 'display all variables'
+      printf "%-16s %-s\n" 'auto' 'Automated K8s Cluster Installer(Incremental Support)'
+      printf "%-16s %-s\n" 'cri' 'Automated CRI Upgrade'
+      printf "%-16s %-s\n" 'upgrade' 'Automated Cluster Upgrade'
+      printf "%-16s %-s\n" 'backup' 'Backup /etc/kubernetes and etcd'
+      printf "%-16s %-s\n" 'clean' 'Destroy Entire K8s Cluster'
       blue_font "选项:"
-      printf "%-16s %-s\n" '-l string' '自动 ssh 免密登录(all or ip)'
-      printf "%-16s %-s\n" '-f' '安装或升 k8s 级集群后, 自动部署(更新) flannel'
+      printf "%-16s %-s\n" '-l string' 'Automatic ssh password-free login (all or ip)'
+      printf "%-16s %-s\n" '-f' 'After installing or upgrading k8s cluster, automatically deploy(update) flannel'
       exit 1
       ;;
   esac
@@ -261,8 +281,8 @@ while getopts ":a:l:f" opt; do
       ;;
     l)
       remote_LOGIN_SWITCH=1
-      tmp_regex='^(([0-9]{1,3}\.){3}[0-9]{1,3}[[:space:]])*([0-9]{1,3}\.){3}[0-9]{1,3}$'
-      if [[ "$OPTARG" =~ $tmp_regex ]]; then
+      pattern='^(([0-9]{1,3}\.){3}[0-9]{1,3}[[:space:]])*([0-9]{1,3}\.){3}[0-9]{1,3}$'
+      if [[ "$OPTARG" =~ ${pattern} ]]; then
         remote_LOGIN_NODES="$OPTARG"
       elif [ "$OPTARG" = "all" ] || [ "$OPTARG" = "a" ]; then
         remote_LOGIN_NODES="${NODES_ALL}"

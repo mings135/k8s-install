@@ -1,27 +1,30 @@
 # 集群初始化后请勿随意修改配置, 否则可能导致无法正常运行(kubenetes version >= 1.31)!!!
 
-# 远程节点保存脚本的目录, 上层目录必须存在(默认：/opt/k8sRemoteScript or /${HOME}/k8sRemoteScript)
+# 远程节点保存脚本的目录, 上层目录必须存在(Default: /opt/k8sRemoteScript or /${HOME}/k8sRemoteScript)
 remoteScriptDir: ""
-# 是否使用国内 apt 镜像源(默认 false)
+# 是否使用国内 apt 镜像源(Default: false)
 localMirror: ""
-# 所有节点统一账号(默认 root), 非 root 用户必须拥有 sudo 的执行权限
+# 所有节点统一账号(Default: root), 非 root 用户必须拥有 sudo 的执行权限
 nodeUser: ""
-# 所有节点统一密码(默认为空, 控制台输入)
+# 所有节点统一密码(Default: "", input manually)
 nodePassword: ""
 
 cluster:
   kubernetesVersion: ""
-  # 对应 kubeadm 中 controlPlaneEndpoint(默认 master1 address, port 6443)
-  controlPlaneAddress: ""
-  controlPlanePort:
-  # kubeadm 镜像仓库地址(例如：registry.k8s.io)
+  # k8s 中 controlPlaneEndpoint, Default: "master.k8s:6443"
+  controlPlaneEndpoint: ""
+  # 已经配置 controlPlaneEndpoint, Default: ""
+  # 没有配置 controlPlaneEndpoint, Default: "${MASTER1_IP}"
+  # controlPlaneEndpoint 为 Domain, controlPlaneTarget 为 IP 时, 自动添加 hosts 解析
+  controlPlaneTarget: ""
+  # kubeadm 镜像仓库地址(Example：registry.k8s.io)
   imageRepository: ""
-  # kubeadm 设置证书期限(格式: 8760h0m0s, 默认: k8s 默认的 3 倍)
+  # kubeadm 设置证书期限(Fromat: 8760h0m0s, Default: k8s default * 3)
   caCertificateValidityPeriod: ""
   certificateValidityPeriod: ""
 
 container:
-  # 私有仓库地址(例如：http://192.168.10.10)
+  # 私有仓库地址(Example: http://192.168.10.10)
   privateRepository: ""
 
 nodes:

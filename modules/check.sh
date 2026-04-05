@@ -51,7 +51,8 @@ check_by_const() {
   version_ge "${OS_VERSION}" "12.0"
   result_msg "检查 OS_VERSION >=12.0"
 
-  [[ "${HOST_IP}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]
+  local pattern="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
+  [[ "${HOST_IP}" =~ ${pattern} ]]
   result_msg "检查 HOST_IP"
 }
 
@@ -78,19 +79,31 @@ check_by_nodes() {
 }
 
 check_by_config() {
-  [[ "${kubernetesVersion}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+  local pattern="^[0-9]+\.[0-9]+\.[0-9]+$"
+  [[ "${kubernetesVersion}" =~ ${pattern} ]]
   result_msg "检查 kubernetesVersion"
   version_ge "${kubernetesVersion}" "1.31.0"
   result_msg "检查 kubernetesVersion >= 1.31.0"
 
+  pattern="^(([0-9]{1,3}\.){3}[0-9]{1,3}|([a-z0-9][-a-z0-9]*\.)+[a-z0-9]+[a-z]):[0-9]{1,5}$"
+  [[ "${controlPlaneEndpoint}" =~ ${pattern} ]]
+  result_msg "检查 controlPlaneEndpoint"
+
+  pattern="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
+  if [[ -n "${controlPlaneTarget}" ]]; then
+    [[ "${controlPlaneTarget}" =~ ${pattern} ]]
+    result_msg "检查 controlPlaneTarget"
+  fi
+
+  pattern="^[0-9]+\.[0-9]+\.[0-9]+$"
   if [[ "${criVersion}" != "latest" ]]; then
-    [[ "${criVersion}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+    [[ "${criVersion}" =~ ${pattern} ]]
     result_msg "检查 criVersion"
     version_ge "${criVersion}" "1.7.0"
     result_msg "检查 criVersion >= 1.7.0"
   fi
 
-  local pattern="^[0-9]+h[0-9]+m[0-9]+s$"
+  pattern="^[0-9]+h[0-9]+m[0-9]+s$"
   [[ "${caCertificateValidityPeriod}" =~ ${pattern} ]]
   result_msg "检查 caCertificateValidityPeriod"
   [[ "${certificateValidityPeriod}" =~ ${pattern} ]]
