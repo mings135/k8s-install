@@ -3,19 +3,19 @@
 # 显示所需 images
 images_list() {
   kubeadm config --config ${KUBE_KUBEADM} images list
-  result_msg "查看 images list"
+  result_msg "[Display] images list"
 }
 
 # 拉取所需 images
 images_pull() {
   kubeadm config --config ${KUBE_KUBEADM} images pull
-  result_msg "拉取 images"
+  result_msg "[Pull] images"
 }
 
 # 初始化集群
 master1_init() {
   kubeadm init --config ${KUBE_KUBEADM} --upload-certs
-  result_msg "创建 cluster"
+  result_msg "[Init] cluster"
   cluster_config_kubectl
 
   cat <<EOF | kubectl apply -f -
@@ -38,6 +38,7 @@ subjects:
   name: temp-admin
   namespace: kube-system
 EOF
+  result_msg "[Create] temp-admin sa"
 }
 
 # 生成加入集群的命令
@@ -57,7 +58,7 @@ create_join_command() {
     .join.command = strenv(val2) |
     .join.certificateKey = strenv(val3)
   ' ${KUBE_FILE}
-  result_msg "创建 join command"
+  result_msg "[Create] join command"
 }
 
 # 加入集群
@@ -69,12 +70,12 @@ join_cluster() {
     local mgr_cmd="${cmd} --control-plane --certificate-key ${key}"
     blue_font "${mgr_cmd}"
     ${mgr_cmd}
-    result_msg "加入 cluster 成为 master"
+    result_msg "[Join] cluster as master"
     cluster_config_kubectl
   elif [[ "${HOST_ROLE}" == "work" ]]; then
     blue_font "${cmd}"
     ${cmd}
-    result_msg "加入 cluster 成为 work"
+    result_msg "[Join] cluster as work"
   fi
 }
 
@@ -83,12 +84,12 @@ cluster_config_kubectl() {
   mkdir -p $HOME/.kube \
     && /bin/cp ${KUBEADM_CONFIG}/admin.conf $HOME/.kube/config \
     && chmod 700 $HOME/.kube/config
-  result_msg "配置 kubectl config"
+  result_msg "[Copy] kubectl config"
 
   install_pkgs "bash-completion"
   mkdir -p /etc/bash_completion.d \
     && kubectl completion bash >/etc/bash_completion.d/kubectl
-  result_msg "添加 completion bash"
+  result_msg "[Install] completion bash"
 }
 
 # --- upgrade cluster ---
@@ -96,23 +97,23 @@ cluster_config_kubectl() {
 upgrade_cluster() {
   if [[ "${HOST_ROLE}" == "master1" ]]; then
     kubeadm upgrade plan v${kubernetesVersion}
-    result_msg "升级 plan"
+    result_msg "[Upgrade] plan"
     kubeadm upgrade apply v${kubernetesVersion} -y
-    result_msg "升级 ${HOST_NAME}(${HOST_ROLE})"
+    result_msg "[Upgrade] ${HOST_NAME}(${HOST_ROLE})"
   else
     kubeadm upgrade node
-    result_msg "升级 ${HOST_NAME}(${HOST_ROLE})"
+    result_msg "[Upgrade] ${HOST_NAME}(${HOST_ROLE})"
   fi
 }
 
 drian_node() {
   kubectl drain ${HOST_NAME} --ignore-daemonsets --delete-emptydir-data
-  result_msg "腾空 current node"
+  result_msg "[Drain] current node"
 }
 
 uncordon_node() {
   kubectl uncordon ${HOST_NAME}
-  result_msg "解除 protect current node(uncordon)"
+  result_msg "[Uncordon] current node"
 
   kubectl wait --for=condition=Ready nodes/${HOST_NAME} --timeout=50s
   result_msg "[Wait] node Ready"
@@ -154,7 +155,7 @@ create_kubeconfig_token() {
     .kubeconfig.expireTime = strenv(val1) |
     .kubeconfig.token = strenv(val2)
   ' ${KUBE_FILE}
-  result_msg "创建 kubeconfig token(temp-admin 6h)"
+  result_msg "[Create] kubeconfig token(temp-admin 6h)"
 }
 
 # 配置临时的 .kube/config
@@ -164,5 +165,5 @@ config_user_context() {
     && kubectl config set-credentials temp-admin --token="${token}" \
     && kubectl config set-context temp-admin@${clusterName} --cluster=${clusterName} --user=temp-admin \
     && kubectl config use-context temp-admin@${clusterName}
-  result_msg "配置 kubeconfig(temp-admin)"
+  result_msg "[Config] kubeconfig(temp-admin)"
 }

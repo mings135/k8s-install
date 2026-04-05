@@ -8,13 +8,13 @@ kubernetes_config_repos() {
 
   # debian 设置 kubernetes 源
   curl -fsSL https://pkgs.k8s.io/core:/stable:/v${ver}/deb/Release.key | gpg --yes --dearmor -o ${key}
-  result_msg "添加 k8s pgp"
+  result_msg "[Install] k8s pgp"
   echo "deb [signed-by=${key}] https://pkgs.k8s.io/core:/stable:/v${ver}/deb/ /" >${repo}
-  result_msg "添加 k8s repo"
+  result_msg "[Install] k8s repo"
 
   if [[ "${localMirror}" == "true" ]]; then
     sed -i 's+pkgs.k8s.io+mirrors.tuna.tsinghua.edu.cn/kubernetes+' ${repo}
-    result_msg "修改 k8s repo"
+    result_msg "[Modify] k8s repo"
   fi
 }
 
@@ -141,7 +141,7 @@ EOF
     ${KUBE_CONF}/clusterConfiguration.yaml \
     ${KUBE_CONF}/otherConfiguration.yaml >${KUBE_KUBEADM} \
     && rm -f ${KUBE_CONF}/initConfiguration.yaml ${KUBE_CONF}/clusterConfiguration.yaml ${KUBE_CONF}/otherConfiguration.yaml
-  result_msg '生成 kubeadm-config.yaml'
+  result_msg '[Create] kubeadm-config.yaml'
 }
 
 # 设置 crictl
@@ -152,18 +152,18 @@ image-endpoint: ${criSocket}
 timeout: 10
 debug: false
 EOF
-  result_msg '配置 crictl'
+  result_msg '[Config] crictl'
 }
 
 stop_kubelet() {
   systemctl stop kubelet &>/dev/null
-  result_msg "停止 kubelet"
+  result_msg "[Stop] kubelet"
 }
 
 start_kubelet() {
   systemctl daemon-reload \
     && systemctl start kubelet &>/dev/null
-  result_msg "启动 kubelet"
+  result_msg "[Start] kubelet"
 }
 
 backup_kubernetes() {
@@ -171,7 +171,7 @@ backup_kubernetes() {
   local name="${dir}-$(date +"%Y%m%d-%H%M").tar.gz"
 
   local value=$(get_record ".backup.${dir}")
-  RES_LEVEL=1 && [[ "${value}" == "${name}" ]]
+  RES_LEVEL=1 && [[ "${value}" != "${name}" ]]
   result_msg "[Backup] ${dir}, Minimum interval(1min)"
   RES_LEVEL=0
 

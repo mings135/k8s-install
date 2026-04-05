@@ -17,7 +17,7 @@ generatecommandkey
 logchange 0.5
 logdir /var/log/chrony
 EOF
-  result_msg "配置 chrony"
+  result_msg "[Config] chrony"
 }
 
 # 安装必要的工具(3)
@@ -31,7 +31,7 @@ sys_install_dependencies() {
   if systemctl list-unit-files chrony.service &>/dev/null; then
     sys_chrony_config '/etc/chrony/chrony.conf'
     systemctl restart chrony &>/dev/null
-    result_msg '重启 chrony'
+    result_msg '[Restart] chrony'
   fi
 }
 
@@ -42,27 +42,27 @@ sys_init_base() {
   # 设置 hostname (必须)
   if [[ "${HOST_NAME}" != "$(hostname)" ]]; then
     hostnamectl set-hostname "${HOST_NAME}"
-    result_msg "设置 name:${HOST_NAME}"
+    result_msg "[Modify] name:${HOST_NAME}"
   fi
 
   # 关闭 swap (必须)
   f="/etc/fstab"
   if grep -qE '^[^#].*swap' "$f"; then
     sed -i '/swap/ s/^[^#]/#&/' "$f" && swapoff -a
-    result_msg '关闭 swap'
+    result_msg '[Disable] swap'
   fi
 
   # 停用 ufw(必须)
   if systemctl list-unit-files ufw.service &>/dev/null; then
     systemctl disable --now ufw &>/dev/null
-    result_msg "关闭 ufw"
+    result_msg "[Disable] ufw"
   fi
 
   # 关闭 selinux (必须)
   f="/etc/selinux/config"
   if [[ -f "$f" ]] && grep -qE '^SELINUX=(enforcing|permissive)' "$f"; then
     sed -i 's/^SELINUX=.*/SELINUX=disabled/' "$f" && setenforce 0
-    result_msg "关闭 selinux"
+    result_msg "[Disable] selinux"
   fi
 
   # 设置系统 limits
@@ -74,7 +74,7 @@ root - nproc ${lim}
 * - nofile ${lim}
 * - nproc ${lim}
 EOF
-    result_msg '设置 limits'
+    result_msg '[Modify] limits'
   fi
 }
 
@@ -96,7 +96,7 @@ EOF
       continue
     fi
     modinfo -F filename $line >/dev/null && modprobe $line
-    result_msg "加载 module $line"
+    result_msg "[Loading] module $line"
   done <"$f"
 }
 
@@ -147,7 +147,7 @@ kernel.panic_on_oops = 1
 EOF
   # 即刻加载优化的参数
   sysctl -p "$f" >/dev/null
-  result_msg '优化 kernel parameters'
+  result_msg '[Optimize] kernel parameters'
 }
 
 # 基础设置
@@ -161,19 +161,18 @@ init_system() {
 
 # 配置 /etc/hosts
 init_etc_hosts() {
-  local data="$(yq -M '.nodes.master + .nodes.work | .[] | .address + " " + .domain' "${KUBE_FILE}")"
-
   # 添加 master1 hosts 配置
   sed -i "/[[:space:]]${MASTER1_NAME}$/d" /etc/hosts
   echo "${MASTER1_IP} ${MASTER1_NAME}" >>/etc/hosts
-  result_msg "添加 hosts: ${MASTER1_IP}"
+  result_msg "[Modify] hosts: ${MASTER1_IP}"
 
+  local data="$(yq -M '.nodes.master + .nodes.work | .[] | .address + " " + .domain' "${KUBE_FILE}")"
   while read -r addr domain; do
-    if [[ "$addr" != "null" && -n "$addr" ]]; then
+    if [[ -n "${domain}" ]]; then
       # 删除旧记录并追加新记录
       sed -i "/[[:space:]]${domain}$/d" /etc/hosts
       echo "${addr} ${domain}" >>/etc/hosts
-      result_msg "添加 hosts: ${addr}"
+      result_msg "[Modify] hosts: ${addr}"
     fi
   done <<<"$data"
 
@@ -183,6 +182,6 @@ init_etc_hosts() {
     # 添加 controlPlaneTarget hosts 配置
     sed -i "/[[:space:]]${domain}$/d" /etc/hosts
     echo "${controlPlaneTarget} ${domain}" >>/etc/hosts
-    result_msg "添加 hosts: ${controlPlaneTarget}"
+    result_msg "[Modify] hosts: ${controlPlaneTarget}"
   fi
 }

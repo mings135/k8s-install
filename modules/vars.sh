@@ -111,7 +111,7 @@ vars_by_default() {
 # 安装必要的前置工具(2)
 vars_install_dependencies() {
   if [[ ! -f ${KUBE_BIN}/etcdctl ]] || [[ "$(etcdctl version | awk '/etcdctl version/{print $3}')" != "${etcdctlVersion}" ]]; then
-    blue_font "下载安装 etcdctl 到 ${KUBE_BIN} 目录"
+    blue_font "[Download] etcdctl to ${KUBE_BIN}"
     curl -fsSL -o /tmp/etcd-linux-amd64.tar.gz https://github.com/etcd-io/etcd/releases/download/v${etcdctlVersion}/etcd-v${etcdctlVersion}-linux-amd64.tar.gz \
       && rm -rf /tmp/etcd-download-test && mkdir -p /tmp/etcd-download-test \
       && tar xzf /tmp/etcd-linux-amd64.tar.gz -C /tmp/etcd-download-test --strip-components=1 \

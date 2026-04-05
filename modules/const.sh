@@ -121,6 +121,16 @@ set_config() {
   val="$2" yq -i "$1 = strenv(val)" "${KUBE_FILE}"
 }
 
+# has_config "." "join", 判断 . 下是否存在 join
+has_config() {
+  val="$2" yq -M "$1 | has(strenv(val))" "${KUBE_FILE}"
+}
+
+# kind_config ".cluster" "map", 判断 .cluster 是否为 map, kind 有 seq map
+kind_config() {
+  val="$2" yq -M "$1 | kind == strenv(val)" "${KUBE_FILE}"
+}
+
 get_record() {
   yq -M "$1 // \"\"" "${KUBE_RECORD}"
 }
@@ -148,7 +158,7 @@ install_pkgs() {
     fi
 
     apt-get install -y ${i} ${args} &>/dev/null
-    result_msg "安装 $i"
+    result_msg "[Install] $i"
   done
 }
 
@@ -159,14 +169,14 @@ remove_pkgs() {
   for i in ${list}; do
     if dpkg -l | grep -q "^ii[[:space:]]\+${i}[[:space:]]"; then
       apt-get remove -y ${i} ${args} &>/dev/null
-      result_msg "移除 $i"
+      result_msg "[Remove] $i"
     fi
   done
 }
 
 update_pkgs() {
   apt-get update >/dev/null
-  result_msg "重新 apt-get update"
+  result_msg "[Update] apt-get update"
 }
 
 hold_pkgs() {
@@ -174,7 +184,7 @@ hold_pkgs() {
 
   for i in ${list}; do
     apt-mark hold ${i} >/dev/null
-    result_msg "锁住 $i"
+    result_msg "[Hold] $i"
   done
 }
 
@@ -184,7 +194,7 @@ unhold_pkgs() {
   for i in ${list}; do
     if apt-mark showhold | grep -q "^${i}$"; then
       apt-mark unhold ${i} >/dev/null
-      result_msg "解锁 $i"
+      result_msg "[Unhold] $i"
     fi
   done
 }
@@ -192,13 +202,13 @@ unhold_pkgs() {
 # 安装必要的前置工具(1)
 const_install_dependencies() {
   if [[ ! -f "${KUBE_BIN}/yq" ]]; then
-    blue_font "下载安装 yq 到 ${KUBE_BIN} 目录"
+    blue_font "[Download] yq to ${KUBE_BIN}"
     curl -fsSL -o ${KUBE_BIN}/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
       && chmod +x ${KUBE_BIN}/yq
   fi
 
   if [[ ! -f "${KUBE_BIN}/rrcmd" ]]; then
-    blue_font "下载安装 rrcmd 到 ${KUBE_BIN} 目录"
+    blue_font "[Download] rrcmd to ${KUBE_BIN}"
     curl -fsSL -o ${KUBE_BIN}/rrcmd https://github.com/mings135/rrcmd/releases/latest/download/rrcmd_linux_amd64 \
       && chmod +x ${KUBE_BIN}/rrcmd
   fi
@@ -222,7 +232,7 @@ const_create_base_config() {
       . head_comment = "请勿随意修改, 否则可能导致无法正常运行!!!"
     ' >${KUBE_FILE}
 
-    blue_font "创建初始配置, 修改: vi ${KUBE_FILE}, 继续请重新运行"
+    blue_font "[Create] kube.yaml, configured by vi ${KUBE_FILE}, rerun this script to continue..."
     yq ${KUBE_FILE}
     exit 0
   fi
@@ -240,7 +250,7 @@ const_create_record_file() {
       . head_comment = "集群记录文件, 非常重要, 自动生成, 请勿修改!!!"
     ' >${KUBE_RECORD}
 
-    blue_font "创建记录 ${KUBE_RECORD}, 请勿修改!!!"
+    blue_font "[Create] record.yaml, DO NOT MODIFY!!!"
   fi
 }
 

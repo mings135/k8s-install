@@ -6,13 +6,13 @@ cri_config_repos() {
   local key="${GPG_DIR}/docker-archive-keyring.gpg"
 
   curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --yes --dearmor -o ${key}
-  result_msg "添加 docker gpg"
+  result_msg "[Install] docker gpg"
   echo "deb [arch=$(dpkg --print-architecture) signed-by=${key}] https://download.docker.com/linux/debian $(lsb_release -cs) stable" >${repo}
-  result_msg "添加 docker repo"
+  result_msg "[Install] docker repo"
 
   if [[ "${localMirror}" == "true" ]]; then
     sed -i 's+download.docker.com+mirrors.tuna.tsinghua.edu.cn/docker-ce+' ${repo}
-    result_msg "修改 repo source"
+    result_msg "[Modify] repo source"
   fi
 }
 
@@ -39,25 +39,25 @@ cri_config_containerd() {
     mkdir -p ${path}
   fi
   containerd config default >${file}
-  result_msg "创建 containerd config"
+  result_msg "[Create] containerd config"
 
   # 修改默认配置 sandbox_image(2.x modify sandbox, "" modify '')
   if [[ -n "${imageRepository}" ]]; then
     sed -i "s#\(sandbox.* = [\'\"]\).*\(/pause:.*[\'\"]\)#\1${imageRepository}\2#" ${file}
-    result_msg "修改 sandbox image"
+    result_msg "[Modify] sandbox image"
   fi
 
   # 修改默认配置 SystemdCgroup
   if grep -q 'SystemdCgroup = false' ${file}; then
     sed -i '/runtimes\.runc\.options/,/SystemdCgroup =/ s/SystemdCgroup = false/SystemdCgroup = true/' ${file}
-    result_msg "修改 containerd Cgroup"
+    result_msg "[Modify] containerd Cgroup"
   fi
 
   # 修改配置 registry config_path
   if [[ -n "${privateRepository}" ]]; then
     # 修改 config_path 值
     sed -i "/registry/,/config_path/ s#\(config_path = [\'\"]\).*\([\'\"]\)#\1${path}\2#" ${file}
-    result_msg "修改 registry config_path"
+    result_msg "[Modify] registry config_path"
 
     local uri=${privateRepository#*://}
     mkdir -p ${path}/${uri}
@@ -69,21 +69,21 @@ server = "${uri}"
   capabilities = ["pull", "resolve"]
   skip_verify = true
 EOF
-    result_msg "增加 containerd private registry"
+    result_msg "[Create] containerd private registry"
   fi
 }
 
 cri_delete_config() {
   rm -rf /etc/containerd/config.toml \
     && rm -rf /etc/containerd/certs.d
-  result_msg "删除 containerd config"
+  result_msg "[Delete] containerd config"
 }
 
 # 重启 containerd
 cri_restart_containerd() {
   systemctl daemon-reload \
     && systemctl restart containerd &>/dev/null
-  result_msg "重启 containerd"
+  result_msg "[Restart] containerd"
 }
 
 backup_cri() {
