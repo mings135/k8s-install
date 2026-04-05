@@ -175,7 +175,14 @@ remote_backup_cluster() {
 # 删除整个集群
 remote_clean_cluster() {
   blue_font "Clean nodes: ${i}"
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${NODES_ALL}
+
+  for i in ${NODES_MASTER1_MASTER}; do
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${i}
+  done
+
+  if [[ -n $(echo "${NODES_WORK}" | tr -d '[:space:]') ]]; then
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${NODES_WORK}
+  fi
 
   yq -i '
     .join = {} |
