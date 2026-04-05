@@ -87,19 +87,24 @@ remote_rsync_own() {
 # 同步脚本文件和配置文件 $1=nodes
 remote_rsync_script() {
   local excl='--include=/modules/ --include=/modules/* --include=/bin/ --include=/bin/* --include=/config/ --include=/config/kube.yaml --include=/local.sh --exclude=*'
-  remote_rsync_nodes "Sync script" "${1}" "${excl}"
+  remote_rsync_nodes "Sync script out" "${1}" "${excl}"
 }
 
 # 同步 master1 上的 join, kubeconfig 到非 master1 节点
 remote_rsync_kube() {
   local excl='--include=/config/ --include=/config/kube.yaml --exclude=*'
-  remote_rsync_own "kube.yaml sync by master1" "${MASTER1_IP}" "${excl}"
-  remote_rsync_nodes "Sync kube.yaml" "${NODES_NOT_MASTER1}" "${excl}"
+  remote_rsync_own "Sync kube.yaml in from master1" "${MASTER1_IP}" "${excl}"
+  remote_rsync_nodes "Sync kube.yaml out to other nodes" "${NODES_NOT_MASTER1}" "${excl}"
 }
 
-remote_rsync_backup() {
+remote_rsync_backup_in() {
   local excl='--include=/backup/ --include=/backup/* --exclude=*'
-  remote_rsync_own "backup sync by master1" "${MASTER1_IP}" "${excl}"
+  remote_rsync_own "Sync backup in from master1" "${MASTER1_IP}" "${excl}"
+}
+
+remote_rsync_backup_out() {
+  local excl='--include=/backup/ --include=/backup/* --exclude=*'
+  remote_rsync_nodes "Sync backup out to master1" "${MASTER1_IP}" "${excl}"
 }
 
 # 初始化系统
@@ -161,9 +166,10 @@ remote_upgrade_cluster() {
 
 # 备份 etcd
 remote_backup_cluster() {
+  remote_rsync_backup_out
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${MASTER1_IP}
   sleep 2
-  remote_rsync_backup
+  remote_rsync_backup_in
 }
 
 # 删除整个集群
