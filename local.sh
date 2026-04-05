@@ -145,7 +145,6 @@ local_upgrade_cluster() {
 
 # 清理集群节点
 local_clean_node() {
-  stop_kubelet
   # 集群清理
   if command -v kubeadm &>/dev/null; then
     kubeadm reset -f
