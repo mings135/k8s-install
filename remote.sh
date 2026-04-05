@@ -97,6 +97,11 @@ remote_rsync_kube() {
   remote_rsync_nodes "Sync kube.yaml" "${NODES_NOT_MASTER1}" "${excl}"
 }
 
+remote_rsync_backup() {
+  local excl='--include=/backup/ --include=/backup/* --exclude=*'
+  remote_rsync_own "backup sync by master1" "${MASTER1_IP}" "${excl}"
+}
+
 # 初始化系统
 remote_base_install() {
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh install" ${NODES_ALL}
@@ -157,6 +162,8 @@ remote_upgrade_cluster() {
 # 备份 etcd
 remote_backup_cluster() {
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${MASTER1_IP}
+  sleep 2
+  remote_rsync_backup
 }
 
 # 删除整个集群
