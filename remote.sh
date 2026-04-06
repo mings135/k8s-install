@@ -313,7 +313,7 @@ while getopts ":a:l:f" opt; do
       ;;
     l)
       remote_LOGIN_SWITCH=1
-      pattern='^(([0-9]{1,3}\.){3}[0-9]{1,3}[[:space:]]+)*([0-9]{1,3}\.){3}[0-9]{1,3}$'
+      pattern='^(([0-9]{1,3}\.){3}[0-9]{1,3}[[:space:]])*([0-9]{1,3}\.){3}[0-9]{1,3}$'
       if [[ "$OPTARG" =~ ${pattern} ]]; then
         remote_LOGIN_NODES="$OPTARG"
       elif [ "$OPTARG" = "all" ] || [ "$OPTARG" = "a" ]; then
