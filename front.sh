@@ -2,7 +2,7 @@
 
 # Author: MingQ
 if ! ps -ocmd $$ | grep -q "^bash"; then
-  echo "请使用 bash $0 运行脚本!"
+  echo "Please use bash $0 to run the script!"
   exit 1
 fi
 
@@ -53,8 +53,8 @@ result_msg() {
 
 # 检查变量，异常显示
 RES_LEVEL=1 && [[ -n "${OS_NAME}" ]]
-result_msg "检查 system variables" && RES_LEVEL=0
+result_msg "[Check] system variables" && RES_LEVEL=0
 
 apt-get install -y rsync &>/dev/null
-result_msg "安装 rsync"
+result_msg "[Install] rsync"
 rm -f $0

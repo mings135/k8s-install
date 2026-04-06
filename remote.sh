@@ -193,8 +193,21 @@ remote_clean_cluster() {
 
 # 查看所有变量
 remote_display_vars() {
-  blue_font "------ local ------"
+  blue_font "------ local master1 ------"
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${MASTER1_IP}
+
+  for i in ${NODES_MASTER}; do
+    blue_font "------ local master ------"
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${i}
+    break
+  done
+
+  for i in ${NODES_WORK}; do
+    blue_font "------ local work ------"
+    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${i}
+    break
+  done
+
   blue_font "------ remote ------"
   display_vars
 }
