@@ -129,7 +129,7 @@ backup_etcd() {
   result_msg "[Backup] ${app}, Minimum interval(1min)"
   RES_LEVEL=0
 
-  ETCDCTL_API=3 etcdctl snapshot save ${KUBE_BACKUP}/${name} \
+  etcdctl snapshot save ${KUBE_BACKUP}/${name} \
     --endpoints=https://127.0.0.1:2379 \
     --cacert=${KUBEADM_PKI}/etcd/ca.crt \
     --cert=${KUBEADM_PKI}/etcd/server.crt \
