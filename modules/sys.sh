@@ -37,8 +37,6 @@ sys_install_dependencies() {
 
 # 优化系统设置
 sys_init_base() {
-  local lim=65536 f=""
-
   # 设置 hostname (必须)
   if [[ "${HOST_NAME}" != "$(hostname)" ]]; then
     hostnamectl set-hostname "${HOST_NAME}"
@@ -46,7 +44,7 @@ sys_init_base() {
   fi
 
   # 关闭 swap (必须)
-  f="/etc/fstab"
+  local f="/etc/fstab"
   if grep -qE '^[^#].*swap' "$f"; then
     sed -i '/swap/ s/^[^#]/#&/' "$f" && swapoff -a
     result_msg '[Disable] swap'
@@ -66,6 +64,7 @@ sys_init_base() {
   fi
 
   # 设置系统 limits
+  local lim="65535"
   f="/etc/security/limits.d/90-k8s.conf"
   if [[ ! -f "$f" ]]; then
     cat >"$f" <<EOF

@@ -101,6 +101,7 @@ vars_by_default() {
   # 容器运行时: containerd(最新版本: latest, 具体版本: 1.6.9)
   criVersion=${criVersion:-"latest"}
   criVersion="${criVersion#v}"
+
   criUpgradeReconfig=${criUpgradeReconfig:-"false"}
   # 容器运行时: 配置 harbor 私库地址(http://192.168.13.13)
   privateRepository=${privateRepository:-""}
@@ -128,12 +129,14 @@ display_vars() {
   # const
   echo "OS_NAME=${OS_NAME}"
   echo "OS_VERSION=${OS_VERSION}"
+  echo "script_dir=${script_dir}"
   echo "script_own=${script_own}"
-  echo "HOST_IP=${HOST_IP}"
+  echo "clusterName=${clusterName}"
   # master1
   echo "MASTER1_IP=${MASTER1_IP}"
   echo "MASTER1_NAME=${MASTER1_NAME}"
   # localhost
+  echo "HOST_IP=${HOST_IP}"
   echo "HOST_NAME=${HOST_NAME}"
   echo "HOST_ROLE=${HOST_ROLE}"
   # config .
@@ -162,6 +165,45 @@ display_vars() {
   echo "NODES_MASTER1_MASTER=${NODES_MASTER1_MASTER}"
   echo "NODES_MASTER=${NODES_MASTER}"
   echo "NODES_WORK=${NODES_WORK}"
+
+  # record.yaml
+  echo ''
+  if [[ -f "${KUBE_RECORD}" ]]; then
+    echo "${KUBE_RECORD}"
+    yq ${KUBE_RECORD}
+  fi
+
+  # kubeadm-config.yaml
+  echo ''
+  if [[ "${HOST_ROLE}" == "master1" ]] && [[ -f "${KUBE_KUBEADM}" ]]; then
+    echo "${KUBE_KUBEADM}"
+    yq ${KUBE_KUBEADM}
+  fi
+
+  # etc hosts
+  echo ''
+  local file='/etc/hosts'
+  if [[ "${HOST_ROLE}" == "master1" ]] && [[ -f "${file}" ]]; then
+    echo "${file}"
+    cat ${file}
+  fi
+
+  # containerd
+  echo ''
+  file='/etc/containerd/config.toml'
+  if [[ "${HOST_ROLE}" == "master1" ]] && [[ -f "${file}" ]]; then
+    echo "${file}"
+    sed -n '/sandbox.*pause/p' ${file}
+    sed -n '/runtimes\.runc\.options/,/SystemdCgroup =/p' ${file}
+  fi
+
+  # crictl.yaml
+  echo ''
+  file='/etc/crictl.yaml'
+  if [[ "${HOST_ROLE}" == "master1" ]] && [[ -f "${file}" ]]; then
+    echo "${file}"
+    yq ${file}
+  fi
 }
 
 # 设置所有变量(local.sh)
