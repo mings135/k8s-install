@@ -175,7 +175,7 @@ backup_kubernetes() {
 
   local value=$(get_record ".backup.${dir}")
   RES_LEVEL=1 && [[ "${value}" != "${name}" ]]
-  result_msg "[Backup] ${dir}, Only one backup per minute is allowed"
+  result_msg "[Backup] ${dir}, Max 1 backup/min"
   RES_LEVEL=0
 
   tar -zcf ${KUBE_BACKUP}/${name} -C /etc ${dir} \
@@ -206,4 +206,7 @@ upgrade_kubelet() {
   kubernetes_install_kubelet
   stop_kubelet
   start_kubelet
+  if [[ "${HOST_ROLE}" == "master"* ]]; then
+    kubernetes_kubeadm_config
+  fi
 }

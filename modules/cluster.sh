@@ -126,7 +126,7 @@ backup_etcd() {
 
   local value=$(get_record ".backup.${app}")
   RES_LEVEL=1 && [[ "${value}" != "${name}" ]]
-  result_msg "[Backup] ${app}, Only one backup per minute is allowed"
+  result_msg "[Backup] ${app}, Max 1 backup/min"
   RES_LEVEL=0
 
   etcdctl snapshot save ${KUBE_BACKUP}/${name} \
