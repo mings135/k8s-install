@@ -167,41 +167,41 @@ display_vars() {
   echo "NODES_WORK=${NODES_WORK}"
 
   # record.yaml
-  echo ''
   if [[ -f "${KUBE_RECORD}" ]]; then
-    echo "${KUBE_RECORD}"
+    echo ''
+    blue_font "${KUBE_RECORD}"
     yq ${KUBE_RECORD}
   fi
 
   # kubeadm-config.yaml
-  echo ''
   if [[ "${HOST_ROLE}" == "master1" ]] && [[ -f "${KUBE_KUBEADM}" ]]; then
-    echo "${KUBE_KUBEADM}"
+    echo ''
+    blue_font "${KUBE_KUBEADM}"
     yq ${KUBE_KUBEADM}
   fi
 
   # etc hosts
-  echo ''
   local file='/etc/hosts'
   if [[ "${HOST_ROLE}" == "master1" ]] && [[ -f "${file}" ]]; then
-    echo "${file}"
+    echo ''
+    blue_font "${file}"
     cat ${file}
   fi
 
   # containerd
-  echo ''
   file='/etc/containerd/config.toml'
   if [[ "${HOST_ROLE}" == "master1" ]] && [[ -f "${file}" ]]; then
-    echo "${file}"
+    echo ''
+    blue_font "${file}"
     sed -n '/sandbox.*pause/p' ${file}
     sed -n '/runtimes\.runc\.options/,/SystemdCgroup =/p' ${file}
   fi
 
   # crictl.yaml
-  echo ''
   file='/etc/crictl.yaml'
   if [[ "${HOST_ROLE}" == "master1" ]] && [[ -f "${file}" ]]; then
-    echo "${file}"
+    echo ''
+    blue_font "${file}"
     yq ${file}
   fi
 }
