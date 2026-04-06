@@ -42,7 +42,7 @@ export PATH=${KUBE_BIN}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:
 
 if [[ -f /etc/debian_version ]]; then
   OS_NAME="debian"
-  OS_VERSION=$(cat /etc/debian_version | cut -d'.' -f1)
+  OS_VERSION=$(cat /etc/debian_version)
   # 解决 debian 系统 debconf: unable to initialize frontend: Dialog 问题
   export DEBIAN_FRONTEND=noninteractive
 fi
