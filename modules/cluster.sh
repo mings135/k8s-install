@@ -57,7 +57,7 @@ create_join_command() {
     .join.expireTime = strenv(val1) |
     .join.command = strenv(val2) |
     .join.certificateKey = strenv(val3)
-  ' ${KUBE_FILE}
+  ' ${KUBE_FILE} && sync
   result_msg "[Create] join command"
 }
 
@@ -126,7 +126,7 @@ backup_etcd() {
 
   local value=$(get_record ".backup.${app}")
   RES_LEVEL=1 && [[ "${value}" != "${name}" ]]
-  result_msg "[Backup] ${app}, Minimum interval(1min)"
+  result_msg "[Backup] ${app}, Only one backup per minute is allowed"
   RES_LEVEL=0
 
   etcdctl snapshot save ${KUBE_BACKUP}/${name} \
@@ -154,7 +154,7 @@ create_kubeconfig_token() {
   val1="${expire}" val2="${token}" yq -i '
     .kubeconfig.expireTime = strenv(val1) |
     .kubeconfig.token = strenv(val2)
-  ' ${KUBE_FILE}
+  ' ${KUBE_FILE} && sync
   result_msg "[Create] kubeconfig token(temp-admin 6h)"
 }
 

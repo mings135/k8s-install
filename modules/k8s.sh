@@ -135,6 +135,9 @@ EOF
     with(select($src | length > 0); .apiServer.certSANs = $src)
   ' ${KUBE_CONF}/clusterConfiguration.yaml
 
+  # 写入同步
+  sync
+
   # kubeadm-config.yaml
   yq -M eval-all 'select(fileIndex == 0), select(fileIndex == 1), select(fileIndex == 2)' \
     ${KUBE_CONF}/initConfiguration.yaml \
@@ -172,7 +175,7 @@ backup_kubernetes() {
 
   local value=$(get_record ".backup.${dir}")
   RES_LEVEL=1 && [[ "${value}" != "${name}" ]]
-  result_msg "[Backup] ${dir}, Minimum interval(1min)"
+  result_msg "[Backup] ${dir}, Only one backup per minute is allowed"
   RES_LEVEL=0
 
   tar -zcf ${KUBE_BACKUP}/${name} -C /etc ${dir} \

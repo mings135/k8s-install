@@ -92,7 +92,7 @@ backup_cri() {
 
   local value=$(get_record ".backup.${dir}")
   RES_LEVEL=1 && [[ "${value}" != "${name}" ]]
-  result_msg "[Backup] ${dir}, Minimum interval(1min)"
+  result_msg "[Backup] ${dir}, Only one backup per minute is allowed"
   RES_LEVEL=0
 
   tar -zcf ${KUBE_BACKUP}/${name} -C /etc ${dir} \

@@ -120,9 +120,9 @@ remote_images_pull() {
 # 安装集群
 remote_deploy_cluster() {
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh init" ${MASTER1_IP}
-  sleep 2
+  sleep 1
   remote_rsync_kube
-  sleep 2
+  sleep 1
   for i in ${NODES_NOT_MASTER1}; do
     rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh join" ${i}
   done
@@ -130,7 +130,7 @@ remote_deploy_cluster() {
 
 # 部署 flannel
 remote_deploy_flannel() {
-  sleep 2
+  sleep 1
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh flannel" ${MASTER1_IP}
 }
 
@@ -141,8 +141,9 @@ remote_upgrade_cri() {
   done
 
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh token" ${MASTER1_IP}
+  sleep 1
   remote_rsync_kube
-
+  sleep 1
   for i in ${NODES_WORK}; do
     rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh context cri" ${i}
   done
@@ -157,8 +158,9 @@ remote_upgrade_cluster() {
   done
 
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh token" ${MASTER1_IP}
+  sleep 1
   remote_rsync_kube
-
+  sleep 1
   for i in ${NODES_WORK}; do
     rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh context upgrade" ${i}
   done
@@ -168,7 +170,7 @@ remote_upgrade_cluster() {
 remote_backup_cluster() {
   remote_rsync_backup_out
   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${MASTER1_IP}
-  sleep 2
+  sleep 1
   remote_rsync_backup_in
 }
 
