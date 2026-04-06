@@ -232,7 +232,7 @@ const_create_base_config() {
       .join = {} |
       .kubeconfig = {} |
       (.join | key) head_comment = "以下内容自动生成, 请勿修改!!!" |
-      . head_comment = "请勿随意修改, 否则可能导致无法正常运行!!!"
+      . head_comment = "配置文件, 安装升级, 增删节点, 与集群同步, 请勿随意修改!!!"
     ' >${KUBE_FILE}
 
     blue_font "[Create] kube.yaml, configured by vi ${KUBE_FILE}, rerun this script to continue..."
@@ -250,7 +250,7 @@ const_create_record_file() {
       .k8s = {} |
       .cluster = {} |
       .backup = {} |
-      . head_comment = "集群记录文件, 非常重要, 自动生成, 请勿修改!!!"
+      . head_comment = "记录文件, 非常重要, 自动生成, 请勿修改!!!"
     ' >${KUBE_RECORD}
 
     blue_font "[Create] record.yaml, DO NOT MODIFY!!!"

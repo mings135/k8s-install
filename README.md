@@ -63,7 +63,7 @@ bash remote.sh -fla auto
 
 ## Upgrade cri
 
-在 config/kube.yaml 中修改或添加如下配置：
+修改配置 config/kube.yaml
 
 ```yaml
 container:
@@ -75,11 +75,14 @@ container:
 
 
 
-升级容器运行时版本：
+升级容器运行时
 
 - 如果出错，手动解决问题后继续运行 `cri` 即可
 
 ```shell
+# 更新前备份(目录: bakcup, 节点: master1 devops)
+bash remote.sh backup
+
 bash remote.sh cri
 ```
 
@@ -87,23 +90,55 @@ bash remote.sh cri
 
 ## Upgrade cluster
 
-在 config/kube.yaml 中修改配置：
+修改配置 config/kube.yaml
 
 ```yaml
 cluster:
-  # 更新到哪个版本
   kubernetesVersion: "1.35.3"
 ```
 
 
 
-升级集群版本：
+升级集群
 
-- 如果出错，手动解决问题后继续运行 `upgrade` 即可
+- 如果出错，手动解决问题后继续运行 `upgrade`
 
 ```shell
+# 更新前备份(目录: bakcup, 节点: master1 devops)
+bash remote.sh backup
+
 # 更新版本(必须满足 k8s 更新条件, 请自行查看官网)
 bash remote.sh upgrade
+```
+
+
+
+## Add node
+
+修改配置 config/kube.yaml
+
+```yaml
+nodes:
+  master:
+  - domain: m4.k8s
+    address: 192.168.11.55
+  - domain: m5.k8s
+    address: 192.168.11.56
+    ...
+  work:
+  - domain: w2.k8s
+    address: 192.168.11.57
+    ...
+```
+
+
+
+添加节点
+
+- 如果出错，手动解决问题后继续运行 `auto`
+
+```shell
+bash remote.sh -l "192.168.11.55 192.168.11.56 192.168.11.57" auto
 ```
 
 
