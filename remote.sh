@@ -52,7 +52,7 @@ remote_free_login() {
 # 前置操作, 安装 rsync
 remote_front_operator() {
   for i in ${NODES_ALL}; do
-    scp -o StrictHostKeyChecking=no -r ${script_dir}/front.sh ${nodeUser}@${i}:/tmp/front.sh
+    scp -o "StrictHostKeyChecking=no" -r ${script_dir}/front.sh ${nodeUser}@${i}:/tmp/front.sh
   done
   rrcmd "${nodeUser}" "${remote_BASH} /tmp/front.sh" ${NODES_ALL}
 }
