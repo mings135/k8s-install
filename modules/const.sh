@@ -3,7 +3,7 @@
 GPG_DIR='/etc/apt/keyrings'
 KUBEADM_CONFIG='/etc/kubernetes'
 KUBEADM_PKI="${KUBEADM_CONFIG}/pki"
-# KUBEADM_MANIFESTS="${KUBEADM_CONFIG}/manifests"
+KUBEADM_MANIFESTS="${KUBEADM_CONFIG}/manifests"
 # KUBELET_PKI='/var/lib/kubelet/pki'
 # ETCD_DATA="/var/lib/etcd"
 KUBE_BIN="${script_dir}/bin"

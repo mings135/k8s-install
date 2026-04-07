@@ -76,6 +76,12 @@ join_cluster() {
     blue_font "${cmd}"
     ${cmd}
     result_msg "[Join] cluster as work"
+
+    # 该目录删除后, work 节点可能无法再次创建, 导致疯狂报错
+    if [[ ! -d ${KUBEADM_MANIFESTS} ]]; then
+      mkdir -p ${KUBEADM_MANIFESTS}
+      result_msg "[Create] manifests dir"
+    fi
   fi
 }
 
