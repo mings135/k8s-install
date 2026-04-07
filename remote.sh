@@ -45,7 +45,7 @@ remote_free_login() {
 
   # copy public key 到各个节点
   for i in ${remote_LOGIN_NODES}; do
-    sshpass -p "${nodePassword}" ssh-copy-id -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa.pub ${nodeUser}@${i}
+    sshpass -p "${nodePassword}" ssh-copy-id -o "StrictHostKeyChecking=no" -i ~/.ssh/id_rsa.pub ${nodeUser}@${i}
   done
 }
 
