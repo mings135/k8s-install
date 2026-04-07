@@ -16,8 +16,7 @@ source ${script_dir}/modules/check.sh
 
 # remote 变量
 remote_FLANNEL_SWITCH=0
-remote_LOGIN_SWITCH=0
-remote_LOGIN_NODES="${NODES_ALL}"
+
 if [ "${nodeUser}" = "root" ]; then
   remote_BASH='bash'
   remote_RM='rm'
@@ -25,6 +24,16 @@ else
   remote_BASH='sudo bash'
   remote_RM='sudo rm'
 fi
+
+remote_check_login() {
+  for i in ${NODES_ALL}; do
+    if ! ssh -o BatchMode=yes -o ConnectTimeout=5 ${nodeUser}@${i} "command -v rsync &>/dev/null" &>/dev/null; then
+      remote_free_login
+      remote_front_operator
+      break
+    fi
+  done
+}
 
 # 免密登录节点
 remote_free_login() {
@@ -44,15 +53,15 @@ remote_free_login() {
   fi
 
   # copy public key 到各个节点
-  for i in ${remote_LOGIN_NODES}; do
-    sshpass -p "${nodePassword}" ssh-copy-id -o "StrictHostKeyChecking=no" -i ~/.ssh/id_rsa.pub ${nodeUser}@${i}
+  for i in ${NODES_ALL}; do
+    sshpass -p "${nodePassword}" ssh-copy-id -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa.pub ${nodeUser}@${i}
   done
 }
 
 # 前置操作, 安装 rsync
 remote_front_operator() {
   for i in ${NODES_ALL}; do
-    scp -o "StrictHostKeyChecking=no" -r ${script_dir}/front.sh ${nodeUser}@${i}:/tmp/front.sh
+    scp -o StrictHostKeyChecking=no -r ${script_dir}/front.sh ${nodeUser}@${i}:/tmp/front.sh
   done
   rrcmd "${nodeUser}" "${remote_BASH} /tmp/front.sh" ${NODES_ALL}
 }
@@ -225,10 +234,6 @@ remote_etc_hosts() {
 
 # 自动部署
 remote_auto() {
-  if [ ${remote_LOGIN_SWITCH} -eq 1 ]; then
-    remote_free_login
-  fi
-  remote_front_operator # scp front.sh --> install rsync
   remote_base_install   # update hosts -> system base -> cri --> k8s
   remote_images_pull    # pull images
   remote_deploy_cluster # init m1 --> join command --> sync kube.yaml --> join cluster
@@ -253,6 +258,8 @@ remote_clean() {
 }
 
 main() {
+  remote_check_login
+
   local args_all="vars hosts auto cri upgrade clean"
   local args_m1="imglist backup"
 
@@ -312,7 +319,6 @@ main() {
       printf "%-16s %-s\n" 'clean' 'Destroy Entire K8s Cluster'
 
       blue_font "Option:"
-      printf "%-16s %-s\n" '-l string' 'Automatic ssh password-free login (all or ip)'
       printf "%-16s %-s\n" '-f' 'After installing or upgrading k8s cluster, automatically deploy(update) flannel'
       exit 1
       ;;
@@ -320,23 +326,11 @@ main() {
 }
 
 # 开头 ':' 表示不打印错误信息, 字符后面 ':' 表示需要参数
-while getopts ":a:l:f" opt; do
+while getopts ":a:f" opt; do
   case $opt in
     a)
       # OPTIND 指的下一个选项的 index
       blue_font "test: -a arg:$OPTARG index:$OPTIND"
-      ;;
-    l)
-      remote_LOGIN_SWITCH=1
-      pattern='^(([0-9]{1,3}\.){3}[0-9]{1,3}[[:space:]])*([0-9]{1,3}\.){3}[0-9]{1,3}$'
-      if [[ "$OPTARG" =~ ${pattern} ]]; then
-        remote_LOGIN_NODES="$OPTARG"
-      elif [ "$OPTARG" = "all" ] || [ "$OPTARG" = "a" ]; then
-        remote_LOGIN_NODES="${NODES_ALL}"
-      else
-        blue_font "Invalid argument: $OPTARG"
-        exit 1
-      fi
       ;;
     f)
       remote_FLANNEL_SWITCH=1
