@@ -17,7 +17,7 @@ source ${script_dir}/modules/check.sh
 # remote 变量
 remote_FLANNEL_SWITCH=0
 
-if [ "${nodeUser}" = "root" ]; then
+if [[ "${nodeUser}" == "root" ]]; then
   remote_BASH='bash'
   remote_RM='rm'
 else
@@ -27,7 +27,7 @@ fi
 
 remote_check_login() {
   for i in ${NODES_ALL}; do
-    if ! ssh -o BatchMode=yes -o ConnectTimeout=5 ${nodeUser}@${i} "command -v rsync &>/dev/null" &>/dev/null; then
+    if ! ssh -o BatchMode=yes -o ConnectTimeout=3 ${nodeUser}@${i} "command -v rsync &>/dev/null" &>/dev/null; then
       remote_free_login
       remote_front_operator
       break
@@ -38,14 +38,14 @@ remote_check_login() {
 # 免密登录节点
 remote_free_login() {
   # 密码为空时，继续手动输入
-  while [ ! ${nodePassword} ]; do
+  while [[ -z ${nodePassword} ]]; do
     blue_font "Please enter the unified password for all nodes(${nodeUser}):"
     read -s nodePassword
   done
 
   # 创建 ssh 密钥
-  if [ ! -f ~/.ssh/id_rsa.pub ]; then
-    if [ ! -f ~/.ssh/id_rsa ]; then
+  if [[ ! -f ~/.ssh/id_rsa.pub ]]; then
+    if [[ ! -f ~/.ssh/id_rsa ]]; then
       ssh-keygen -t rsa -b 2048 -f ~/.ssh/id_rsa -N ''
     else
       ssh-keygen -y -f ~/.ssh/id_rsa >~/.ssh/id_rsa.pub
@@ -258,14 +258,15 @@ remote_clean() {
 }
 
 main() {
-  remote_check_login
 
   local args_all="vars hosts auto cri upgrade clean"
   local args_m1="imglist backup"
 
   if [[ " $args_all " =~ " $1 " ]]; then
+    remote_check_login
     remote_rsync_script "${NODES_ALL}"
   elif [[ " $args_m1 " =~ " $1 " ]]; then
+    remote_check_login
     remote_rsync_script "${MASTER1_IP}"
   fi
 
