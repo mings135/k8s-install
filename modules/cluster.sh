@@ -14,7 +14,7 @@ images_pull() {
 
 # 初始化集群
 master1_init() {
-  kubeadm init --config ${KUBE_KUBEADM}
+  kubeadm init --config ${KUBE_KUBEADM} --upload-certs
   result_msg "[Init] cluster"
   cluster_config_kubectl
 
