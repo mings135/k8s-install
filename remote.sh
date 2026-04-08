@@ -24,9 +24,9 @@ else
 fi
 
 remote_cmd="${remote_sh} ${remoteScriptDir}/local.sh"
-profile_full="-u ${nodeUser} -j ${maxConcurrency} -p '^·\[.*\]$'"
-profile_low="-u ${nodeUser} -j ${minConcurrency} -p '^·\[.*\]$'"
-profile_upgrade="-u ${nodeUser} -j ${upgradeConcurrency} -p '^·\[.*\]$'"
+profile_full="-u ${nodeUser} -j ${maxConcurrency} -p '^·\\[.*\\]$'"
+profile_low="-u ${nodeUser} -j ${minConcurrency} -p '^·\\[.*\\]$'"
+profile_upgrade="-u ${nodeUser} -j ${upgradeConcurrency} -p '^·\\[.*\\]$'"
 
 remote_check_login() {
   blue_font "Checking login and rsync status..."
