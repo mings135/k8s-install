@@ -108,14 +108,14 @@ remote_rsync_own() {
 # 同步脚本文件和配置文件 $1=nodes
 remote_rsync_script() {
   local excl='--include=/modules/ --include=/modules/* --include=/bin/ --include=/bin/* --include=/config/ --include=/config/kube.yaml --include=/local.sh --exclude=*'
-  remote_rsync_nodes "[Sync] script out" "${1}" "${excl}"
+  remote_rsync_nodes "[Sync] script out to nodes" "${1}" "${excl}"
 }
 
 # 同步 master1 上的 join, kubeconfig 到非 master1 节点
 remote_rsync_kube() {
   local excl='--include=/config/ --include=/config/kube.yaml --exclude=*'
   remote_rsync_own "[Sync] kube.yaml in from master1" "${MASTER1_IP}" "${excl}"
-  remote_rsync_nodes "[Sync] kube.yaml out to other nodes" "${NODES_NOT_MASTER1}" "${excl}"
+  remote_rsync_nodes "[Sync] kube.yaml out to nodes" "${NODES_NOT_MASTER1}" "${excl}"
 }
 
 remote_rsync_backup_in() {
