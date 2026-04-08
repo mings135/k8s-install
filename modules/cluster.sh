@@ -135,18 +135,18 @@ backup_etcd() {
   result_msg "[Backup] ${app}, Max 1 backup/min"
   RES_LEVEL=0
 
-  etcdctl snapshot save ${KUBE_BACKUP}/${name} \
-    --endpoints=https://127.0.0.1:2379 \
+  etcdctl --endpoints=https://127.0.0.1:2379 \
     --cacert=${KUBEADM_PKI}/etcd/ca.crt \
     --cert=${KUBEADM_PKI}/etcd/server.crt \
     --key=${KUBEADM_PKI}/etcd/server.key \
+    snapshot save ${KUBE_BACKUP}/${name} \
     && chmod 644 ${KUBE_BACKUP}/${name} \
     && chown ${script_own}:${script_own} ${KUBE_BACKUP}/${name} \
     && set_record ".backup.${app}" "${name}"
   result_msg "[Backup] ${app}"
 }
 
-# 创建 kubeconfig token, 有效期 6h
+# 创建 kubeconfig token, 有效期 12h
 create_kubeconfig_token() {
   local expireTime="$(get_config ".kubeconfig.expireTime")"
   local now="$(date '+%s')"
@@ -155,13 +155,13 @@ create_kubeconfig_token() {
     return 0
   fi
 
-  local expire="$(date -d "+6 hours" +%s)"
-  local token="$(kubectl create token temp-admin -n kube-system --duration=6h)"
+  local expire="$(date -d "+12 hours" +%s)"
+  local token="$(kubectl create token temp-admin -n kube-system --duration=12h)"
   val1="${expire}" val2="${token}" yq -i '
     .kubeconfig.expireTime = strenv(val1) |
     .kubeconfig.token = strenv(val2)
   ' ${KUBE_FILE} && sync
-  result_msg "[Create] kubeconfig token(temp-admin 6h)"
+  result_msg "[Create] kubeconfig token(temp-admin 12h)"
 }
 
 # 配置临时的 .kube/config

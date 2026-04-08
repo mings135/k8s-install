@@ -15,7 +15,7 @@ source ${script_dir}/modules/vars.sh
 source ${script_dir}/modules/check.sh
 
 # remote 变量
-remote_FLANNEL_SWITCH=0
+cni_switch=0
 
 if [[ "${nodeUser}" == "root" ]]; then
   remote_sh='bash'
@@ -27,20 +27,6 @@ remote_cmd="${remote_sh} ${remoteScriptDir}/local.sh"
 profile_full=(-u "${nodeUser}" -j "${maxConcurrency}" -p '^·\[.*\]$')
 profile_low=(-u "${nodeUser}" -j "${minConcurrency}" -p '^·\[.*\]$')
 profile_upgrade=(-u "${nodeUser}" -j "${upgradeConcurrency}" -p '^·\[.*\]$')
-
-remote_check_login() {
-  blue_font "Checking login and rsync status..."
-
-  local output rc=0
-  output=$(rrcmd "${profile_full[@]}" -f -q -c "command -v rsync &>/dev/null" ${NODES_ALL}) || rc=$?
-
-  if [[ "$rc" -ne 0 ]]; then
-    local end="$(echo "${output}" | awk 'END{print}')"
-    remote_free_login "${end}"
-    remote_front_operator "${end}"
-  fi
-  echo
-}
 
 # 免密登录节点
 remote_free_login() {
@@ -76,6 +62,20 @@ remote_front_operator() {
   fi
 }
 
+remote_check_login() {
+  blue_font "[Check] login and rsync status..."
+
+  local output rc=0
+  output=$(rrcmd "${profile_full[@]}" -f -q -c "command -v rsync &>/dev/null" ${NODES_ALL}) || rc=$?
+
+  if [[ "$rc" -ne 0 ]]; then
+    local end="$(echo "${output}" | awk 'END{print}')"
+    remote_free_login "${end}"
+    remote_front_operator "${end}"
+  fi
+  echo
+}
+
 # rsync 同步脚本内容到多个节点, 参数 $1=message $2=nodes $3=include and exclude parm
 remote_rsync_nodes() {
   local dest
@@ -108,24 +108,24 @@ remote_rsync_own() {
 # 同步脚本文件和配置文件 $1=nodes
 remote_rsync_script() {
   local excl='--include=/modules/ --include=/modules/* --include=/bin/ --include=/bin/* --include=/config/ --include=/config/kube.yaml --include=/local.sh --exclude=*'
-  remote_rsync_nodes "Sync script out" "${1}" "${excl}"
+  remote_rsync_nodes "[Sync] script out" "${1}" "${excl}"
 }
 
 # 同步 master1 上的 join, kubeconfig 到非 master1 节点
 remote_rsync_kube() {
   local excl='--include=/config/ --include=/config/kube.yaml --exclude=*'
-  remote_rsync_own "Sync kube.yaml in from master1" "${MASTER1_IP}" "${excl}"
-  remote_rsync_nodes "Sync kube.yaml out to other nodes" "${NODES_NOT_MASTER1}" "${excl}"
+  remote_rsync_own "[Sync] kube.yaml in from master1" "${MASTER1_IP}" "${excl}"
+  remote_rsync_nodes "[Sync] kube.yaml out to other nodes" "${NODES_NOT_MASTER1}" "${excl}"
 }
 
 remote_rsync_backup_in() {
   local excl='--include=/backup/ --include=/backup/* --exclude=*'
-  remote_rsync_own "Sync backup in from master1" "${MASTER1_IP}" "${excl}"
+  remote_rsync_own "[Sync] backup in from master1" "${MASTER1_IP}" "${excl}"
 }
 
 remote_rsync_backup_out() {
   local excl='--include=/backup/ --include=/backup/* --exclude=*'
-  remote_rsync_nodes "Sync backup out to master1" "${MASTER1_IP}" "${excl}"
+  remote_rsync_nodes "[Sync] backup out to master1" "${MASTER1_IP}" "${excl}"
 }
 
 # 初始化系统
@@ -210,32 +210,32 @@ remote_clean_cluster() {
     rrcmd "${profile_full[@]}" -c "${remote_cmd} clean" ${NODES_WORK}
   fi
 
-  blue_font "Current kube.yaml:"
   yq -i '
     .join = {} |
     .kubeconfig = {}
   ' ${KUBE_FILE}
+  blue_font "[Display] Current kube.yaml:"
   yq ${KUBE_FILE}
 }
 
 # 查看所有变量
 remote_display_vars() {
-  blue_font "------ local master1 ------"
+  blue_font "------ [Display] master1 ------"
   rrcmd "${profile_low[@]}" -c "${remote_cmd} vars" ${MASTER1_IP}
 
   for i in ${NODES_MASTER}; do
-    blue_font "------ local master ------"
+    blue_font "------ [Display] master ------"
     rrcmd "${profile_low[@]}" -c "${remote_cmd} vars" ${i}
     break
   done
 
   for i in ${NODES_WORK}; do
-    blue_font "------ local work ------"
+    blue_font "------ [Display] work ------"
     rrcmd "${profile_low[@]}" -c "${remote_cmd} vars" ${i}
     break
   done
 
-  blue_font "------ remote ------"
+  blue_font "------ [Display] remote ------"
   display_vars
 }
 
@@ -253,7 +253,7 @@ remote_auto() {
   remote_base_install   # update hosts -> system base -> cri --> k8s
   remote_images_pull    # pull images
   remote_deploy_cluster # init m1 --> join command --> sync kube.yaml --> join cluster
-  if [ ${remote_FLANNEL_SWITCH} -eq 1 ]; then
+  if [ ${cni_switch} -eq 1 ]; then
     remote_deploy_flannel
   fi
   blue_font "✓ Cluster installation completed!"
@@ -305,7 +305,7 @@ main() {
 
     "upgrade")
       remote_upgrade_cluster
-      if [ ${remote_FLANNEL_SWITCH} -eq 1 ]; then
+      if [ ${cni_switch} -eq 1 ]; then
         remote_deploy_flannel
       fi
       blue_font "✔ Cluster upgrade completed!"
@@ -350,7 +350,7 @@ while getopts ":a:f" opt; do
       blue_font "test: -a arg:$OPTARG index:$OPTIND"
       ;;
     f)
-      remote_FLANNEL_SWITCH=1
+      cni_switch=1
       ;;
     :)
       blue_font "Option -$OPTARG requires an argument."
