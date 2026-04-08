@@ -13,7 +13,7 @@ KUBE_KUBEADM="${KUBE_CONF}/kubeadm-config.yaml"
 KUBE_FILE="${KUBE_CONF}/kube.yaml"
 KUBE_RECORD="${KUBE_CONF}/record.yaml"
 clusterName='kubernetes'
-maxConcurrency=64
+maxConcurrency=32
 upgradeConcurrency=1
 minConcurrency=1
 RES_LEVEL=0
@@ -64,7 +64,7 @@ const_action() {
     rc=1
     color=31
   fi
-  printf "%-${RES_COLUM}s [ \033[%sm\033[01m%s\033[0m ]\n" "$msg" "$color" "$result"
+  printf "·%-${RES_COLUM}s [ \033[%sm\033[01m%s\033[0m ]\n" "$msg" "$color" "$result"
   return $rc
 }
 
