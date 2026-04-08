@@ -30,10 +30,15 @@ profile_upgrade=(-u "${nodeUser}" -j "${upgradeConcurrency}" -p '^·\[.*\]$')
 
 remote_check_login() {
   blue_font "Checking login and rsync status..."
-  if ! rrcmd "${profile_full[@]}" -q -c "command -v rsync &>/dev/null" ${NODES_ALL}; then
-    remote_free_login
-    remote_front_operator
+
+  local output=$(rrcmd "${profile_full[@]}" -f -q -c "command -v rsync &>/dev/null" ${NODES_ALL})
+
+  if [[ "$?" -ne 0 ]]; then
+    local end="$(echo "${output}" | awk 'END{print}')"
+    remote_free_login "${end}"
+    remote_front_operator "${end}"
   fi
+  echo
 }
 
 # 免密登录节点
@@ -54,17 +59,20 @@ remote_free_login() {
   fi
 
   # copy public key 到各个节点
-  for i in ${NODES_ALL}; do
+  for i in ${1}; do
     sshpass -p "${nodePassword}" ssh-copy-id -o StrictHostKeyChecking=no -i ${HOME}/.ssh/id_rsa.pub ${nodeUser}@${i}
   done
 }
 
 # 前置操作, 安装 rsync
 remote_front_operator() {
-  for i in ${NODES_ALL}; do
+  for i in ${1}; do
     scp -o StrictHostKeyChecking=no -r ${script_dir}/front.sh ${nodeUser}@${i}:/tmp/front.sh
   done
-  rrcmd "${profile_full[@]}" -c "${remote_sh} /tmp/front.sh" ${NODES_ALL}
+
+  if [[ -n $(echo "${1}" | tr -d '[:space:]') ]]; then
+    rrcmd "${profile_full[@]}" -c "${remote_sh} /tmp/front.sh" ${1}
+  fi
 }
 
 # rsync 同步脚本内容到多个节点, 参数 $1=message $2=nodes $3=include and exclude parm
@@ -79,6 +87,7 @@ remote_rsync_nodes() {
     dest="${nodeUser}@${i}:${remoteScriptDir}/"
     rsync ${parm} ${excl} ${src} ${dest}
   done
+  echo
 }
 
 # rsync 被某个节点同步, 参数 $1=message $2=node $3=include and exclude parm
@@ -92,6 +101,7 @@ remote_rsync_own() {
   blue_font "$1: ${i}"
   dest="${nodeUser}@${i}:${remoteScriptDir}/"
   rsync ${parm} ${excl} ${dest} ${src}
+  echo
 }
 
 # 同步脚本文件和配置文件 $1=nodes
