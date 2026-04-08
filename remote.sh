@@ -31,7 +31,8 @@ profile_upgrade=(-u "${nodeUser}" -j "${upgradeConcurrency}" -p '^·\[.*\]$')
 remote_check_login() {
   blue_font "Checking login and rsync status..."
 
-  local output=$(rrcmd "${profile_full[@]}" -f -q -c "command -v rsync &>/dev/null" ${NODES_ALL})
+  local local output
+  output=$(rrcmd "${profile_full[@]}" -f -q -c "command -v rsync &>/dev/null" ${NODES_ALL})
 
   if [[ "$?" -ne 0 ]]; then
     local end="$(echo "${output}" | awk 'END{print}')"
