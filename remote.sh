@@ -26,13 +26,18 @@ else
 fi
 
 remote_check_login() {
-  for i in ${NODES_ALL}; do
-    if ! ssh -o BatchMode=yes -o ConnectTimeout=3 ${nodeUser}@${i} "command -v rsync &>/dev/null" &>/dev/null; then
-      remote_free_login
-      remote_front_operator
-      break
-    fi
-  done
+  if ! rrcmd -u ${nodeUser} -q -j ${maxConcurrency} -c "command -v rsync &>/dev/null" ${NODES_ALL}; then
+    remote_free_login
+    remote_front_operator
+  fi
+
+  # for i in ${NODES_ALL}; do
+  #   if ! ssh -o BatchMode=yes -o ConnectTimeout=3 ${nodeUser}@${i} "command -v rsync &>/dev/null" &>/dev/null; then
+  #     remote_free_login
+  #     remote_front_operator
+  #     break
+  #   fi
+  # done
 }
 
 # 免密登录节点
@@ -63,7 +68,8 @@ remote_front_operator() {
   for i in ${NODES_ALL}; do
     scp -o StrictHostKeyChecking=no -r ${script_dir}/front.sh ${nodeUser}@${i}:/tmp/front.sh
   done
-  rrcmd "${nodeUser}" "${remote_BASH} /tmp/front.sh" ${NODES_ALL}
+  # rrcmd "${nodeUser}" "${remote_BASH} /tmp/front.sh" ${NODES_ALL}
+  rrcmd -u ${nodeUser} -j ${maxConcurrency} -c "${remote_BASH} /tmp/front.sh" ${NODES_ALL}
 }
 
 # rsync 同步脚本内容到多个节点, 参数 $1=message $2=nodes $3=include and exclude parm
@@ -118,67 +124,101 @@ remote_rsync_backup_out() {
 
 # 初始化系统
 remote_base_install() {
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh install" ${NODES_ALL}
+  # rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh install" ${NODES_ALL}
+  rrcmd -u ${nodeUser} -j ${maxConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh install" ${NODES_ALL}
 }
 
 # 拉取所需 images
 remote_images_pull() {
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh imgpull" ${NODES_MASTER1_MASTER}
+  # rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh imgpull" ${NODES_MASTER1_MASTER}
+  rrcmd -u ${nodeUser} -j ${maxConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh imgpull" ${NODES_MASTER1_MASTER}
 }
 
 # 安装集群
 remote_deploy_cluster() {
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh init" ${MASTER1_IP}
+  # rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh init" ${MASTER1_IP}
+  rrcmd -u ${nodeUser} -j ${minConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh init" ${MASTER1_IP}
+
   sleep 1
   remote_rsync_kube
   sleep 1
-  for i in ${NODES_NOT_MASTER1}; do
-    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh join" ${i}
-  done
+
+  if [[ -n $(echo "${NODES_MASTER}" | tr -d '[:space:]') ]]; then
+    rrcmd -u ${nodeUser} -j ${minConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh join" ${NODES_MASTER}
+  fi
+
+  if [[ -n $(echo "${NODES_WORK}" | tr -d '[:space:]') ]]; then
+    rrcmd -u ${nodeUser} -j ${maxConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh join" ${NODES_WORK}
+  fi
+
+  # for i in ${NODES_NOT_MASTER1}; do
+  #   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh join" ${i}
+  # done
 }
 
 # 部署 flannel
 remote_deploy_flannel() {
   sleep 1
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh flannel" ${MASTER1_IP}
+  # rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh flannel" ${MASTER1_IP}
+  rrcmd -u ${nodeUser} -j ${minConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh flannel" ${MASTER1_IP}
 }
 
 # 升级 cri
 remote_upgrade_cri() {
-  for i in ${NODES_MASTER1_MASTER}; do
-    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh cri" ${i}
-  done
 
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh token" ${MASTER1_IP}
+  rrcmd -u ${nodeUser} -j ${minConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh cri" ${NODES_MASTER1_MASTER}
+  rrcmd -u ${nodeUser} -j ${minConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh token" ${MASTER1_IP}
+
+  # for i in ${NODES_MASTER1_MASTER}; do
+  #   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh cri" ${i}
+  # done
+
+  # rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh token" ${MASTER1_IP}
+
   sleep 1
   remote_rsync_kube
   sleep 1
-  for i in ${NODES_WORK}; do
-    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh context cri" ${i}
-  done
+  if [[ -n $(echo "${NODES_WORK}" | tr -d '[:space:]') ]]; then
+    rrcmd -u ${nodeUser} -j ${upgradeConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh context cri" ${NODES_WORK}
+  fi
+
+  # for i in ${NODES_WORK}; do
+  #   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh context cri" ${i}
+  # done
 }
 
 # 升级 cluster
 remote_upgrade_cluster() {
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh upgrade" ${MASTER1_IP}
+  # rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh upgrade" ${MASTER1_IP}
+  rrcmd -u ${nodeUser} -j ${minConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh upgrade" ${MASTER1_IP}
 
-  for i in ${NODES_MASTER}; do
-    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh upgrade" ${i}
-  done
+  if [[ -n $(echo "${NODES_MASTER}" | tr -d '[:space:]') ]]; then
+    rrcmd -u ${nodeUser} -j ${minConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh upgrade" ${NODES_MASTER}
+  fi
 
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh token" ${MASTER1_IP}
+  # for i in ${NODES_MASTER}; do
+  #   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh upgrade" ${i}
+  # done
+
+  # rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh token" ${MASTER1_IP}
+  rrcmd -u ${nodeUser} -j ${minConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh token" ${MASTER1_IP}
   sleep 1
   remote_rsync_kube
   sleep 1
-  for i in ${NODES_WORK}; do
-    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh context upgrade" ${i}
-  done
+  if [[ -n $(echo "${NODES_WORK}" | tr -d '[:space:]') ]]; then
+    rrcmd -u ${nodeUser} -j ${upgradeConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh context upgrade" ${NODES_WORK}
+  fi
+
+  # for i in ${NODES_WORK}; do
+  #   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh context upgrade" ${i}
+  # done
 }
 
 # 备份 etcd
 remote_backup_cluster() {
   remote_rsync_backup_out
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${MASTER1_IP}
+  # rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${MASTER1_IP}
+  rrcmd -u ${nodeUser} -j ${minConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh backup" ${MASTER1_IP}
   sleep 1
   remote_rsync_backup_in
 }
@@ -187,12 +227,15 @@ remote_backup_cluster() {
 remote_clean_cluster() {
   blue_font "Clean nodes: ${i}"
 
-  for i in ${NODES_MASTER1_MASTER}; do
-    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${i}
-  done
+  # for i in ${NODES_MASTER1_MASTER}; do
+  #   rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${i}
+  # done
+
+  rrcmd -u ${nodeUser} -j ${minConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${NODES_MASTER1_MASTER}
 
   if [[ -n $(echo "${NODES_WORK}" | tr -d '[:space:]') ]]; then
-    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${NODES_WORK}
+    # rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${NODES_WORK}
+    rrcmd -u ${nodeUser} -j ${maxConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh clean" ${NODES_WORK}
   fi
 
   yq -i '
@@ -205,17 +248,20 @@ remote_clean_cluster() {
 # 查看所有变量
 remote_display_vars() {
   blue_font "------ local master1 ------"
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${MASTER1_IP}
+  # rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${MASTER1_IP}
+  rrcmd -u ${nodeUser} -j ${minConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${MASTER1_IP}
 
   for i in ${NODES_MASTER}; do
     blue_font "------ local master ------"
-    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${i}
+    # rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${i}
+    rrcmd -u ${nodeUser} -j ${minConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${i}
     break
   done
 
   for i in ${NODES_WORK}; do
     blue_font "------ local work ------"
-    rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${i}
+    # rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${i}
+    rrcmd -u ${nodeUser} -j ${minConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh vars" ${i}
     break
   done
 
@@ -225,11 +271,13 @@ remote_display_vars() {
 
 # 查看所需 images
 remote_images_list() {
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh imglist" ${MASTER1_IP}
+  # rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh imglist" ${MASTER1_IP}
+  rrcmd -u ${nodeUser} -j ${minConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh imglist" ${MASTER1_IP}
 }
 
 remote_etc_hosts() {
-  rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh hosts" ${NODES_ALL}
+  # rrcmd "${nodeUser}" "${remote_BASH} ${remoteScriptDir}/local.sh hosts" ${NODES_ALL}
+  rrcmd -u ${nodeUser} -j ${maxConcurrency} -c "${remote_BASH} ${remoteScriptDir}/local.sh hosts" ${NODES_ALL}
 }
 
 # 自动部署
