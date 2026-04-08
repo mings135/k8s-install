@@ -24,13 +24,13 @@ else
 fi
 
 remote_cmd="${remote_sh} ${remoteScriptDir}/local.sh"
-profile_full="-u ${nodeUser} -j ${maxConcurrency} -p '^·\\[.*\\]$'"
-profile_low="-u ${nodeUser} -j ${minConcurrency} -p '^·\\[.*\\]$'"
-profile_upgrade="-u ${nodeUser} -j ${upgradeConcurrency} -p '^·\\[.*\\]$'"
+profile_full=(-u "${nodeUser}" -j "${maxConcurrency}" -p '^·\[.*\]$')
+profile_low=(-u "${nodeUser}" -j "${minConcurrency}" -p '^·\[.*\]$')
+profile_upgrade=(-u "${nodeUser}" -j "${upgradeConcurrency}" -p '^·\[.*\]$')
 
 remote_check_login() {
   blue_font "Checking login and rsync status..."
-  if ! rrcmd ${profile_full} -q -c "command -v rsync &>/dev/null" ${NODES_ALL}; then
+  if ! rrcmd "${profile_full[@]}" -q -c "command -v rsync &>/dev/null" ${NODES_ALL}; then
     remote_free_login
     remote_front_operator
   fi
@@ -64,7 +64,7 @@ remote_front_operator() {
   for i in ${NODES_ALL}; do
     scp -o StrictHostKeyChecking=no -r ${script_dir}/front.sh ${nodeUser}@${i}:/tmp/front.sh
   done
-  rrcmd ${profile_full} -c "${remote_sh} /tmp/front.sh" ${NODES_ALL}
+  rrcmd "${profile_full[@]}" -c "${remote_sh} /tmp/front.sh" ${NODES_ALL}
 }
 
 # rsync 同步脚本内容到多个节点, 参数 $1=message $2=nodes $3=include and exclude parm
@@ -119,84 +119,84 @@ remote_rsync_backup_out() {
 
 # 初始化系统
 remote_base_install() {
-  rrcmd ${profile_full} -c "${remote_cmd} install" ${NODES_ALL}
+  rrcmd "${profile_full[@]}" -c "${remote_cmd} install" ${NODES_ALL}
 }
 
 # 拉取所需 images
 remote_images_pull() {
-  rrcmd ${profile_full} -c "${remote_cmd} imgpull" ${NODES_MASTER1_MASTER}
+  rrcmd "${profile_full[@]}" -c "${remote_cmd} imgpull" ${NODES_MASTER1_MASTER}
 }
 
 # 安装集群
 remote_deploy_cluster() {
 
-  rrcmd ${profile_low} -c "${remote_cmd} init" ${MASTER1_IP}
+  rrcmd "${profile_low[@]}" -c "${remote_cmd} init" ${MASTER1_IP}
   sleep 1
   remote_rsync_kube
   sleep 1
 
   if [[ -n $(echo "${NODES_MASTER}" | tr -d '[:space:]') ]]; then
-    rrcmd ${profile_low} -c "${remote_cmd} join" ${NODES_MASTER}
+    rrcmd "${profile_low[@]}" -c "${remote_cmd} join" ${NODES_MASTER}
   fi
 
   if [[ -n $(echo "${NODES_WORK}" | tr -d '[:space:]') ]]; then
-    rrcmd ${profile_full} -c "${remote_cmd} join" ${NODES_WORK}
+    rrcmd "${profile_full[@]}" -c "${remote_cmd} join" ${NODES_WORK}
   fi
 }
 
 # 部署 flannel
 remote_deploy_flannel() {
   sleep 1
-  rrcmd ${profile_low} -c "${remote_cmd} flannel" ${MASTER1_IP}
+  rrcmd "${profile_low[@]}" -c "${remote_cmd} flannel" ${MASTER1_IP}
 }
 
 # 升级 cri
 remote_upgrade_cri() {
 
-  rrcmd ${profile_low} -c "${remote_cmd} cri" ${NODES_MASTER1_MASTER}
+  rrcmd "${profile_low[@]}" -c "${remote_cmd} cri" ${NODES_MASTER1_MASTER}
 
-  rrcmd ${profile_low} -c "${remote_cmd} token" ${MASTER1_IP}
+  rrcmd "${profile_low[@]}" -c "${remote_cmd} token" ${MASTER1_IP}
   sleep 1
   remote_rsync_kube
   sleep 1
 
   if [[ -n $(echo "${NODES_WORK}" | tr -d '[:space:]') ]]; then
-    rrcmd ${profile_upgrade} -c "${remote_cmd} context cri" ${NODES_WORK}
+    rrcmd "${profile_upgrade[@]}" -c "${remote_cmd} context cri" ${NODES_WORK}
   fi
 }
 
 # 升级 cluster
 remote_upgrade_cluster() {
-  rrcmd ${profile_low} -c "${remote_cmd} upgrade" ${MASTER1_IP}
+  rrcmd "${profile_low[@]}" -c "${remote_cmd} upgrade" ${MASTER1_IP}
 
   if [[ -n $(echo "${NODES_MASTER}" | tr -d '[:space:]') ]]; then
-    rrcmd ${profile_low} -c "${remote_cmd} upgrade" ${NODES_MASTER}
+    rrcmd "${profile_low[@]}" -c "${remote_cmd} upgrade" ${NODES_MASTER}
   fi
 
-  rrcmd ${profile_low} -c "${remote_cmd} token" ${MASTER1_IP}
+  rrcmd "${profile_low[@]}" -c "${remote_cmd} token" ${MASTER1_IP}
   sleep 1
   remote_rsync_kube
   sleep 1
 
   if [[ -n $(echo "${NODES_WORK}" | tr -d '[:space:]') ]]; then
-    rrcmd ${profile_upgrade} -c "${remote_cmd} context upgrade" ${NODES_WORK}
+    rrcmd "${profile_upgrade[@]}" -c "${remote_cmd} context upgrade" ${NODES_WORK}
   fi
 }
 
 # 备份 etcd
 remote_backup_cluster() {
   remote_rsync_backup_out
-  rrcmd ${profile_low} -c "${remote_cmd} backup" ${MASTER1_IP}
+  rrcmd "${profile_low[@]}" -c "${remote_cmd} backup" ${MASTER1_IP}
   sleep 1
   remote_rsync_backup_in
 }
 
 # 删除整个集群
 remote_clean_cluster() {
-  rrcmd ${profile_low} -c "${remote_cmd} clean" ${NODES_MASTER1_MASTER}
+  rrcmd "${profile_low[@]}" -c "${remote_cmd} clean" ${NODES_MASTER1_MASTER}
 
   if [[ -n $(echo "${NODES_WORK}" | tr -d '[:space:]') ]]; then
-    rrcmd ${profile_full} -c "${remote_cmd} clean" ${NODES_WORK}
+    rrcmd "${profile_full[@]}" -c "${remote_cmd} clean" ${NODES_WORK}
   fi
 
   blue_font "Current kube.yaml:"
@@ -210,17 +210,17 @@ remote_clean_cluster() {
 # 查看所有变量
 remote_display_vars() {
   blue_font "------ local master1 ------"
-  rrcmd ${profile_low} -c "${remote_cmd} vars" ${MASTER1_IP}
+  rrcmd "${profile_low[@]}" -c "${remote_cmd} vars" ${MASTER1_IP}
 
   for i in ${NODES_MASTER}; do
     blue_font "------ local master ------"
-    rrcmd ${profile_low} -c "${remote_cmd} vars" ${i}
+    rrcmd "${profile_low[@]}" -c "${remote_cmd} vars" ${i}
     break
   done
 
   for i in ${NODES_WORK}; do
     blue_font "------ local work ------"
-    rrcmd ${profile_low} -c "${remote_cmd} vars" ${i}
+    rrcmd "${profile_low[@]}" -c "${remote_cmd} vars" ${i}
     break
   done
 
@@ -230,11 +230,11 @@ remote_display_vars() {
 
 # 查看所需 images
 remote_images_list() {
-  rrcmd ${profile_low} -c "${remote_cmd} imglist" ${MASTER1_IP}
+  rrcmd "${profile_low[@]}" -c "${remote_cmd} imglist" ${MASTER1_IP}
 }
 
 remote_etc_hosts() {
-  rrcmd ${profile_full} -c "${remote_cmd} hosts" ${NODES_ALL}
+  rrcmd "${profile_full[@]}" -c "${remote_cmd} hosts" ${NODES_ALL}
 }
 
 # 自动部署
