@@ -70,7 +70,7 @@ remote_front_operator() {
   for i in ${1}; do
     scp -o StrictHostKeyChecking=no -r ${script_dir}/front.sh ${nodeUser}@${i}:/tmp/front.sh
   done
-
+  echo
   if [[ -n $(echo "${1}" | tr -d '[:space:]') ]]; then
     rrcmd "${profile_full[@]}" -c "${remote_sh} /tmp/front.sh" ${1}
   fi

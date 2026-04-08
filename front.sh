@@ -34,7 +34,7 @@ const_action() {
     rc=1
     color=31
   fi
-  printf "%-${RES_COLUM}s [ \033[%sm\033[01m%s\033[0m ]\n" "$msg" "$color" "$result"
+  printf "·%-${RES_COLUM}s [ \033[%sm\033[01m%s\033[0m ]\n" "$msg" "$color" "$result"
   return $rc
 }
 
