@@ -202,6 +202,16 @@ remote_backup_cluster() {
   remote_rsync_backup_in
 }
 
+remote_delete_nodes() {
+  rrcmd "${profile_low[@]}" -c "${remote_cmd} delete" ${MASTER1_IP}
+
+  if [[ -n "${DELETE_WORKS}" ]]; then
+    rrcmd "${profile_full[@]}" -c "${remote_cmd} clean" ${DELETE_WORKS}
+  fi
+  sleep 1
+  remote_rsync_kube
+}
+
 # 删除整个集群
 remote_clean_cluster() {
   rrcmd "${profile_low[@]}" -c "${remote_cmd} clean" ${NODES_MASTER1_MASTER}
@@ -316,6 +326,7 @@ main() {
       blue_font "✔ Cluster backup completed!"
       ;;
 
+    "delete") remote_delete_nodes ;;
     "clean") remote_clean ;;
     *)
       echo ''
@@ -333,6 +344,7 @@ main() {
 
       printf "%-16s %-s\n" 'backup' 'Backup containerd kubernetes and etcd'
 
+      printf "%-16s %-s\n" 'delete' 'Delete with work nodes by tag'
       printf "%-16s %-s\n" 'clean' 'Destroy Entire K8s Cluster'
 
       blue_font "Option:"

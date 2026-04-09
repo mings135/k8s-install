@@ -14,6 +14,10 @@ images_pull() {
 
 # 初始化集群
 master1_init() {
+  if [[ "${HOST_ROLE}" != "master1" ]]; then
+    return 0
+  fi
+
   kubeadm init --config ${KUBE_KUBEADM} --upload-certs
   result_msg "[Init] cluster"
   cluster_config_kubectl
@@ -46,7 +50,7 @@ create_join_command() {
   local expireTime="$(get_config ".join.expireTime")"
   local now="$(date '+%s')"
   expireTime=${expireTime:-0}
-  if [[ "${now}" -le "${expireTime}" ]]; then
+  if [[ "${now}" -le "${expireTime}" ]] || [[ "${HOST_ROLE}" != "master1" ]]; then
     return 0
   fi
 
@@ -149,7 +153,7 @@ create_kubeconfig_token() {
   local expireTime="$(get_config ".kubeconfig.expireTime")"
   local now="$(date '+%s')"
   expireTime=${expireTime:-0}
-  if [[ "${now}" -le "${expireTime}" ]]; then
+  if [[ "${now}" -le "${expireTime}" ]] || [[ "${HOST_ROLE}" != "master1" ]]; then
     return 0
   fi
 
@@ -165,6 +169,11 @@ create_kubeconfig_token() {
 # 配置临时的 .kube/config
 config_user_context() {
   local token=$(get_config ".kubeconfig.token")
+
+  if [[ "${HOST_ROLE}" != "work" ]] || [[ -z "${token}" ]]; then
+    return 0
+  fi
+
   kubectl config set-cluster ${clusterName} --server=https://192.168.11.50:6443 --insecure-skip-tls-verify \
     && kubectl config set-credentials temp-admin --token="${token}" \
     && kubectl config set-context temp-admin@${clusterName} --cluster=${clusterName} --user=temp-admin \
@@ -172,7 +181,29 @@ config_user_context() {
   result_msg "[Config] kubeconfig(temp-admin)"
 }
 
-delete_node() {
-  kubectl delete node ${HOST_NAME}
-  result_msg "[Delete] node ${HOST_NAME}"
+cluster_delete_works() {
+  if [[ "${HOST_ROLE}" != "master1" ]] || [[ -z "${DELETE_WORKS}" ]]; then
+    return 0
+  fi
+
+  local domain addr
+  for i in ${DELETE_WORKS}; do
+    addr="${i#*=}"
+    domain="${i%=*}"
+    if kubectl get node ${domain} &>/dev/null; then
+      # Drain and delete node
+      kubectl drain ${domain} --ignore-daemonsets --delete-emptydir-data
+      result_msg "[Drain] node ${domain}"
+      kubectl delete node ${domain}
+      result_msg "[Delete] node ${domain}"
+    fi
+    # Delete config with address
+    val1="${addr}" yq -i 'del(.nodes.work[] | select(.address == strenv(val1))' ${KUBE_FILE}
+    result_msg "[Delete] config with ${addr}"
+  done
+  sync
+}
+
+delete_nodes() {
+  cluster_delete_works
 }

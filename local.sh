@@ -189,6 +189,7 @@ main() {
       backup_etcd
       ;;
 
+    "delete") delete_nodes ;;
     "clean") local_clean_node ;;
     *)
       printf "Usage: bash $0 [ ? ] \n"
