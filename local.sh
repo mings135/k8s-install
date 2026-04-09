@@ -159,7 +159,7 @@ local_clean_node() {
 
   # 删除相关目录、文件
   rm -rf /etc/cni/net.d /root/.kube/config
-  result_msg "[Delete] /etc/cni/net.d"
+  result_msg "[Delete] /etc/cni/net.d .kube/config"
 
   find ${script_dir} -mindepth 1 -maxdepth 1 | xargs rm -rf
   result_msg "[Delete] ${script_dir}/*"

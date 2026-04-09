@@ -14,7 +14,6 @@ KUBE_FILE="${KUBE_CONF}/kube.yaml"
 KUBE_RECORD="${KUBE_CONF}/record.yaml"
 clusterName='kubernetes'
 maxConcurrency=32
-upgradeConcurrency=1
 minConcurrency=1
 RES_LEVEL=0
 RES_COLUM=50
