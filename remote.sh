@@ -285,7 +285,7 @@ remote_clean() {
 
 main() {
 
-  local args_all="vars hosts auto cri upgrade clean"
+  local args_all="vars hosts auto cri upgrade delete clean"
   local args_m1="imglist backup"
 
   if [[ " $args_all " =~ " $1 " ]]; then
