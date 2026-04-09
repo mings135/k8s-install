@@ -55,8 +55,8 @@ git clone https://github.com/mings135/k8s-install.git
 # 进入 k8s-install
 cd k8s-install
 
-# 自动安装(-f 部署 flannel, -la 免密登录, 如无配置文件, 将自动生成极简配置, 参考 example.yaml)
-bash remote.sh -fla auto
+# 自动安装(-f 部署 flannel, 如无配置文件, 将自动生成极简配置, 参考 example.yaml)
+bash remote.sh -f auto
 ```
 
 
@@ -75,7 +75,7 @@ container:
 
 
 
-升级容器运行时
+升级 CRI
 
 - 如果出错，手动解决问题后继续运行 `cri` 即可
 
@@ -138,18 +138,33 @@ nodes:
 - 如果出错，手动解决问题后继续运行 `auto`
 
 ```shell
-bash remote.sh -l "192.168.11.55 192.168.11.56 192.168.11.57" auto
+bash remote.sh auto
 ```
 
 
 
-## Other
+## Delete node
 
-后续功能
+修改配置 config/kube.yaml
 
-- 配置后，可以自动删除节点
-- 尝试增加 cilium
-- 节点并发更新
+```yaml
+nodes:
+  work:
+  - domain: w2.k8s
+    address: 192.168.11.57
+    delete: true
+    ...
+```
+
+
+
+删除 work 节点
+
+```shell
+bash remote.sh delete
+```
+
+
 
 
 
