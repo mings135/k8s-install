@@ -4,15 +4,17 @@ vars_by_master1() {
   # 配置文件中获取 master1 变量
   MASTER1_IP="$(get_config ".nodes.master1.address")"
   MASTER1_NAME="$(get_config ".nodes.master1.domain")"
+
+  DELETE_WORKS="$(yq '[.nodes.work[] | select(.delete == true) | .domain + "=" + .address] | join(" ")' ${KUBE_FILE})"
 }
 
 vars_by_nodes() {
   # 从配置文件中获取 nodes 信息，并分类
   NODES_MASTER="$(yq -M '[.nodes.master[].address] | join(" ")' ${KUBE_FILE})"
   NODES_WORK="$(yq -M '[.nodes.work[].address] | join(" ")' ${KUBE_FILE})"
-  NODES_ALL="${MASTER1_IP} ${NODES_MASTER} ${NODES_WORK}"
-  NODES_NOT_MASTER1="${NODES_MASTER} ${NODES_WORK}"
-  NODES_MASTER1_MASTER="${MASTER1_IP} ${NODES_MASTER}"
+  read -rd '' NODES_ALL <<<"${MASTER1_IP} ${NODES_MASTER} ${NODES_WORK}"
+  read -rd '' NODES_NOT_MASTER1 <<<"${NODES_MASTER} ${NODES_WORK}"
+  read -rd '' NODES_MASTER1_MASTER <<<"${MASTER1_IP} ${NODES_MASTER}"
 }
 
 vars_by_localhost() {

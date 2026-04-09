@@ -136,7 +136,7 @@ yellow_font() {
 }
 
 get_config() {
-  yq -M "$1 // \"\"" "${KUBE_FILE}"
+  yq -M "$1 + \"\" // \"\"" "${KUBE_FILE}"
 }
 
 set_config() {
@@ -154,7 +154,7 @@ kind_config() {
 }
 
 get_record() {
-  yq -M "$1 // \"\"" "${KUBE_RECORD}"
+  yq -M "$1 + \"\" // \"\"" "${KUBE_RECORD}"
 }
 
 set_record() {
@@ -254,9 +254,8 @@ const_create_base_config() {
       . head_comment = "配置文件, 安装升级, 增删节点, 与集群同步, 请勿随意修改!!!"
     ' >${KUBE_FILE}
 
-    blue_font "[Create] config file" ": ${KUBE_FILE}"
+    blue_font "[Create] config file" ": ${KUBE_FILE}, modify it and re-run script"
     yq ${KUBE_FILE}
-    blue_font "[Tip] modify config" ": vi ${KUBE_FILE} and re-run the script"
     exit 0
   fi
 }

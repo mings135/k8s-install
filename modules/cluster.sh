@@ -171,3 +171,8 @@ config_user_context() {
     && kubectl config use-context temp-admin@${clusterName}
   result_msg "[Config] kubeconfig(temp-admin)"
 }
+
+delete_node() {
+  kubectl delete node ${HOST_NAME}
+  result_msg "[Delete] node ${HOST_NAME}"
+}
