@@ -62,6 +62,7 @@ remote_front_operator() {
   fi
 }
 
+# 检查 login 和 rsync 状态, 并自动处理
 remote_check_login() {
   blue_font "[Check] login and rsync status..."
 
@@ -111,18 +112,20 @@ remote_rsync_script() {
   remote_rsync_nodes "[Sync] script out to nodes" "${NODES_ALL}" "${excl}"
 }
 
-# 同步 master1 上的 join, kubeconfig 到非 master1 节点
+# 同步 master1 上的 kube.yaml 到各个节点
 remote_rsync_kube() {
   local excl='--include=/config/ --include=/config/kube.yaml --exclude=*'
   remote_rsync_own "[Sync] kube.yaml in from master1" "${MASTER1_IP}" "${excl}"
   remote_rsync_nodes "[Sync] kube.yaml out to nodes" "${NODES_NOT_MASTER1}" "${excl}"
 }
 
+# 同步 master1 上的 backup 到 devops
 remote_rsync_backup_in() {
   local excl='--include=/backup/ --include=/backup/* --exclude=*'
   remote_rsync_own "[Sync] backup in from master1" "${MASTER1_IP}" "${excl}"
 }
 
+# 同步 devops 上的 backup 到 master1
 remote_rsync_backup_out() {
   local excl='--include=/backup/ --include=/backup/* --exclude=*'
   remote_rsync_nodes "[Sync] backup out to master1" "${MASTER1_IP}" "${excl}"
@@ -202,11 +205,16 @@ remote_backup_cluster() {
   remote_rsync_backup_in
 }
 
+# 删除节点
 remote_delete_nodes() {
   rrcmd "${profile_low[@]}" -c "${remote_cmd} delete" ${MASTER1_IP}
 
   if [[ -n "${DELETE_WORKS}" ]]; then
-    rrcmd "${profile_full[@]}" -c "${remote_cmd} clean" ${DELETE_WORKS}
+    local works
+    for i in ${NODES_WORK}; do
+      works+="${i#*=} "
+    done
+    rrcmd "${profile_full[@]}" -c "${remote_cmd} clean" ${works}
   fi
   sleep 1
   remote_rsync_kube
@@ -249,11 +257,12 @@ remote_display_vars() {
   display_vars
 }
 
+# 更新 /etc/hosts
 remote_etc_hosts() {
   rrcmd "${profile_full[@]}" -c "${remote_cmd} hosts" ${NODES_ALL}
 }
 
-# 自动部署
+# 自动部署 cluster
 remote_auto() {
   remote_base_install   # update hosts -> system base -> cri --> k8s
   remote_images_pull    # pull images
@@ -264,7 +273,7 @@ remote_auto() {
   blue_font "✔ Cluster installation completed!"
 }
 
-# 清除整个集群
+# 自动清理 cluster
 remote_clean() {
   yellow_font "[Warning]: This will destroy the entire cluster. Proceed?(y/n):"
   read confirm_yn
@@ -278,7 +287,8 @@ remote_clean() {
   fi
 }
 
-remote_readme() {
+# 显示帮助
+remote_help() {
   echo ''
   printf "Usage: bash $0 [ option ] [ ? ] \n"
   blue_font "Command:"
@@ -338,7 +348,7 @@ main() {
 
     "delete") remote_delete_nodes ;;
     "clean") remote_clean ;;
-    *) remote_readme ;;
+    *) remote_help ;;
   esac
 }
 
@@ -353,7 +363,7 @@ while getopts ":a:fh" opt; do
       cni_switch=1
       ;;
     h)
-      remote_readme
+      remote_help
       ;;
     :)
       blue_font "Option -$OPTARG requires an argument."
