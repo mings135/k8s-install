@@ -112,7 +112,7 @@ vars_by_default() {
 # 安装必要的前置工具(2)
 vars_install_dependencies() {
   if [[ ! -f ${KUBE_BIN}/etcdctl ]] || [[ "$(etcdctl version | awk '/etcdctl version/{print $3}')" != "${etcdctlVersion}" ]]; then
-    blue_font "[Download] etcdctl to ${KUBE_BIN}"
+    blue_font "[Download] save file" ": ${KUBE_BIN}/etcdctl"
     curl -fsSL -o /tmp/etcd-linux-amd64.tar.gz https://github.com/etcd-io/etcd/releases/download/v${etcdctlVersion}/etcd-v${etcdctlVersion}-linux-amd64.tar.gz \
       && rm -rf /tmp/etcd-download-test && mkdir -p /tmp/etcd-download-test \
       && tar xzf /tmp/etcd-linux-amd64.tar.gz -C /tmp/etcd-download-test --strip-components=1 \
@@ -169,14 +169,14 @@ display_vars() {
   # record.yaml
   if [[ -f "${KUBE_RECORD}" ]]; then
     echo ''
-    blue_font "${KUBE_RECORD}"
+    blue_font "[Display] config file" ": ${KUBE_RECORD}"
     yq ${KUBE_RECORD}
   fi
 
   # kubeadm-config.yaml
   if [[ "${HOST_ROLE}" == "master1" ]] && [[ -f "${KUBE_KUBEADM}" ]]; then
     echo ''
-    blue_font "${KUBE_KUBEADM}"
+    blue_font "[Display] config file" ": ${KUBE_KUBEADM}"
     yq ${KUBE_KUBEADM}
   fi
 
@@ -184,7 +184,7 @@ display_vars() {
   local file='/etc/hosts'
   if [[ "${HOST_ROLE}" == "master1" ]] && [[ -f "${file}" ]]; then
     echo ''
-    blue_font "${file}"
+    blue_font "[Display] config file" ": ${file}"
     cat ${file}
   fi
 
@@ -192,7 +192,7 @@ display_vars() {
   file='/etc/containerd/config.toml'
   if [[ "${HOST_ROLE}" == "master1" ]] && [[ -f "${file}" ]]; then
     echo ''
-    blue_font "${file}"
+    blue_font "[Display] part of config" ": ${file}"
     sed -n '/sandbox.*pause/p' ${file}
     sed -n '/runtimes\.runc\.options/,/SystemdCgroup =/p' ${file}
   fi
@@ -201,7 +201,7 @@ display_vars() {
   file='/etc/crictl.yaml'
   if [[ "${HOST_ROLE}" == "master1" ]] && [[ -f "${file}" ]]; then
     echo ''
-    blue_font "${file}"
+    blue_font "[Display] config file" ": ${file}"
     yq ${file}
   fi
 }

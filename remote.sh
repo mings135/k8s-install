@@ -32,7 +32,7 @@ profile_upgrade=(-u "${nodeUser}" -j "${upgradeConcurrency}" -p '^·\[.*\]$')
 remote_free_login() {
   # 密码为空时，继续手动输入
   while [[ -z ${nodePassword} ]]; do
-    blue_font "Please enter the unified password for all nodes(${nodeUser}):"
+    blue_font "[Input] unified password for all nodes(${nodeUser}):"
     read -s nodePassword
   done
 
@@ -84,7 +84,7 @@ remote_rsync_nodes() {
   local src="${script_dir}/"
 
   for i in $2; do
-    blue_font "$1: ${i}"
+    blue_font "$1" ": ${i}"
     dest="${nodeUser}@${i}:${remoteScriptDir}/"
     rsync ${parm} ${excl} ${src} ${dest}
   done
@@ -99,7 +99,7 @@ remote_rsync_own() {
   local src="${script_dir}/"
   local i="$2"
 
-  blue_font "$1: ${i}"
+  blue_font "$1" ": ${i}"
   dest="${nodeUser}@${i}:${remoteScriptDir}/"
   rsync ${parm} ${excl} ${dest} ${src}
   echo
@@ -214,28 +214,28 @@ remote_clean_cluster() {
     .join = {} |
     .kubeconfig = {}
   ' ${KUBE_FILE}
-  blue_font "[Display] Current kube.yaml:"
+  blue_font "[Display] current config" ": ${KUBE_FILE}"
   yq ${KUBE_FILE}
 }
 
 # 查看所有变量
 remote_display_vars() {
-  blue_font "------ [Display] master1 ------"
+  blue_font "------ [Display] master1 vars ------"
   rrcmd "${profile_low[@]}" -c "${remote_cmd} vars" ${MASTER1_IP}
 
   for i in ${NODES_MASTER}; do
-    blue_font "------ [Display] master ------"
+    blue_font "------ [Display] master vars ------"
     rrcmd "${profile_low[@]}" -c "${remote_cmd} vars" ${i}
     break
   done
 
   for i in ${NODES_WORK}; do
-    blue_font "------ [Display] work ------"
+    blue_font "------ [Display] work vars ------"
     rrcmd "${profile_low[@]}" -c "${remote_cmd} vars" ${i}
     break
   done
 
-  blue_font "------ [Display] remote ------"
+  blue_font "------ [Display] remote vars ------"
   display_vars
 }
 
@@ -256,15 +256,15 @@ remote_auto() {
   if [ ${cni_switch} -eq 1 ]; then
     remote_deploy_flannel
   fi
-  blue_font "✓ Cluster installation completed!"
+  blue_font "✔ Cluster installation completed!"
 }
 
 # 清除整个集群
 remote_clean() {
-  blue_font "Warning: This will destroy the entire cluster. Proceed?(y/n):"
+  yellow_font "[Warning]: This will destroy the entire cluster. Proceed?(y/n):"
   read confirm_yn
   if [ ${confirm_yn} ] && [ ${confirm_yn} = 'y' ]; then
-    blue_font "Warning: This will destroy the entire cluster. Proceed?(y/n):"
+    yellow_font "[Warning]: This will destroy the entire cluster. Proceed?(y/n):"
     read confirm_yn
     if [ ${confirm_yn} ] && [ ${confirm_yn} = 'y' ]; then
       remote_clean_cluster

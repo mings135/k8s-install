@@ -68,12 +68,10 @@ join_cluster() {
   if [[ "${HOST_ROLE}" == "master" ]]; then
     local key="$(get_config ".join.certificateKey")"
     local mgr_cmd="${cmd} --control-plane --certificate-key ${key}"
-    blue_font "${mgr_cmd}"
     ${mgr_cmd}
     result_msg "[Join] cluster as master"
     cluster_config_kubectl
   elif [[ "${HOST_ROLE}" == "work" ]]; then
-    blue_font "${cmd}"
     ${cmd}
     result_msg "[Join] cluster as work"
 

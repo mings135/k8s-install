@@ -116,7 +116,23 @@ version_gt() {
 }
 
 blue_font() {
-  echo -e "\033[34m\033[01m$1\033[0m"
+  printf "\033[34m\033[01m%s\033[0m" "${1:-}"
+
+  if [[ -n "${2:-}" ]]; then
+    printf "%s\n" "${2}"
+  else
+    printf "\n"
+  fi
+}
+
+yellow_font() {
+  printf "\033[33m\033[01m%s\033[0m" "${1:-}"
+
+  if [[ -n "${2:-}" ]]; then
+    printf "%s\n" "${2}"
+  else
+    printf "\n"
+  fi
 }
 
 get_config() {
@@ -208,13 +224,13 @@ unhold_pkgs() {
 # 安装必要的前置工具(1)
 const_install_dependencies() {
   if [[ ! -f "${KUBE_BIN}/yq" ]]; then
-    blue_font "[Download] yq to ${KUBE_BIN}"
+    blue_font "[Download] save file" ": ${KUBE_BIN}/yq"
     curl -fsSL -o ${KUBE_BIN}/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
       && chmod +x ${KUBE_BIN}/yq
   fi
 
   if [[ ! -f "${KUBE_BIN}/rrcmd" ]]; then
-    blue_font "[Download] rrcmd to ${KUBE_BIN}"
+    blue_font "[Download] save file" ": ${KUBE_BIN}/rrcmd"
     curl -fsSL -o ${KUBE_BIN}/rrcmd https://github.com/mings135/rrcmd/releases/latest/download/rrcmd_linux_amd64 \
       && chmod +x ${KUBE_BIN}/rrcmd
   fi
@@ -238,8 +254,9 @@ const_create_base_config() {
       . head_comment = "配置文件, 安装升级, 增删节点, 与集群同步, 请勿随意修改!!!"
     ' >${KUBE_FILE}
 
-    blue_font "[Create] kube.yaml, configured by vi ${KUBE_FILE}, rerun this script to continue..."
+    blue_font "[Create] config file" ": ${KUBE_FILE}"
     yq ${KUBE_FILE}
+    blue_font "[Tip] modify config" ": vi ${KUBE_FILE} and re-run the script"
     exit 0
   fi
 }
@@ -256,7 +273,7 @@ const_create_record_file() {
       . head_comment = "记录文件, 非常重要, 自动生成, 请勿修改!!!"
     ' >${KUBE_RECORD}
 
-    blue_font "[Create] record.yaml, DO NOT MODIFY!!!"
+    blue_font "[Create] record file" ": ${KUBE_RECORD}"
   fi
 }
 
