@@ -105,10 +105,10 @@ remote_rsync_own() {
   echo
 }
 
-# 同步脚本文件和配置文件 $1=nodes
+# 同步脚本文件和配置文件
 remote_rsync_script() {
   local excl='--include=/modules/ --include=/modules/* --include=/bin/ --include=/bin/* --include=/config/ --include=/config/kube.yaml --include=/local.sh --exclude=*'
-  remote_rsync_nodes "[Sync] script out to nodes" "${1}" "${excl}"
+  remote_rsync_nodes "[Sync] script out to nodes" "${NODES_ALL}" "${excl}"
 }
 
 # 同步 master1 上的 join, kubeconfig 到非 master1 节点
@@ -249,11 +249,6 @@ remote_display_vars() {
   display_vars
 }
 
-# 查看所需 images
-remote_images_list() {
-  rrcmd "${profile_low[@]}" -c "${remote_cmd} imglist" ${MASTER1_IP}
-}
-
 remote_etc_hosts() {
   rrcmd "${profile_full[@]}" -c "${remote_cmd} hosts" ${NODES_ALL}
 }
@@ -283,22 +278,37 @@ remote_clean() {
   fi
 }
 
+remote_readme() {
+  echo ''
+  printf "Usage: bash $0 [ option ] [ ? ] \n"
+  blue_font "Command:"
+  printf "%-16s %-s\n" 'vars' 'Display all variables'
+  printf "%-16s %-s\n" 'hosts' 'Update hosts'
+
+  printf "%-16s %-s\n" 'auto' 'Automated K8s Cluster Installer(Incremental Support)'
+
+  printf "%-16s %-s\n" 'cri' 'Automated CRI Upgrade'
+
+  printf "%-16s %-s\n" 'upgrade' 'Automated Cluster Upgrade'
+
+  printf "%-16s %-s\n" 'backup' 'Backup containerd kubernetes and etcd'
+
+  printf "%-16s %-s\n" 'delete' 'Delete with work nodes by tag'
+  printf "%-16s %-s\n" 'clean' 'Destroy Entire K8s Cluster'
+
+  blue_font "Option:"
+  printf "%-16s %-s\n" '-f' 'After installing or upgrading k8s cluster, automatically deploy(update) flannel'
+  exit 1
+}
+
 main() {
-
-  local args_all="vars hosts auto cri upgrade delete clean"
-  local args_m1="imglist backup"
-
-  if [[ " $args_all " =~ " $1 " ]]; then
+  if [[ -n "$1" ]]; then
     remote_check_login
-    remote_rsync_script "${NODES_ALL}"
-  elif [[ " $args_m1 " =~ " $1 " ]]; then
-    remote_check_login
-    remote_rsync_script "${MASTER1_IP}"
+    remote_rsync_script
   fi
 
   case $1 in
     "vars") remote_display_vars ;;
-    "imglist") remote_images_list ;;
     "hosts")
       remote_etc_hosts
       blue_font "✔ hosts update completed!"
@@ -328,34 +338,12 @@ main() {
 
     "delete") remote_delete_nodes ;;
     "clean") remote_clean ;;
-    *)
-      echo ''
-      printf "Usage: bash $0 [ option ] [ ? ] \n"
-      blue_font "Command:"
-      printf "%-16s %-s\n" 'vars' 'Display all variables'
-      printf "%-16s %-s\n" 'imglist' 'Display all images'
-      printf "%-16s %-s\n" 'hosts' 'Update hosts'
-
-      printf "%-16s %-s\n" 'auto' 'Automated K8s Cluster Installer(Incremental Support)'
-
-      printf "%-16s %-s\n" 'cri' 'Automated CRI Upgrade'
-
-      printf "%-16s %-s\n" 'upgrade' 'Automated Cluster Upgrade'
-
-      printf "%-16s %-s\n" 'backup' 'Backup containerd kubernetes and etcd'
-
-      printf "%-16s %-s\n" 'delete' 'Delete with work nodes by tag'
-      printf "%-16s %-s\n" 'clean' 'Destroy Entire K8s Cluster'
-
-      blue_font "Option:"
-      printf "%-16s %-s\n" '-f' 'After installing or upgrading k8s cluster, automatically deploy(update) flannel'
-      exit 1
-      ;;
+    *) remote_readme ;;
   esac
 }
 
 # 开头 ':' 表示不打印错误信息, 字符后面 ':' 表示需要参数
-while getopts ":a:f" opt; do
+while getopts ":a:fh" opt; do
   case $opt in
     a)
       # OPTIND 指的下一个选项的 index
@@ -363,6 +351,9 @@ while getopts ":a:f" opt; do
       ;;
     f)
       cni_switch=1
+      ;;
+    h)
+      remote_readme
       ;;
     :)
       blue_font "Option -$OPTARG requires an argument."

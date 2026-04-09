@@ -168,7 +168,7 @@ local_clean_node() {
 main() {
   case $1 in
     "vars") display_vars ;;
-    "imglist") images_list ;;
+
     "hosts") init_etc_hosts ;;
 
     "install") local_base_install ;;
@@ -194,7 +194,6 @@ main() {
     *)
       printf "Usage: bash $0 [ ? ] \n"
       printf "%-16s %-s\n" 'vars' 'display vars'
-      printf "%-16s %-s\n" 'imglist' 'display images'
       printf "%-16s %-s\n" 'hosts' 'update hosts'
 
       printf "%-16s %-s\n" 'install' 'update hosts, system init, install pkgs'

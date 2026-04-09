@@ -1,11 +1,5 @@
 # --- install cluster ---
 
-# 显示所需 images
-images_list() {
-  kubeadm config --config ${KUBE_KUBEADM} images list
-  result_msg "[Display] images list"
-}
-
 # 拉取所需 images
 images_pull() {
   kubeadm config --config ${KUBE_KUBEADM} images pull
