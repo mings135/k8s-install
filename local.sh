@@ -157,6 +157,13 @@ local_clean_node() {
   unhold_pkgs 'kubeadm kubelet kubectl containerd'
   remove_pkgs 'kubeadm kubelet kubectl cri-tools kubernetes-cni containerd.io' '--purge'
 
+  # 删除 cni
+  if ip link show cni0 >/dev/null 2>&1; then
+    ip link set cni0 down \
+      && ip link delete cni0
+    result_msg "[Delete] cni0"
+  fi
+
   # 删除相关目录、文件
   rm -rf /etc/cni/net.d /root/.kube/config
   result_msg "[Delete] /etc/cni/net.d .kube/config"
