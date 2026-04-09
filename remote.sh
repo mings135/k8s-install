@@ -211,7 +211,7 @@ remote_delete_nodes() {
 
   if [[ -n "${DELETE_WORKS}" ]]; then
     local works
-    for i in ${NODES_WORK}; do
+    for i in ${DELETE_WORKS}; do
       works+="${i#*=} "
     done
     rrcmd "${profile_full[@]}" -c "${remote_cmd} clean" ${works}
