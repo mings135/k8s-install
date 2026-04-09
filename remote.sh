@@ -346,7 +346,10 @@ main() {
       blue_font "✔ Cluster backup completed!"
       ;;
 
-    "delete") remote_delete_nodes ;;
+    "delete")
+      remote_delete_nodes
+      blue_font "✔ Work nodes deleted completed!"
+      ;;
     "clean") remote_clean ;;
     *) remote_help ;;
   esac
