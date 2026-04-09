@@ -198,7 +198,7 @@ cluster_delete_works() {
       result_msg "[Delete] node ${domain}"
     fi
     # Delete config with address
-    val1="${addr}" yq -i 'del(.nodes.work[] | select(.address == strenv(val1))' ${KUBE_FILE}
+    val1="${addr}" yq -i 'del(.nodes.work[] | select(.address == strenv(val1)))' ${KUBE_FILE}
     result_msg "[Delete] config with ${addr}"
   done
   sync
