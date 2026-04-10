@@ -12,7 +12,6 @@ KUBE_BACKUP="${script_dir}/backup"
 KUBE_KUBEADM="${KUBE_CONF}/kubeadm-config.yaml"
 KUBE_FILE="${KUBE_CONF}/kube.yaml"
 KUBE_RECORD="${KUBE_CONF}/record.yaml"
-clusterName='kubernetes'
 maxConcurrency=32
 minConcurrency=1
 RES_LEVEL=0

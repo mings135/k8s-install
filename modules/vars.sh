@@ -51,8 +51,12 @@ vars_by_config() {
   controlPlaneEndpoint="$(get_config ".cluster.controlPlaneEndpoint")"
   controlPlaneTarget="$(get_config ".cluster.controlPlaneTarget")"
   imageRepository="$(get_config ".cluster.imageRepository")"
+
   caCertificateValidityPeriod="$(get_config ".cluster.caCertificateValidityPeriod")"
   certificateValidityPeriod="$(get_config ".cluster.certificateValidityPeriod")"
+  clusterName="$(get_config ".cluster.clusterName")"
+
+  dnsDomain="$(get_config ".cluster.dnsDomain")"
   serviceSubnet="$(get_config ".cluster.serviceSubnet")"
   podSubnet="$(get_config ".cluster.podSubnet")"
   # container
@@ -80,7 +84,7 @@ vars_by_default() {
   fi
 
   # k8s version(支持 1.31+, 不支持 latest)
-  kubernetesVersion=${kubernetesVersion:-"1.33.10"}
+  kubernetesVersion=${kubernetesVersion:-"1.35.3"}
   kubernetesVersion="${kubernetesVersion#v}"
 
   # k8s controlPlaneEndpoint, 重要参数, 就是 LB IP or Domain
@@ -97,7 +101,11 @@ vars_by_default() {
   # kubeadm 证书期限, 仅 kubernetes >= 1.31 可用(格式：8760h0m0s)
   caCertificateValidityPeriod=${caCertificateValidityPeriod:-"262800h0m0s"}
   certificateValidityPeriod=${certificateValidityPeriod:-"26280h0m0s"}
+  # k8s 集群名称
+  clusterName=${clusterName:-"kubernetes"}
 
+  # DNS 集群域名
+  dnsDomain=${dnsDomain:-"cluster.local"}
   # Services 子网和 API Server 集群内部地址 (即 Service 网络的第一个 IP)
   serviceSubnet=${serviceSubnet:-"10.96.0.0/16"}
   # Pod 网络, flannel 默认使用 10.244.0.0/16, 除非想修改 flannel 配置, 否则不要修改
@@ -136,7 +144,6 @@ display_vars() {
   echo "OS_VERSION=${OS_VERSION}"
   echo "script_dir=${script_dir}"
   echo "script_own=${script_own}"
-  echo "clusterName=${clusterName}"
   # master1
   echo "MASTER1_IP=${MASTER1_IP}"
   echo "MASTER1_NAME=${MASTER1_NAME}"
@@ -159,6 +166,8 @@ display_vars() {
   echo "imageRepository=${imageRepository}"
   echo "caCertificateValidityPeriod=${caCertificateValidityPeriod}"
   echo "certificateValidityPeriod=${certificateValidityPeriod}"
+  echo "clusterName=${clusterName}"
+  echo "dnsDomain=${dnsDomain}"
   echo "serviceSubnet=${serviceSubnet}"
   echo "podSubnet=${podSubnet}"
   # config .container
@@ -185,14 +194,6 @@ display_vars() {
     echo ''
     blue_font "[Display] config file" ": ${KUBE_KUBEADM}"
     yq ${KUBE_KUBEADM}
-  fi
-
-  # etc hosts
-  local file='/etc/hosts'
-  if [[ "${HOST_ROLE}" == "master1" ]] && [[ -f "${file}" ]]; then
-    echo ''
-    blue_font "[Display] config file" ": ${file}"
-    cat ${file}
   fi
 
   # containerd

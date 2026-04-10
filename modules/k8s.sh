@@ -118,15 +118,19 @@ EOF
     val2=${controlPlaneEndpoint} \
     val3=${caCertificateValidityPeriod} \
     val4=${certificateValidityPeriod} \
-    val5=${serviceSubnet} \
-    val6=${podSubnet} \
+    val5=${clusterName} \
+    val6=${dnsDomain} \
+    val7=${serviceSubnet} \
+    val8=${podSubnet} \
     yq -i '
       .kubernetesVersion = strenv(val1) |
       .controlPlaneEndpoint = strenv(val2) |
       .caCertificateValidityPeriod = strenv(val3) |
       .certificateValidityPeriod = strenv(val4) |
-      .networking.serviceSubnet = strenv(val5) |
-      .networking.podSubnet = strenv(val6)
+      .clusterName = strenv(val5) |
+      .networking.dnsDomain = strenv(val6) |
+      .networking.serviceSubnet = strenv(val7) |
+      .networking.podSubnet = strenv(val8)
     ' ${KUBE_CONF}/clusterConfiguration.yaml
 
   # clusterConfiguration.yaml

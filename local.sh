@@ -168,7 +168,6 @@ local_clean_node() {
 main() {
   case $1 in
     "vars") display_vars ;;
-
     "hosts") init_etc_hosts ;;
 
     "install") local_base_install ;;
@@ -193,24 +192,25 @@ main() {
     "clean") local_clean_node ;;
     *)
       printf "Usage: bash $0 [ ? ] \n"
-      printf "%-16s %-s\n" 'vars' 'display vars'
-      printf "%-16s %-s\n" 'hosts' 'update hosts'
+      printf "%-16s %-s\n" 'vars' 'Display vars'
+      printf "%-16s %-s\n" 'hosts' 'Update hosts'
 
-      printf "%-16s %-s\n" 'install' 'update hosts, system init, install pkgs'
-      printf "%-16s %-s\n" 'imgpull' 'pull images'
-      printf "%-16s %-s\n" 'init' 'init cluster, create join command'
-      printf "%-16s %-s\n" 'join' 'join cluster'
-      printf "%-16s %-s\n" 'flannel' 'deploy flannel'
+      printf "%-16s %-s\n" 'install' 'Update hosts, system init, install pkgs'
+      printf "%-16s %-s\n" 'imgpull' 'Pull images'
+      printf "%-16s %-s\n" 'init' 'Init cluster, create join command'
+      printf "%-16s %-s\n" 'join' 'Join cluster'
+      printf "%-16s %-s\n" 'flannel' 'Deploy flannel'
 
-      printf "%-16s %-s\n" 'cri' 'upgrade cri'
-      printf "%-16s %-s\n" 'token' 'create kubeconfig.token'
-      printf "%-16s %-s\n" 'context' 'config kubeconfig context'
+      printf "%-16s %-s\n" 'cri' 'Upgrade cri'
+      printf "%-16s %-s\n" 'token' 'Create kubeconfig.token'
+      printf "%-16s %-s\n" 'context' 'Config kubeconfig context'
 
-      printf "%-16s %-s\n" 'upgrade' 'upgrade cluster'
+      printf "%-16s %-s\n" 'upgrade' 'Upgrade cluster'
 
-      printf "%-16s %-s\n" 'backup' 'backup containerd kubernetes and etcd'
+      printf "%-16s %-s\n" 'backup' 'Backup containerd kubernetes and etcd'
 
-      printf "%-16s %-s\n" 'clean' 'clean cluster node'
+      printf "%-16s %-s\n" 'delete' 'Delete cluster nodes by tag'
+      printf "%-16s %-s\n" 'clean' 'Clean up the local node'
       exit 1
       ;;
   esac
