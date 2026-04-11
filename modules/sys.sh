@@ -102,7 +102,7 @@ EOF
     fi
   done <"$f"
   [[ "$rc" -eq 0 ]]
-  result_msg '[Loading] ipvs nf_conntrack overlay br_netfilter'
+  result_msg '[Loading] ip_vs nf_conntrack overlay br_netfilter'
 }
 
 # 优化内核参数
