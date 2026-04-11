@@ -93,13 +93,6 @@ remote_rsync_nodes() {
   local excl="$3"
   local src="${script_dir}/"
 
-  # for i in $2; do
-  #   blue_font "$1" ": ${i}"
-  #   dest="${nodeUser}@${i}:${remoteScriptDir}/"
-  #   rsync ${parm} ${excl} ${src} ${dest}
-  # done
-  # echo
-
   blue_font "$1"
   rrcmd -b "rsync" -a "${parm} ${excl} ${src}" "${common_args[@]}" -j "${maxJobs}" -path "${remoteScriptDir}/" $2
 }
@@ -111,11 +104,6 @@ remote_rsync_own() {
   local excl="$3"
   local src="${script_dir}/"
   local i="$2"
-
-  # blue_font "$1" ": ${i}"
-  # dest="${nodeUser}@${i}:${remoteScriptDir}/"
-  # rsync ${parm} ${excl} ${dest} ${src}
-  # echo
 
   blue_font "$1"
   rrcmd -b "rsync" -a "${parm} ${excl}" "${common_args[@]}" -j "${maxJobs}" -path "${remoteScriptDir}/" -c "${src}" $2

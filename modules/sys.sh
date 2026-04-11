@@ -160,27 +160,26 @@ init_system() {
 
 # 配置 /etc/hosts
 init_etc_hosts() {
-  # 添加 master1 hosts 配置
-  sed -i "/[[:space:]]${MASTER1_NAME}$/d" /etc/hosts
-  echo "${MASTER1_IP} ${MASTER1_NAME}" >>/etc/hosts
-  result_msg "[Modify] hosts: ${MASTER1_IP}"
+  local start_mark="# KUBE-HOSTS-START"
+  local end_mark="# KUBE-HOSTS-END"
 
+  sed -i "/${start_mark}/,/${end_mark}/d" /etc/hosts
+
+  local dns="${MASTER1_IP} ${MASTER1_NAME}"
   local data="$(yq -M '.nodes.master + .nodes.work | .[] | .address + " " + .domain' "${KUBE_FILE}")"
-  while read -r addr domain; do
-    if [[ -n "${domain}" ]]; then
-      # 删除旧记录并追加新记录
-      sed -i "/[[:space:]]${domain}$/d" /etc/hosts
-      echo "${addr} ${domain}" >>/etc/hosts
-      result_msg "[Modify] hosts: ${addr}"
-    fi
-  done <<<"$data"
+
+  if [[ -n "${data}" ]]; then
+    dns=$(printf '%s\n%s' "${dns}" "${data}")
+  fi
 
   local domain="${controlPlaneEndpoint%:*}"
   local pattern="^([a-z0-9][-a-z0-9]*\.)+[a-z0-9]+[a-z]$"
   if [[ -n "${controlPlaneTarget}" ]] && [[ "${domain}" =~ ${pattern} ]]; then
-    # 添加 controlPlaneTarget hosts 配置
-    sed -i "/[[:space:]]${domain}$/d" /etc/hosts
-    echo "${controlPlaneTarget} ${domain}" >>/etc/hosts
-    result_msg "[Modify] hosts: ${controlPlaneTarget}"
+    dns=$(printf '%s\n%s' "${dns}" "${controlPlaneTarget} ${domain}")
   fi
+
+  echo "${start_mark}" >>/etc/hosts \
+    && echo "${dns}" >>/etc/hosts \
+    && echo "${end_mark}" >>/etc/hosts
+  result_msg '[Modify] /etc/hosts'
 }

@@ -269,8 +269,7 @@ const_create_record_file() {
       .backup = {} |
       . head_comment = "记录文件, 非常重要, 自动生成, 请勿修改!!!"
     ' >${KUBE_RECORD}
-
-    blue_font "[Create] record file" ": ${KUBE_RECORD}"
+    result_msg "[Create] record file"
   fi
 }
 
