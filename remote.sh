@@ -23,11 +23,11 @@ else
   remote_sh='sudo bash'
 fi
 
+ssh_args=(-a "-o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=20")
 remote_cmd="${remote_sh} ${remoteScriptDir}/local.sh"
-rmeote_args=(-a "-o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=20")
-profile_full=("${args[@]}" -u "${nodeUser}" -j "${maxJobs}" -p '^·\[.*\]$')
-profile_low=("${args[@]}" -u "${nodeUser}" -j "${minJobs}" -p '^·\[.*\]$')
-profile_upgrade=("${args[@]}" -u "${nodeUser}" -j "${upgradeJobs}" -p '^·\[.*\]$')
+profile_full=("${ssh_args[@]}" -u "${nodeUser}" -j "${maxJobs}" -p '^·\[.*\]$')
+profile_low=("${ssh_args[@]}" -u "${nodeUser}" -j "${minJobs}" -p '^·\[.*\]$')
+profile_upgrade=("${ssh_args[@]}" -u "${nodeUser}" -j "${upgradeJobs}" -p '^·\[.*\]$')
 
 # 免密登录节点
 remote_free_login() {
@@ -68,7 +68,7 @@ remote_check_login() {
   blue_font "[Check] login and rsync status..."
 
   local output rc=0
-  output=$(rrcmd "${profile_full[@]}" -f -q -c "command -v rsync &>/dev/null" ${NODES_ALL}) || rc=$?
+  output=$(rrcmd "${profile_full[@]}" -q -c "command -v rsync &>/dev/null" ${NODES_ALL}) || rc=$?
 
   if [[ "$rc" -ne 0 ]]; then
     local end="$(echo "${output}" | awk 'END{print}')"
