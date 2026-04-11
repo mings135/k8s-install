@@ -93,12 +93,15 @@ remote_rsync_nodes() {
   local excl="$3"
   local src="${script_dir}/"
 
-  for i in $2; do
-    blue_font "$1" ": ${i}"
-    dest="${nodeUser}@${i}:${remoteScriptDir}/"
-    rsync ${parm} ${excl} ${src} ${dest}
-  done
-  echo
+  # for i in $2; do
+  #   blue_font "$1" ": ${i}"
+  #   dest="${nodeUser}@${i}:${remoteScriptDir}/"
+  #   rsync ${parm} ${excl} ${src} ${dest}
+  # done
+  # echo
+
+  blue_font "$1"
+  rrcmd -b "rsync" -a "${parm} ${excl} ${src}" "${common_args[@]}" -j "${maxJobs}" -path "${remoteScriptDir}/" $2
 }
 
 # rsync 被某个节点同步, 参数 $1=message $2=node $3=include and exclude parm
@@ -113,7 +116,8 @@ remote_rsync_own() {
   # dest="${nodeUser}@${i}:${remoteScriptDir}/"
   # rsync ${parm} ${excl} ${dest} ${src}
   # echo
-  blue_font "$1" ": ${2}"
+
+  blue_font "$1"
   rrcmd -b "rsync" -a "${parm} ${excl}" "${common_args[@]}" -j "${maxJobs}" -path "${remoteScriptDir}/" -c "${src}" $2
 }
 
@@ -319,6 +323,7 @@ remote_help() {
 
   blue_font "Option:"
   printf "%-16s %-s\n" '-f' 'After installing or upgrading k8s cluster, automatically deploy(update) flannel'
+  printf "%-16s %-s\n" '-q' 'Quiet mode, only display status and error message'
   exit 1
 }
 
