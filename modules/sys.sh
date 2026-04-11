@@ -80,6 +80,7 @@ EOF
 # 加载 ipvs 模块
 sys_load_modules() {
   local f="/etc/modules-load.d/ipvs.conf"
+  local rc=0
   # 开机自加载 ipvs 模块
   cat >"$f" <<EOF
 ip_vs
@@ -94,9 +95,14 @@ EOF
     if [[ -z "$line" || "$line" =~ ^# ]]; then
       continue
     fi
-    modinfo -F filename $line >/dev/null && modprobe $line
-    result_msg "[Loading] module $line"
+    modprobe $line
+    rc=$?
+    if [[ "$rc" -ne 0 ]]; then
+      break
+    fi
   done <"$f"
+  [[ "$rc" -eq 0 ]]
+  result_msg '[Loading] ipvs nf_conntrack overlay br_netfilter'
 }
 
 # 优化内核参数
