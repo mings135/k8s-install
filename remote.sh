@@ -14,20 +14,27 @@ source ${script_dir}/modules/const.sh
 source ${script_dir}/modules/vars.sh
 source ${script_dir}/modules/check.sh
 
-# remote 变量
-cni_switch=0
+remote_variables() {
+  if [[ "${nodeUser}" == "root" ]]; then
+    remote_sh='bash'
+  else
+    remote_sh='sudo bash'
+  fi
 
-if [[ "${nodeUser}" == "root" ]]; then
-  remote_sh='bash'
-else
-  remote_sh='sudo bash'
-fi
+  if [[ "${quiet_switch}" -eq 1 ]]; then
+    common_args=(-u "${nodeUser}" -p '^·\[.*\]$' -q)
+  else
+    common_args=(-u "${nodeUser}" -p '^·\[.*\]$')
+  fi
 
-ssh_args=(-a "-o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=20")
-remote_cmd="${remote_sh} ${remoteScriptDir}/local.sh"
-profile_full=("${ssh_args[@]}" -u "${nodeUser}" -j "${maxJobs}" -p '^·\[.*\]$')
-profile_low=("${ssh_args[@]}" -u "${nodeUser}" -j "${minJobs}" -p '^·\[.*\]$')
-profile_upgrade=("${ssh_args[@]}" -u "${nodeUser}" -j "${upgradeJobs}" -p '^·\[.*\]$')
+  ssh_args=(-a "-o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=20")
+
+  remote_cmd="${remote_sh} ${remoteScriptDir}/local.sh"
+
+  profile_full=("${ssh_args[@]}" "${common_args[@]}" -j "${maxJobs}")
+  profile_low=("${ssh_args[@]}" "${common_args[@]}" -j "${minJobs}")
+  profile_upgrade=("${ssh_args[@]}" "${common_args[@]}" -j "${upgradeJobs}")
+}
 
 # 免密登录节点
 remote_free_login() {
@@ -46,19 +53,18 @@ remote_free_login() {
     fi
   fi
 
+  local args="-p ${nodePassword} ssh-copy-id -o StrictHostKeyChecking=no -i ${HOME}/.ssh/id_rsa.pub"
   # copy public key 到各个节点
-  for i in ${1}; do
-    sshpass -p "${nodePassword}" ssh-copy-id -o StrictHostKeyChecking=no -i ${HOME}/.ssh/id_rsa.pub ${nodeUser}@${i}
-  done
+  if [[ -n $(echo "${1}" | tr -d '[:space:]') ]]; then
+    rrcmd -b "sshpass" -a "${args}" "${common_args[@]}" -j "${maxJobs}" ${1}
+  fi
 }
 
 # 前置操作, 安装 rsync
 remote_front_operator() {
-  for i in ${1}; do
-    scp -o StrictHostKeyChecking=no -r ${script_dir}/front.sh ${nodeUser}@${i}:/tmp/front.sh
-  done
-  echo
   if [[ -n $(echo "${1}" | tr -d '[:space:]') ]]; then
+    local args="-o StrictHostKeyChecking=no -r ${script_dir}/front.sh"
+    rrcmd -b "scp" -a "${args}" "${common_args[@]}" -j "${maxJobs}" -path "/tmp/front.sh" ${1}
     rrcmd "${profile_full[@]}" -c "${remote_sh} /tmp/front.sh" ${1}
   fi
 }
@@ -68,7 +74,7 @@ remote_check_login() {
   blue_font "[Check] login and rsync status..."
 
   local output rc=0
-  output=$(rrcmd "${profile_full[@]}" -q -c "command -v rsync &>/dev/null" ${NODES_ALL}) || rc=$?
+  output=$(rrcmd "${profile_full[@]}" -c "command -v rsync &>/dev/null" ${NODES_ALL}) || rc=$?
 
   if [[ "$rc" -ne 0 ]]; then
     local end="$(echo "${output}" | awk 'END{print}')"
@@ -268,7 +274,7 @@ remote_auto() {
   remote_base_install   # update hosts -> system base -> cri --> k8s
   remote_images_pull    # pull images
   remote_deploy_cluster # init m1 --> join command --> sync kube.yaml --> join cluster
-  if [ ${cni_switch} -eq 1 ]; then
+  if [[ "${cni_switch}" -eq 1 ]]; then
     remote_deploy_flannel
   fi
   blue_font "✔ Cluster installation completed!"
@@ -313,6 +319,7 @@ remote_help() {
 }
 
 main() {
+  remote_variables
   if [[ -n "$1" ]]; then
     remote_check_login
     remote_rsync_script
@@ -336,7 +343,7 @@ main() {
 
     "upgrade")
       remote_upgrade_cluster
-      if [ ${cni_switch} -eq 1 ]; then
+      if [[ "${cni_switch}" -eq 1 ]]; then
         remote_deploy_flannel
       fi
       blue_font "✔ Cluster upgrade completed!"
@@ -356,8 +363,11 @@ main() {
   esac
 }
 
+cni_switch=0
+quiet_switch=0
+
 # 开头 ':' 表示不打印错误信息, 字符后面 ':' 表示需要参数
-while getopts ":a:fh" opt; do
+while getopts ":a:fhq" opt; do
   case $opt in
     a)
       # OPTIND 指的下一个选项的 index
@@ -368,6 +378,9 @@ while getopts ":a:fh" opt; do
       ;;
     h)
       remote_help
+      ;;
+    q)
+      quiet_switch=1
       ;;
     :)
       blue_font "Option -$OPTARG requires an argument."
