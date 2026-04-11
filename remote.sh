@@ -53,11 +53,13 @@ remote_free_login() {
     fi
   fi
 
-  local args="-o StrictHostKeyChecking=no -i ${HOME}/.ssh/id_rsa.pub"
+  local args="-e ssh-copy-id -o StrictHostKeyChecking=no -i ${HOME}/.ssh/id_rsa.pub"
+  export SSHPASS="${nodePassword}"
   # copy public key 到各个节点
   if [[ -n $(echo "${1}" | tr -d '[:space:]') ]]; then
-    sshpass -p ${nodePassword} rrcmd -b "ssh-copy-id" -a "${args}" "${common_args[@]}" -j "${maxJobs}" ${1}
+    rrcmd -b "sshpass" -a "${args}" "${common_args[@]}" -j "${maxJobs}" ${1}
   fi
+  unset SSHPASS
 }
 
 # 前置操作, 安装 rsync
