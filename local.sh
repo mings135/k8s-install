@@ -164,6 +164,7 @@ local_clean_node() {
   local start_mark="# KUBE-HOSTS-START"
   local end_mark="# KUBE-HOSTS-END"
   sed -i "/${start_mark}/,/${end_mark}/d" /etc/hosts
+  result_msg "[Modify] /etc/hosts"
 
   find ${script_dir} -mindepth 1 -maxdepth 1 | xargs rm -rf
   result_msg "[Delete] ${script_dir}/*"
