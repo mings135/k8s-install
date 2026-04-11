@@ -249,7 +249,7 @@ const_create_base_config() {
       .join = {} |
       .kubeconfig = {} |
       (.join | key) head_comment = "以下内容自动生成, 请勿修改!!!" |
-      . head_comment = "配置文件, 安装升级, 增删节点, 与集群同步, 请勿随意修改!!!"
+      . head_comment = "配置文件, 安装升级, 增删节点, 与集群同步, 请勿随意修改!"
     ' >${KUBE_FILE}
 
     blue_font "[Create] config file" ": ${KUBE_FILE}, modify it and re-run script"
@@ -267,7 +267,7 @@ const_create_record_file() {
       .k8s = {} |
       .cluster = {} |
       .backup = {} |
-      . head_comment = "记录文件, 非常重要, 自动生成, 请勿修改!!!"
+      . head_comment = "记录文件, 非常重要, 自动生成, 请勿修改!"
     ' >${KUBE_RECORD}
     result_msg "[Create] record file"
   fi
