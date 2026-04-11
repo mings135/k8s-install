@@ -53,10 +53,10 @@ remote_free_login() {
     fi
   fi
 
-  local args="-p ${nodePassword} ssh-copy-id -o StrictHostKeyChecking=no -i ${HOME}/.ssh/id_rsa.pub"
+  local args="-o StrictHostKeyChecking=no -i ${HOME}/.ssh/id_rsa.pub"
   # copy public key 到各个节点
   if [[ -n $(echo "${1}" | tr -d '[:space:]') ]]; then
-    rrcmd -b "sshpass" -a "${args}" "${common_args[@]}" -j "${maxJobs}" ${1}
+    sshpass -p ${nodePassword} rrcmd -b "ssh-copy-id" -a "${args}" "${common_args[@]}" -j "${maxJobs}" ${1}
   fi
 }
 
@@ -107,10 +107,12 @@ remote_rsync_own() {
   local src="${script_dir}/"
   local i="$2"
 
-  blue_font "$1" ": ${i}"
-  dest="${nodeUser}@${i}:${remoteScriptDir}/"
-  rsync ${parm} ${excl} ${dest} ${src}
-  echo
+  # blue_font "$1" ": ${i}"
+  # dest="${nodeUser}@${i}:${remoteScriptDir}/"
+  # rsync ${parm} ${excl} ${dest} ${src}
+  # echo
+  blue_font "$1" ": ${2}"
+  rrcmd -b "rsync" -a "${parm} ${excl}" "${common_args[@]}" -j "${maxJobs}" -path "${remoteScriptDir}/" -c "${src}" $2
 }
 
 # 同步脚本文件和配置文件
