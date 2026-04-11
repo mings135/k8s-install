@@ -88,25 +88,24 @@ remote_check_login() {
 
 # rsync 同步脚本内容到多个节点, 参数 $1=message $2=nodes $3=include and exclude parm
 remote_rsync_nodes() {
-  local dest
   local parm='-avc --delete'
   local excl="$3"
   local src="${script_dir}/"
+  local dst="${remoteScriptDir}/"
 
   blue_font "$1"
-  rrcmd -b "rsync" -a "${parm} ${excl} ${src}" "${common_args[@]}" -j "${maxJobs}" -path "${remoteScriptDir}/" $2
+  rrcmd -b "rsync" -a "${parm} ${excl} ${src}" "${common_args[@]}" -j "${maxJobs}" -path "${dst}" $2
 }
 
 # rsync 被某个节点同步, 参数 $1=message $2=node $3=include and exclude parm
 remote_rsync_own() {
-  local dest
   local parm='-avc'
   local excl="$3"
   local src="${script_dir}/"
-  local i="$2"
+  local dst="${remoteScriptDir}/"
 
   blue_font "$1"
-  rrcmd -b "rsync" -a "${parm} ${excl}" "${common_args[@]}" -j "${maxJobs}" -path "${remoteScriptDir}/" -c "${src}" $2
+  rrcmd -b "rsync" -a "${parm} ${excl}" "${common_args[@]}" -j "${maxJobs}" -path "${dst}" -c "${src}" $2
 }
 
 # 同步脚本文件和配置文件
