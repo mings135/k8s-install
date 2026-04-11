@@ -24,9 +24,10 @@ else
 fi
 
 remote_cmd="${remote_sh} ${remoteScriptDir}/local.sh"
-profile_full=(-u "${nodeUser}" -j "${maxConcurrency}" -p '^·\[.*\]$')
-profile_low=(-u "${nodeUser}" -j "${minConcurrency}" -p '^·\[.*\]$')
-profile_upgrade=(-u "${nodeUser}" -j "${upgradeConcurrency}" -p '^·\[.*\]$')
+rmeote_args=(-a "-o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=20")
+profile_full=("${args[@]}" -u "${nodeUser}" -j "${maxJobs}" -p '^·\[.*\]$')
+profile_low=("${args[@]}" -u "${nodeUser}" -j "${minJobs}" -p '^·\[.*\]$')
+profile_upgrade=("${args[@]}" -u "${nodeUser}" -j "${upgradeJobs}" -p '^·\[.*\]$')
 
 # 免密登录节点
 remote_free_login() {

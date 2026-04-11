@@ -41,7 +41,7 @@ vars_by_config() {
   # 从配置文件中获取 config 信息
   etcdctlVersion="$(get_config ".etcdctlVersion")"
   localMirror="$(get_config ".localMirror")"
-  upgradeConcurrency="$(get_config ".upgradeConcurrency")"
+  upgradeJobs="$(get_config ".upgradeJobs")"
   nodeUser="$(get_config ".nodeUser")"
   nodePassword="$(get_config ".nodePassword")"
   remoteScriptDir="$(get_config ".remoteScriptDir")"
@@ -71,7 +71,7 @@ vars_by_default() {
   # 是否使用国内 apt 镜像源
   localMirror=${localMirror:-"false"}
   # 升级 cri and cluster, work nodes 允许的最大并行数量
-  upgradeConcurrency=${upgradeConcurrency:-"1"}
+  upgradeJobs=${upgradeJobs:-"1"}
   # 节点密码, 默认为空(也就是手动输入)
   nodeUser=${nodeUser:-"root"}
   nodePassword=${nodePassword:-""}
@@ -155,7 +155,7 @@ display_vars() {
   # config .
   echo "etcdctlVersion=${etcdctlVersion}"
   echo "localMirror=${localMirror}"
-  echo "upgradeConcurrency=${upgradeConcurrency}"
+  echo "upgradeJobs=${upgradeJobs}"
   echo "nodeUser=${nodeUser}"
   echo "nodePassword=${nodePassword}"
   echo "remoteScriptDir=${remoteScriptDir}"
