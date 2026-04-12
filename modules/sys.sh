@@ -85,7 +85,7 @@ sys_load_modules() {
   cat >"$f" <<EOF
 ip_vs
 ip_vs_rr
-ip_vs_wrr
+ip_vs_lc
 nf_conntrack
 overlay
 br_netfilter
@@ -166,10 +166,10 @@ init_system() {
 
 # 配置 /etc/hosts
 init_etc_hosts() {
-  local start_mark="# KUBE-HOSTS-START"
-  local end_mark="# KUBE-HOSTS-END"
+  local start="# KUBE-HOSTS-START"
+  local end="# KUBE-HOSTS-END"
 
-  sed -i "/${start_mark}/,/${end_mark}/d" /etc/hosts
+  sed -i "/${start}/,/${end}/d" /etc/hosts
 
   local dns="${MASTER1_IP} ${MASTER1_NAME}"
   local data="$(yq -M '.nodes.master + .nodes.work | .[] | .address + " " + .domain' "${KUBE_FILE}")"
@@ -184,8 +184,8 @@ init_etc_hosts() {
     dns=$(printf '%s\n%s' "${dns}" "${controlPlaneTarget} ${domain}")
   fi
 
-  echo "${start_mark}" >>/etc/hosts \
+  echo "${start}" >>/etc/hosts \
     && echo "${dns}" >>/etc/hosts \
-    && echo "${end_mark}" >>/etc/hosts
+    && echo "${end}" >>/etc/hosts
   result_msg '[Modify] /etc/hosts'
 }

@@ -12,7 +12,6 @@ KUBE_BACKUP="${script_dir}/backup"
 KUBE_KUBEADM="${KUBE_CONF}/kubeadm-config.yaml"
 KUBE_FILE="${KUBE_CONF}/kube.yaml"
 KUBE_RECORD="${KUBE_CONF}/record.yaml"
-maxJobs=32
 minJobs=1
 RES_LEVEL=0
 RES_COLUM=50
@@ -124,13 +123,7 @@ blue_font() {
 }
 
 yellow_font() {
-  printf "\033[33m\033[01m%s\033[0m" "${1:-}"
-
-  if [[ -n "${2:-}" ]]; then
-    printf "%s\n" "${2}"
-  else
-    printf "\n"
-  fi
+  printf "\033[33m\033[01m%s\033[0m\n" "${1:-}"
 }
 
 get_config() {
@@ -273,11 +266,10 @@ const_create_record_file() {
   fi
 }
 
-if [[ "${script_type}" == "local" ]]; then
-  const_create_record_file
-fi
-
-if [[ "${script_type}" == "remote" ]]; then
-  const_install_dependencies
-  const_create_base_config
-fi
+case "${script_type}" in
+  "local") const_create_record_file ;;
+  "remote")
+    const_install_dependencies
+    const_create_base_config
+    ;;
+esac

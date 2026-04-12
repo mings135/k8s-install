@@ -41,6 +41,7 @@ vars_by_config() {
   # 从配置文件中获取 config 信息
   etcdctlVersion="$(get_config ".etcdctlVersion")"
   localMirror="$(get_config ".localMirror")"
+  maxJobs="$(get_config ".maxJobs")"
   upgradeJobs="$(get_config ".upgradeJobs")"
   nodeUser="$(get_config ".nodeUser")"
   nodePassword="$(get_config ".nodePassword")"
@@ -70,8 +71,12 @@ vars_by_default() {
   etcdctlVersion=${etcdctlVersion:-"3.6.6"}
   # 是否使用国内 apt 镜像源
   localMirror=${localMirror:-"false"}
-  # 升级 cri and cluster, work nodes 允许的最大并行数量
+
+  # 允许的最大并行数量
+  maxJobs=${maxJobs:-"8"}
+  # 升级 cri and cluster(work nodes) 允许的最大并行数量
   upgradeJobs=${upgradeJobs:-"1"}
+
   # 节点密码, 默认为空(也就是手动输入)
   nodeUser=${nodeUser:-"root"}
   nodePassword=${nodePassword:-""}
@@ -111,7 +116,7 @@ vars_by_default() {
   # Pod 网络, flannel 默认使用 10.244.0.0/16, 除非想修改 flannel 配置, 否则不要修改
   podSubnet=${podSubnet:-"10.244.0.0/16"}
 
-  # 容器运行时: containerd(最新版本: latest, 具体版本: 1.6.9)
+  # 容器运行时: containerd(最新版本: latest, 具体版本: 2.2.2)
   criVersion=${criVersion:-"latest"}
   criVersion="${criVersion#v}"
 
@@ -155,6 +160,7 @@ display_vars() {
   # config .
   echo "etcdctlVersion=${etcdctlVersion}"
   echo "localMirror=${localMirror}"
+  echo "maxJobs=${maxJobs}"
   echo "upgradeJobs=${upgradeJobs}"
   echo "nodeUser=${nodeUser}"
   echo "nodePassword=${nodePassword}"

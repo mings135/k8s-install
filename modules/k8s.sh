@@ -56,7 +56,7 @@ apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
 mode: ipvs
 ipvs:
-  scheduler: "wrr"
+  scheduler: "rr"
   # [必须] 优化超时时间, 防止内核连接跟踪表(conntrack)堆积
   tcpTimeout: 300s
   tcpFinTimeout: 60s
