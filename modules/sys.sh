@@ -86,6 +86,7 @@ sys_load_modules() {
 ip_vs
 ip_vs_rr
 ip_vs_lc
+ip_vs_wrr
 nf_conntrack
 overlay
 br_netfilter
