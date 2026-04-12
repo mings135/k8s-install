@@ -147,20 +147,17 @@ local_upgrade_cluster() {
 local_clean_node() {
   # 集群清理
   if command -v kubeadm &>/dev/null; then
-    kubeadm reset -f
-  fi
-  if command -v ipvsadm &>/dev/null; then
-    ipvsadm --clear
+    kubeadm reset -f \
+      && ipvsadm --clear \
+      && rm -rf /etc/cni/net.d /root/.kube/config
+    result_msg "[Delete] net.d config, reset k8s, clear ipvs"
   fi
 
   # 删除 k8s 组件
   unhold_pkgs 'kubeadm kubelet kubectl containerd'
   remove_pkgs 'kubeadm kubelet kubectl cri-tools kubernetes-cni containerd.io' '--purge'
 
-  # 删除相关目录、文件
-  rm -rf /etc/cni/net.d /root/.kube/config
-  result_msg "[Delete] /etc/cni/net.d .kube/config"
-
+  # 删除本脚本
   find ${script_dir} -mindepth 1 -maxdepth 1 | xargs rm -rf
   result_msg "[Delete] ${script_dir}/*"
 }
